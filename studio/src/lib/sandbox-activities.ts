@@ -748,6 +748,32 @@ export function getActivitiesForGradeSubject(
       return availableTerms.includes(activity.term as 1 | 2 | 3);
     });
   }
+
+  // Keep every sandbox route usable while authored, grade-specific content is
+  // still being expanded. The generic worksheet is intentionally small and
+  // routes through the same adaptive grading, progress, and Omega chat bridge
+  // as authored activities; it is not presented as curriculum-complete.
+  if (activities.length === 0) {
+    const subjectLabel = subject
+      .split('-')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+    activities = [{
+      id: `${grade}-${subject}-guided-foundations`,
+      grade,
+      subject,
+      type: 'explore',
+      title: `${subjectLabel} Guided Foundations`,
+      description: `Start a guided ${subjectLabel} learning conversation and build one foundation skill at a time.`,
+      difficulty: 1,
+      icon: '🧭',
+      color: 'bg-teal-100',
+      tags: ['guided', 'foundations'],
+      prerequisites: [],
+      learningObjectives: [`Explain one idea from ${subjectLabel} in your own words`],
+      estimatedTime: 10,
+    }];
+  }
   
   return activities;
 }
