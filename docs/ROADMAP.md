@@ -2,7 +2,7 @@
 
 **Project**: Syncsenta - AI-Powered Education Platform for Kenya
 **Target**: 100% MVP Launch Readiness  
-**Last Updated**: 2026-08-29
+**Last Updated**: 2026-09-08
 
 **Omega/Hyperon review update**: 2026-09-08 — representative Hyperon
 dependents reviewed; adapter input validation and fallback telemetry contract
@@ -10,7 +10,15 @@ hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJE
 
 ---
 
-## Current Status: 95% Complete ✅
+## Current Status: 78% MVP web product / 70% overall evidence-weighted estimate
+
+The earlier 95% figure was an internal MVP estimate. The current assessment
+separates the deployed MVP web product from the full Phase 2/3 roadmap. Studio
+is a real deployed application with working routes, authentication
+foundations, curriculum activities, AI decision code, PWA assets, and
+automated tests, but the Render AI readiness path, production RAG proof,
+durable offline reconciliation, observability, and several role workflows
+remain incomplete.
 
 ### Recent Progress
 - ✅ Task 5: MeTTa/Hyperon telemetry integration (COMPLETE)
@@ -19,7 +27,9 @@ hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJE
 - ✅ Rate limiting & CSRF protection implemented
 - ✅ Grade 2 student workflow designed (95% complete)
 
-**We've reached 95%!** Grade 2 workflow documented with 70+ activities already implemented. Only 5% remaining for true 100%.
+The full multi-phase roadmap is not 78% complete: mobile, collaboration,
+NEMIS, multi-tenancy, full indigenous-language support, voice, and advanced
+analytics remain future scope.
 
 ### Completed ✅
 - [x] **Core Architecture** (100%)
@@ -68,6 +78,11 @@ hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJE
   - ✅ Render deployment (backend Python service)
   - ✅ CI/CD pipelines via GitHub Actions
   - ✅ Environment variable management
+
+- [x] **Dependency security audit**
+  - ✅ Studio `npm audit` reports zero vulnerabilities
+  - ✅ Scheme Scribe `npm audit` reports zero vulnerabilities
+  - ✅ Python `pip-audit` reports no known vulnerabilities
 
 ---
 
@@ -165,9 +180,9 @@ hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJE
 **Priority**: MEDIUM
 
 - [x] Create AGENTS.md for AI-assisted development
-- [ ] Add API documentation (OpenAPI/Swagger)
-- [ ] Create deployment runbook
-- [ ] Add troubleshooting guide
+- [x] Add API documentation (FastAPI exposes OpenAPI/Swagger at `/docs` and `/openapi.json`)
+- [x] Create deployment runbook (`docs/DEPLOYMENT_RUNBOOK.md`)
+- [x] Add troubleshooting guide (`docs/TROUBLESHOOTING.md`)
 - [ ] Document environment variable requirements
 - [ ] Create video walkthrough for developers
 
@@ -205,7 +220,7 @@ hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJE
 
 ### Medium Priority
 - [ ] Hyperon runtime installation not automated (graceful fallback working)
-- [ ] No automated dependency vulnerability scanning
+- [x] Dependency vulnerability audits run for Studio, Scheme Scribe, and Python requirements
 - [ ] Missing API documentation for Python backend
 - [ ] Frontend bundle size not optimized
 
