@@ -14,6 +14,9 @@ import {
   Users,
   WifiOff,
   Loader2,
+  Database,
+  ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,6 +79,29 @@ const roles = [
       "Teacher evidence and next steps",
       "Consent and visibility controls",
     ],
+  },
+];
+
+const liveCapabilities = [
+  {
+    title: "Real role workspaces",
+    description: "Sign in to open focused student, teacher, school, or family workflows.",
+    icon: Users,
+  },
+  {
+    title: "CBC curriculum tools",
+    description: "Create practice, schemes, assessments, and feedback around the repository curriculum.",
+    icon: BookOpenCheck,
+  },
+  {
+    title: "Protected learning data",
+    description: "Supabase authentication and row-level access rules keep each workspace scoped.",
+    icon: Database,
+  },
+  {
+    title: "Built for unreliable networks",
+    description: "Quiz and assessment flows include a local queue for work that needs to sync later.",
+    icon: ClipboardCheck,
   },
 ];
 
@@ -225,6 +251,54 @@ function HomePageContent() {
                   <p className="mt-2 text-sm font-semibold">Consent-aware</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Product proof */}
+        <section className="border-y border-border/70 bg-background" aria-labelledby="product-proof-heading">
+          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+                  Product in motion
+                </p>
+                <h2 id="product-proof-heading" className="mt-3 font-headline text-3xl font-bold text-primary sm:text-4xl">
+                  More than a landing page.
+                </h2>
+                <p className="mt-4 text-muted-foreground">
+                  SyncSenta is an active learning workspace with role-based routes, curriculum tools,
+                  protected data access, and network-aware assessment flows. Open a workspace to see the product itself.
+                </p>
+              </div>
+              <Button variant="outline" asChild className="min-h-11 shrink-0 sm:w-fit">
+                <Link href="/login">
+                  Open the live workspace
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {liveCapabilities.map((capability) => {
+                const Icon = capability.icon;
+                return (
+                  <Card key={capability.title} className="border-border bg-card/60">
+                    <CardHeader className="pb-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </div>
+                      <CardTitle className="pt-1 text-base">{capability.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm leading-6 text-muted-foreground">{capability.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            <div className="mt-6 flex items-start gap-2 text-sm text-muted-foreground">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <span>AI guidance is designed to support teachers and learners—not replace human review.</span>
             </div>
           </div>
         </section>
