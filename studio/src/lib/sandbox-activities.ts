@@ -805,6 +805,16 @@ export function getActivityById(activityId: string): Activity | undefined {
     }
   }
 
+  const fallbackMatch = activityId.match(/^(g[1-6])-([a-z0-9-]+)-guided-foundations$/);
+  if (fallbackMatch) {
+    const [, grade, subject] = fallbackMatch;
+    return getActivitiesForGradeSubject(
+      grade as GradeId,
+      subject as SubjectId,
+      false,
+    ).find((activity) => activity.id === activityId);
+  }
+
   return undefined;
 }
 
