@@ -55,6 +55,10 @@ function LoginContent() {
   };
 
   const signInAsDemo = async (account: (typeof DEMO_ACCOUNTS)[number]) => {
+    if (account.role === 'student') {
+      router.push('/login/student');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -98,7 +102,7 @@ function LoginContent() {
                   type="button"
                   variant="outline"
                 >
-                  {account.label}
+                  {account.role === 'student' ? 'Join as Student' : account.label}
                 </Button>
               ))}
             </div>
