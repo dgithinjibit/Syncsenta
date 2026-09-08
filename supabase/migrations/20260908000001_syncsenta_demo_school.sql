@@ -133,6 +133,9 @@ on conflict (subject_id, purpose, policy_version) where status = 'granted' do up
   scope = excluded.scope,
   updated_at = now();
 
+delete from public.learning_evidence
+where activity_id = 'demo-math-foundations-001' and source = 'demo-seed';
+
 insert into public.learning_evidence (
   student_profile_id, activity_id, curriculum_design_version, grade, subject,
   strand, learning_outcome, competency, value, evidence_type, rubric, evidence,
@@ -158,6 +161,11 @@ from public.profiles student
 join public.profiles teacher on teacher.email = 'teacher01@syncsenta.dev'
 where student.email = 'student01@syncsenta.dev'
 on conflict (event_id) do nothing;
+
+delete from public.parent_performance_reports
+where parent_id = (select id from public.profiles where email = 'parent01@syncsenta.dev')
+  and child_profile_id = (select id from public.profiles where email = 'student01@syncsenta.dev')
+  and report_payload ->> 'source' = 'demo-seed';
 
 insert into public.parent_performance_reports (
   parent_id, child_profile_id, school_name, subject, mastery_percentage,
