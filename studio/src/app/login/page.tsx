@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { DEMO_DESTINATIONS, type DemoRole } from '@/lib/auth/demo-destinations';
+
+const DEMO_ACCOUNTS: Array<{ role: DemoRole; label: string; email: string; password: string }> = [
+  { role: 'student', label: 'Join as Demo Student', email: 'student01@syncsenta.dev', password: 'Demo@Student01' },
+  { role: 'teacher', label: 'Join as Demo Teacher', email: 'teacher01@syncsenta.dev', password: 'Demo@Teacher01' },
+  { role: 'parent', label: 'Join as Demo Parent', email: 'parent01@syncsenta.dev', password: 'Demo@Parent01' },
+  { role: 'head', label: 'Join as Demo Head of School', email: 'head01@syncsenta.dev', password: 'Demo@Head01' },
+];
 
 function LoginContent() {
   const router = useRouter();
@@ -35,6 +42,24 @@ function LoginContent() {
     }
   };
 
+  const signInAsDemo = async (account: (typeof DEMO_ACCOUNTS)[number]) => {
+    setLoading(true);
+    setError('');
+    try {
+      const { error: signInError } = await getSupabaseClient().auth.signInWithPassword({
+        email: account.email,
+        password: account.password,
+      });
+      if (signInError) throw signInError;
+      router.replace(DEMO_DESTINATIONS[account.role]);
+      router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to open the demo account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -49,7 +74,24 @@ function LoginContent() {
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button className="w-full" disabled={loading} type="submit">{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Sign in</Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">Need an account? <Link className="text-primary underline" href="/auth/signup">Create one</Link></p>
+          <div className="my-6 border-t pt-6">
+            <p className="mb-3 text-center text-sm font-semibold">🚀 Try a demo account — no sign-up needed</p>
+            <div className="grid gap-2">
+              {DEMO_ACCOUNTS.map((account) => (
+                <Button
+                  key={account.role}
+                  className="w-full"
+                  disabled={loading}
+                  onClick={() => void signInAsDemo(account)}
+                  type="button"
+                  variant="outline"
+                >
+                  {account.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <p className="mt-4 text-center text-sm text-muted-foreground">Accounts are provisioned by Syncsenta administrators. No public signup is available yet.</p>
         </CardContent>
       </Card>
     </main>
@@ -63,4 +105,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-
