@@ -96,9 +96,10 @@ hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJE
 - [x] Stabilize the fallback evaluator label used by telemetry consumers
 - [x] Route every student chat turn through the request-scoped MeTTa boundary before Omega policy selection
 - [x] Normalize all subject labels before MeTTa parsing and test the subject-agnostic contract
+- [x] Keep every sandbox subject playable with a guided-foundations fallback while authored content expands
 - [ ] Add explicit Hyperon runtime/version contract and readiness checks
 - [ ] Restore and validate the deployed AI backend used by student chat
-- [ ] Verify equivalent guided-tutor behavior for every listed CBC subject and sandbox
+- [ ] Author equivalent curriculum activities for every listed CBC subject and grade (fallback currently verified)
 - [ ] Add durable, versioned Omega knowledge/session persistence with restart tests
 - [ ] Add timeout, cancellation, resource limits, and bounded concurrency around Hyperon calls
 - [ ] Add policy decision audit fields: correlation ID, policy version, evaluator, reason, latency
