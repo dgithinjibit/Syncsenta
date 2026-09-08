@@ -2,6 +2,7 @@
 
 import type { User, UserRole } from './types';
 import { cookies } from 'next/headers';
+import { getRoleHome } from './auth/role-home';
 // import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'; // LEGACY
 // import { app } from './firebase'; // LEGACY
 
@@ -34,7 +35,7 @@ export async function signupUser(role: UserRole, formData: FormData): Promise<st
     cookieStore.set('userName', fullName, { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
     cookieStore.set('userEmail', email, { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
 
-    return role === 'student' ? '/student' : '/dashboard';
+    return getRoleHome(role);
   } catch (error) {
     console.error('=== SIGNUP USER ERROR ===');
     console.error('Error name:', (error as Error)?.name);

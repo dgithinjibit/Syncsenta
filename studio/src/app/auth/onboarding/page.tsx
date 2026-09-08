@@ -134,7 +134,7 @@ function GoogleOnboardingForm() {
         window.sessionStorage.setItem('learningJourney.grade', grade);
         window.localStorage.setItem('learningJourney.grade', grade);
       }
-      router.replace(result.next || (role === 'student' ? '/student' : '/dashboard'));
+      router.replace(result.next || (role === 'student' ? '/student' : '/teacher'));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'We could not finish your profile.');
     } finally {

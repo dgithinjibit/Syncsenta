@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getRoleHome } from '@/lib/auth/role-home';
 
 const DEMO_ACCOUNTS = [
   { role: 'student',  label: '🎒 Join as Student',  email: 'student01@syncsenta.dev',  password: 'Demo@Student01',  redirect: '/student' },
@@ -36,8 +37,8 @@ export function SignInForm() {
     setError(null);
     setLoading(true);
     try {
-      await signIn(email, password);
-      router.push('/dashboard');
+      const profile = await signIn(email, password);
+      router.push(getRoleHome(profile?.role));
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
     } finally {
@@ -159,4 +160,3 @@ export function SignInForm() {
     </div>
   );
 }
-
