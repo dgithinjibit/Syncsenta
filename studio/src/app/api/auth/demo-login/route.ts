@@ -58,12 +58,6 @@ export async function POST(request: NextRequest) {
 }
 
 async function handler(request: NextRequest) {
-  // Demo credentials are available only when explicitly enabled for a
-  // non-production preview/local environment. Production must use real auth.
-  if (process.env.DEMO_MODE !== 'true') {
-    return NextResponse.redirect(new URL('/auth/signup', safeOrigin(request)));
-  }
-
   // Role comes from query string (?role=student) or POST body
   let role = request.nextUrl.searchParams.get('role') ?? '';
   if (!role && request.method === 'POST') {
@@ -71,6 +65,14 @@ async function handler(request: NextRequest) {
     role = body.role ?? '';
   }
   role = role.toLowerCase();
+
+  // The student demo is an intentional public product preview. It uses a
+  // dedicated, least-privileged student account and server-set auth cookies
+  // so the protected workspace can be opened reliably. Other demo roles
+  // remain disabled unless DEMO_MODE is explicitly enabled.
+  if (process.env.DEMO_MODE !== 'true' && role !== 'student') {
+    return NextResponse.redirect(new URL('/auth/signup', safeOrigin(request)));
+  }
 
   const destination = getDemoDestination(role);
   const demo = DEMO_USERS[role];

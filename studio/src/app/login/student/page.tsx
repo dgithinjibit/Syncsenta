@@ -97,7 +97,7 @@ export default function StudentLoginPage() {
               <Link className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground" href="/login">
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to all roles
               </Link>
-              <button className="font-medium text-teal-700 hover:underline" disabled={loading} onClick={() => void openStudentWorkspace()} type="button">
+              <button className="font-medium text-teal-700 hover:underline" disabled={loading} onClick={() => window.location.assign('/api/auth/demo-login?role=student')} type="button">
                 Use demo student
               </button>
             </div>
