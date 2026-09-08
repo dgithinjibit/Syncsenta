@@ -54,6 +54,12 @@ interface PageState {
   scaffoldingLevel: 'Independent' | 'Guided' | 'Intensive' | null;
 }
 
+function toSandboxGradeId(grade: string): string {
+  const normalized = grade.trim().toLowerCase();
+  const match = normalized.match(/(?:grade[- ]?|g)([1-6])/);
+  return match ? `g${match[1]}` : normalized.replace(/[^a-z0-9]+/g, '-');
+}
+
 export default function SubjectPage() {
   const params = useParams();
   const router = useRouter();
@@ -184,7 +190,7 @@ export default function SubjectPage() {
 
   const handleResume = () => {
     if (state.resumeActivity && subjectMeta.layout === 'sandbox') {
-      const gradeSlug = grade.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const gradeSlug = toSandboxGradeId(grade);
       router.push(
         `/student/sandbox/${gradeSlug}/${slug}/${state.resumeActivity.id}`,
       );
@@ -193,7 +199,7 @@ export default function SubjectPage() {
 
   const handleStartFresh = () => {
     if (subjectMeta.layout === 'sandbox') {
-      const gradeSlug = grade.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const gradeSlug = toSandboxGradeId(grade);
       router.push(`/student/sandbox/${gradeSlug}/${slug}`);
     }
     // For chat layout, "start fresh" simply scrolls the chat to top — no
@@ -264,7 +270,7 @@ function SandboxRedirect({
   const router = useRouter();
 
   useEffect(() => {
-    const gradeSlug = grade.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const gradeSlug = toSandboxGradeId(grade);
     if (resumeActivity) {
       router.replace(`/student/sandbox/${gradeSlug}/${slug}/${resumeActivity.id}`);
     } else {
