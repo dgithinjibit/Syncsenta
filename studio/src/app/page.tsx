@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -33,7 +33,7 @@ const roles = [
     title: "Students",
     description: "Learn at your pace with CBC-aligned guidance and feedback.",
     icon: GraduationCap,
-    href: "/login?next=%2Fstudent",
+    href: "/login",
     demoHref: "/api/auth/demo-login?role=student",
     items: [
       "Personalised learning journeys",
@@ -45,7 +45,7 @@ const roles = [
     title: "Teachers",
     description: "Prepare, assess, and support learners with less administration.",
     icon: Users,
-    href: "/login?next=%2Fteacher",
+    href: "/login",
     demoHref: "/api/auth/demo-login?role=teacher",
     items: [
       "Schemes and lesson plans",
@@ -57,7 +57,7 @@ const roles = [
     title: "Heads of School",
     description: "See school-level progress and the decisions that need attention.",
     icon: BarChart3,
-    href: "/login?next=%2Fhead",
+    href: "/login",
     demoHref: "/api/auth/demo-login?role=head",
     items: [
       "Class and school aggregates",
@@ -69,7 +69,7 @@ const roles = [
     title: "Parents and Guardians",
     description: "Stay connected to a learner's progress without information overload.",
     icon: HeartHandshake,
-    href: "/login?next=%2Fparent",
+    href: "/login",
     demoHref: "/api/auth/demo-login?role=parent",
     items: [
       "Weekly learning summaries",
@@ -80,7 +80,6 @@ const roles = [
 ];
 
 function HomePageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [autoLoginLoading, setAutoLoginLoading] = useState<string | null>(null);
 
@@ -157,18 +156,20 @@ function HomePageContent() {
               Kenyan CBC learning for students, teachers, and families
             </div>
             <h1 className="max-w-3xl font-headline text-4xl font-bold tracking-tight text-primary sm:text-5xl lg:text-6xl">
-              Learning support that helps every student move forward
+              One connected learning workspace for every role
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
-              SyncSenta is a Kenyan learning platform for students, teachers, heads of school,
-              and families. It combines CBC-aligned lessons, guided practice, teacher insight,
-              and consent-aware progress sharing in one place, with support for English,
-              Kiswahili, Kenyan examples, and classrooms with intermittent connectivity.
+              SyncSenta brings CBC-aligned learning, teacher planning, school leadership,
+              and consent-aware family progress into one Kenyan platform. Every role gets
+              a focused workspace while the learner journey stays connected from classroom
+              practice to school-level insight.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" onClick={() => router.push(DEMO_MODE ? "/api/auth/demo-login?role=student" : "/student/demo")} className="min-h-12 sm:w-auto">
-                {DEMO_MODE ? "Try the demo" : "Try Student Demo"}
+              <Button size="lg" asChild className="min-h-12 sm:w-auto">
+                <Link href="/login">
+                Open your workspace
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
               </Button>
               <Button size="lg" variant="outline" asChild className="min-h-12 sm:w-auto">
                 <Link href="/products">See how it works</Link>
@@ -192,13 +193,13 @@ function HomePageContent() {
             <div className="relative w-full max-w-sm space-y-4">
               <div className="rounded-2xl border border-border bg-background p-5">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold">Today&apos;s learning path</span>
+                  <span className="font-semibold">One platform, four focused views</span>
                   <BookOpenCheck className="h-5 w-5 text-primary" aria-hidden="true" />
                 </div>
                 <div className="mt-5 space-y-4">
                   <div>
                     <div className="mb-2 flex justify-between text-xs text-muted-foreground">
-                      <span>Mathematics</span><span>In progress</span>
+                        <span>Student learning</span><span>Practice</span>
                     </div>
                     <div className="h-2 rounded-full bg-secondary">
                       <div className="h-2 w-3/5 rounded-full bg-primary" />
@@ -206,7 +207,7 @@ function HomePageContent() {
                   </div>
                   <div>
                     <div className="mb-2 flex justify-between text-xs text-muted-foreground">
-                      <span>Environmental Activities</span><span>Next</span>
+                        <span>Teacher planning</span><span>Review</span>
                     </div>
                     <div className="h-2 rounded-full bg-secondary">
                       <div className="h-2 w-2/5 rounded-full bg-accent" />
@@ -216,11 +217,11 @@ function HomePageContent() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-border bg-background p-4">
-                  <p className="text-xs text-muted-foreground">Teacher feedback</p>
-                  <p className="mt-2 text-sm font-semibold">Ready to review</p>
+                  <p className="text-xs text-muted-foreground">School insight</p>
+                  <p className="mt-2 text-sm font-semibold">Ready when needed</p>
                 </div>
                 <div className="rounded-2xl border border-border bg-background p-4">
-                  <p className="text-xs text-muted-foreground">Family update</p>
+                  <p className="text-xs text-muted-foreground">Family connection</p>
                   <p className="mt-2 text-sm font-semibold">Consent-aware</p>
                 </div>
               </div>

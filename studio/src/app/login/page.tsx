@@ -24,7 +24,19 @@ function LoginContent() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const next = searchParams.get('next') || '/dashboard';
+  const next = searchParams.get('next');
+
+  const resolveWorkspace = async () => {
+    if (next?.startsWith('/')) return next;
+    const { data: { user } } = await getSupabaseClient().auth.getUser();
+    if (!user) return '/login';
+    const { data: profile } = await getSupabaseClient().from('profiles').select('role').eq('id', user.id).maybeSingle();
+    return profile?.role === 'student' ? '/student'
+      : profile?.role === 'teacher' ? '/teacher'
+      : profile?.role === 'parent' ? '/parent'
+      : profile?.role === 'admin' ? '/head'
+      : '/login';
+  };
 
   const signIn = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -33,7 +45,7 @@ function LoginContent() {
     try {
       const { error: signInError } = await getSupabaseClient().auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
-      router.replace(next.startsWith('/') ? next : '/dashboard');
+      router.replace(await resolveWorkspace());
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to sign in.');
