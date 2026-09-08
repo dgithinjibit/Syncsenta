@@ -5,12 +5,14 @@ import "../styles/accessibility.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AccessibilityPanel } from "@/components/accessibility/AccessibilityPanel";
 import { ConflictResolver } from '@/components/offline/ConflictResolver';
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'Syncsenta - Kenyan CBC Learning for Students and Schools',
   description: 'Syncsenta brings CBC-aligned lessons, guided practice, teacher insight, and consent-aware family progress sharing together for Kenyan learners.',
+  manifest: '/manifest.json',
   keywords: ['CBC education', 'Kenya education', 'AI tutoring', 'personalized learning', 'online education', 'Kenyan curriculum'],
   authors: [{ name: 'Syncsenta Team' }],
   openGraph: {
@@ -79,6 +81,7 @@ export default function RootLayout({
           {children}
           <AccessibilityPanel />
           <ConflictResolver />
+          <PWAInstallPrompt />
         </ThemeProvider>
       </body>
     </html>
