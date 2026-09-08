@@ -24,19 +24,41 @@ export function GamificationOverview({ userId, userName = 'Student' }: Gamificat
 
   useEffect(() => {
     const loadStats = async () => {
+      const emptyStats = {
+        totalSessions: 0,
+        totalMessages: 0,
+        totalTimeMinutes: 0,
+        currentStreak: 0,
+        competenciesMastered: 0,
+        achievementsEarned: 0,
+      };
+      const withTimeout = <T,>(promise: Promise<T>, ms = 5000) => Promise.race([
+        promise,
+        new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('Gamification request timed out')), ms)),
+      ]);
+
       try {
         setLoading(true);
 
         // Get student stats
-        const studentStats = await getStudentStats(userId);
+        const studentStats = await withTimeout(getStudentStats(userId)).catch((error) => {
+          console.warn('Using empty achievement stats:', error);
+          return emptyStats;
+        });
         setStats(studentStats);
 
         // Get weekly points
-        const weeklyData = await getWeeklyPointsBreakdown(userId);
+        const weeklyData = await withTimeout(getWeeklyPointsBreakdown(userId)).catch((error) => {
+          console.warn('Weekly points unavailable:', error);
+          return null;
+        });
         setWeeklyPoints(weeklyData);
 
         // Get rank
-        const rank = await getStudentRank(userId);
+        const rank = await withTimeout(getStudentRank(userId)).catch((error) => {
+          console.warn('Leaderboard rank unavailable:', error);
+          return 0;
+        });
         setUserRank(rank);
       } catch (error) {
         console.error('Error loading gamification stats:', error);
