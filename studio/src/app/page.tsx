@@ -33,7 +33,7 @@ const roles = [
     title: "Students",
     description: "Learn at your pace with CBC-aligned guidance and feedback.",
     icon: GraduationCap,
-    href: "/auth/signup?role=student",
+    href: "/login?next=%2Fstudent",
     demoHref: "/api/auth/demo-login?role=student",
     items: [
       "Personalised learning journeys",
@@ -45,7 +45,7 @@ const roles = [
     title: "Teachers",
     description: "Prepare, assess, and support learners with less administration.",
     icon: Users,
-    href: "/auth/signup?role=teacher",
+    href: "/login?next=%2Fteacher",
     demoHref: "/api/auth/demo-login?role=teacher",
     items: [
       "Schemes and lesson plans",
@@ -57,7 +57,7 @@ const roles = [
     title: "Heads of School",
     description: "See school-level progress and the decisions that need attention.",
     icon: BarChart3,
-    href: "/auth/signup?role=head",
+    href: "/login?next=%2Fhead",
     demoHref: "/api/auth/demo-login?role=head",
     items: [
       "Class and school aggregates",
@@ -69,7 +69,7 @@ const roles = [
     title: "Parents and Guardians",
     description: "Stay connected to a learner's progress without information overload.",
     icon: HeartHandshake,
-    href: "/auth/signup?role=parent",
+    href: "/login?next=%2Fparent",
     demoHref: "/api/auth/demo-login?role=parent",
     items: [
       "Weekly learning summaries",
