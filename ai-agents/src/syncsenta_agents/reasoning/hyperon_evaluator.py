@@ -123,7 +123,11 @@ class PolicyVerdict:
     @property
     def reasoning(self) -> str:
         """Human-readable policy explanation for API and telemetry consumers."""
-        return self.review_reason or self.verdict
+        if self.review_reason:
+            return self.review_reason
+        if self.approved:
+            return "Approved: safety, consent, and delivery policy checks passed."
+        return self.verdict
 
     @classmethod
     def from_atom(cls, atom: str, evaluator_used: str = "unknown") -> "PolicyVerdict":
