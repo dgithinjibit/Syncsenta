@@ -26,6 +26,7 @@ import { useAgeTheme } from '@/lib/theme/age-theme-context';
 import { ErrorState, classifyError } from '@/components/student/error-boundary';
 import { StatCardSkeleton, SubjectCardSkeleton } from '@/components/ui/skeleton';
 import { perfMonitor, measureAsync } from '@/lib/performance-monitor';
+import { getStudentId } from '@/lib/auth/student-id';
 
 interface StudentProfile {
   id: string;

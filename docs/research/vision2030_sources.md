@@ -62,7 +62,7 @@ The official Hyperon experimental repository describes MeTTa as an active pre-al
 
 Source: [trueagi-io/hyperon-experimental](https://github.com/trueagi-io/hyperon-experimental)
 
-Initial product implication: the Ascendra core should isolate the MeTTa boundary behind a stable Rust trait, keep a deterministic pure-Rust fallback for CI/offline operation, and avoid making core safety depend on a native Hyperon installation being present.
+Initial product implication: the Syncsenta core should isolate the MeTTa boundary behind a stable Rust trait, keep a deterministic pure-Rust fallback for CI/offline operation, and avoid making core safety depend on a native Hyperon installation being present.
 
 ## MoE routing reference
 

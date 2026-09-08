@@ -3,13 +3,13 @@
 **Target Age**: 7-8 years old  
 **Cognitive Stage**: Concrete Operational (Piaget)  
 **Curriculum**: Kenya CBC (Competency-Based Curriculum)  
-**Platform**: Ascendra Learning Platform
+**Platform**: Syncsenta Learning Platform
 
 ---
 
 ## Executive Summary
 
-This document defines the complete learning workflow for Grade 2 students (7-8 years) on the Ascendra platform, incorporating developmental psychology research, CBC curriculum requirements, and gamification best practices for young learners.
+This document defines the complete learning workflow for Grade 2 students (7-8 years) on the Syncsenta platform, incorporating developmental psychology research, CBC curriculum requirements, and gamification best practices for young learners.
 
 **Key Principles**:
 - 🎮 **Highly Interactive** - Touch-based, visual, gamified
@@ -564,7 +564,7 @@ Competency: Addition (0-10)
 
 ### Already Implemented ✅
 
-From codebase analysis, Ascendra already has:
+From codebase analysis, Syncsenta already has:
 
 #### Grade 2 Activities (7 subjects x 10 activities each)
 - ✅ **Mathematics**: Number Garden, Shape Safari, Matatu Counting, Market Money, etc.
@@ -747,7 +747,7 @@ From codebase analysis, Ascendra already has:
 
 ## Conclusion
 
-The Ascendra platform's Grade 2 student workflow is **95% complete** with:
+The Syncsenta platform's Grade 2 student workflow is **95% complete** with:
 
 ### ✅ Strengths
 - Comprehensive activity library (70+ activities)

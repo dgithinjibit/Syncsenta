@@ -59,6 +59,24 @@ from ..core.logging import get_logger
 
 logger = get_logger("hyperon_evaluator")
 
+# Policy arguments are symbolic atoms, not free-form learner content.  Keep
+# query construction inside this adapter and reject anything that could alter
+# the MeTTa expression shape before it reaches the runtime.
+_SAFE_SYMBOL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+_INVALID_INPUT_VERDICT = "(Review invalid-policy-input)"
+
+
+def _validated_symbol(value: str, field: str) -> str:
+    """Return a safe policy atom or raise a descriptive validation error."""
+    if not isinstance(value, str) or not _SAFE_SYMBOL.fullmatch(value):
+        raise ValueError(f"{field} must be a single policy symbol")
+    return value
+
+
+def _invalid_input_verdict(evaluator: str) -> "PolicyVerdict":
+    """Build the stable fail-closed result used for malformed policy input."""
+    return PolicyVerdict.from_atom(_INVALID_INPUT_VERDICT, evaluator)
+
 # Absolute path to the shared policy file so it works regardless of cwd.
 _POLICY_PATH = (
     Path(__file__).resolve()
@@ -189,21 +207,41 @@ class HyperonPolicyEvaluator:
 
     def evaluate_session(self, req: PolicyRequest) -> PolicyVerdict:
         """Evaluate the main ``syncsenta-policy`` boundary."""
-        expr = (
-            f"(syncsenta-policy {req.role} {req.age_band} {req.intent} "
-            f"{req.goal} {req.connectivity} {req.consent} "
-            f"{req.safety_signal} {req.accessibility})"
-        )
+        try:
+            values = [
+                _validated_symbol(value, field)
+                for field, value in (
+                    ("role", req.role),
+                    ("age_band", req.age_band),
+                    ("intent", req.intent),
+                    ("goal", req.goal),
+                    ("connectivity", req.connectivity),
+                    ("consent", req.consent),
+                    ("safety_signal", req.safety_signal),
+                    ("accessibility", req.accessibility),
+                )
+            ]
+        except ValueError:
+            return _invalid_input_verdict("hyperon")
+        expr = f"(syncsenta-policy {' '.join(values)})"
         atom = self.query(expr)
         return PolicyVerdict.from_atom(atom, evaluator_used="hyperon")
 
     def evaluate_safeguarding(self, signal: str) -> PolicyVerdict:
         """Evaluate ``(safeguarding-route <signal>)``."""
+        try:
+            signal = _validated_symbol(signal, "signal")
+        except ValueError:
+            return _invalid_input_verdict("hyperon")
         atom = self.query(f"(safeguarding-route {signal})")
         return PolicyVerdict.from_atom(atom, evaluator_used="hyperon")
 
     def evaluate_cbc_evidence(self, completeness: str) -> PolicyVerdict:
         """Evaluate ``(cbc-evidence-route <completeness>)``."""
+        try:
+            completeness = _validated_symbol(completeness, "completeness")
+        except ValueError:
+            return _invalid_input_verdict("hyperon")
         atom = self.query(f"(cbc-evidence-route {completeness})")
         return PolicyVerdict.from_atom(atom, evaluator_used="hyperon")
 
@@ -211,16 +249,29 @@ class HyperonPolicyEvaluator:
         self, token_status: str, consent_status: str
     ) -> PolicyVerdict:
         """Evaluate ``(attendance-action-route <token> <consent>)``."""
+        try:
+            token_status = _validated_symbol(token_status, "token_status")
+            consent_status = _validated_symbol(consent_status, "consent_status")
+        except ValueError:
+            return _invalid_input_verdict("hyperon")
         atom = self.query(f"(attendance-action-route {token_status} {consent_status})")
         return PolicyVerdict.from_atom(atom, evaluator_used="hyperon")
 
     def evaluate_assessment_finalization(self, sync_state: str) -> PolicyVerdict:
         """Evaluate ``(assessment-finalization-route <sync-state>)``."""
+        try:
+            sync_state = _validated_symbol(sync_state, "sync_state")
+        except ValueError:
+            return _invalid_input_verdict("hyperon")
         atom = self.query(f"(assessment-finalization-route {sync_state})")
         return PolicyVerdict.from_atom(atom, evaluator_used="hyperon")
 
     def evaluate_expert_input(self, input_type: str) -> PolicyVerdict:
         """Evaluate ``(expert-input <input-type>)``."""
+        try:
+            input_type = _validated_symbol(input_type, "input_type")
+        except ValueError:
+            return _invalid_input_verdict("hyperon")
         atom = self.query(f"(expert-input {input_type})")
         return PolicyVerdict.from_atom(atom, evaluator_used="hyperon")
 
@@ -237,7 +288,10 @@ class FallbackPolicyEvaluator:
     behaviour is identical — only the execution engine differs.
     """
 
-    LABEL = "python-fallback"
+    # Keep this stable for telemetry consumers and dashboards.  The concrete
+    # implementation remains visible in logs, while the public contract uses
+    # the same label regardless of the fallback's internal class name.
+    LABEL = "fallback"
 
     # ------------------------------------------------------------------
     # Child consent table  (policy file lines 23-31)

@@ -19,7 +19,7 @@
 
 **To deploy, run:**
 ```powershell
-cd "c:\Users\hp\codes\Ascendra"
+cd "c:\Users\hp\codes\Syncsenta"
 git add studio/src/components/auth/sign-in-form.tsx studio/src/components/auth/sign-up-form.tsx
 git commit -m "feat: replace Google OAuth button with demo account buttons for MVP testing"
 git push

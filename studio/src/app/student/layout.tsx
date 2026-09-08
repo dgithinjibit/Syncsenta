@@ -10,7 +10,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
         <footer className="p-4 text-center text-xs text-muted-foreground">
-          © 2026 Ascendra. All rights reserved. | <Link href="/terms" className="hover:underline">Terms</Link> | <Link href="https://forms.gle/3vQhgtJbnEaGD6xV8" target="_blank" rel="noopener noreferrer" className="hover:underline">Feedback</Link>
+          © 2026 Syncsenta. All rights reserved. | <Link href="/terms" className="hover:underline">Terms</Link> | <Link href="https://forms.gle/3vQhgtJbnEaGD6xV8" target="_blank" rel="noopener noreferrer" className="hover:underline">Feedback</Link>
         </footer>
       </div>
     </AgeThemeProvider>

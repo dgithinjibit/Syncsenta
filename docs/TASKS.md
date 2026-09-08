@@ -1,7 +1,7 @@
 # SyncSenta Engineering Task Ledger
 
 **Project:** SyncSenta — Rust/MeTTa-first Kenyan CBC learning platform  
-**Repository:** `dgithinjibit/ascendra`  
+**Repository:** `dgithinjibit/Syncsenta`
 **Primary application:** `studio/`  
 **Owner context:** Daniel Githinji, GMT+3  
 **Last updated:** 2026-09-05  

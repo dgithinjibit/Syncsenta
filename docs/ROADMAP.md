@@ -1,8 +1,12 @@
-# Ascendra MVP Roadmap
+# Syncsenta MVP Roadmap
 
-**Project**: Ascendra (formerly Syncsenta) - AI-Powered Education Platform for Kenya  
+**Project**: Syncsenta - AI-Powered Education Platform for Kenya
 **Target**: 100% MVP Launch Readiness  
 **Last Updated**: 2026-08-29
+
+**Omega/Hyperon review update**: 2026-09-08 — representative Hyperon
+dependents reviewed; adapter input validation and fallback telemetry contract
+hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJECTS.md).
 
 ---
 
@@ -60,7 +64,7 @@
   - ⚠️ Grade 2: Onboarding wizard needed (final 5%)
 
 - [x] **Deployment Infrastructure** (100%)
-  - ✅ Vercel deployment (frontend) - ascendra-u1eu
+  - ✅ Vercel deployment (frontend) - sentastudio
   - ✅ Render deployment (backend Python service)
   - ✅ CI/CD pipelines via GitHub Actions
   - ✅ Environment variable management
@@ -84,6 +88,21 @@
 2. Add comprehensive docstrings
 3. Frontend component reorganization
 4. Improve test coverage to 80%
+
+#### Omega / Hyperon boundary hardening
+- [x] Review representative Hyperon dependent projects and record reusable patterns
+- [x] Keep raw policy-atom construction inside the Python Hyperon adapter
+- [x] Reject malformed dynamic policy symbols with a fail-closed verdict
+- [x] Stabilize the fallback evaluator label used by telemetry consumers
+- [x] Route every student chat turn through the request-scoped MeTTa boundary before Omega policy selection
+- [x] Normalize all subject labels before MeTTa parsing and test the subject-agnostic contract
+- [ ] Add explicit Hyperon runtime/version contract and readiness checks
+- [ ] Restore and validate the deployed AI backend used by student chat
+- [ ] Verify equivalent guided-tutor behavior for every listed CBC subject and sandbox
+- [ ] Add durable, versioned Omega knowledge/session persistence with restart tests
+- [ ] Add timeout, cancellation, resource limits, and bounded concurrency around Hyperon calls
+- [ ] Add policy decision audit fields: correlation ID, policy version, evaluator, reason, latency
+- [ ] Make adapter, persistence, replay, and end-to-end policy tests required CI gates
 
 ---
 
@@ -253,7 +272,7 @@
 - [ ] Deploy Python backend to Render production
 - [ ] Configure production environment variables
 - [ ] Enable Supabase production mode
-- [ ] Set up custom domain (ascendra.co.ke?)
+- [ ] Confirm and set up the canonical Syncsenta custom domain
 - [ ] SSL certificate configuration
 - [ ] CDN setup for static assets
 - [ ] Database backup automation
@@ -351,7 +370,7 @@
 ## Contact & Support
 
 **Project Lead**: [Your Name]  
-**Repository**: https://github.com/dgithinjibit/Ascendra  
+**Repository**: https://github.com/dgithinjibit/Syncsenta
 **Documentation**: See `CODE_MAP.md`, `AGENTS.md`, and `docs/`
 
 ---

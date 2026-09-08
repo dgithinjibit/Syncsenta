@@ -20,7 +20,7 @@ const TEST_API_URL = process.env.TEST_API_URL || 'http://localhost:3000';
 const TEST_STUDENT_EMAIL = 'test-student@ascendra.test';
 const TEST_STUDENT_PASSWORD = 'TestPassword123!';
 
-describe('AI/MeTTa Integration E2E', () => {
+describe.skipIf(!SUPABASE_URL || !SUPABASE_ANON_KEY)('AI/MeTTa Integration E2E', () => {
   let testUserId: string;
   let authToken: string;
   let supabase: ReturnType<typeof createClient>;
@@ -66,17 +66,17 @@ describe('AI/MeTTa Integration E2E', () => {
     // Clean up test data
     if (testUserId) {
       await supabase
-        .from('learning_progress')
+        .from('learning_progress' as any)
         .delete()
         .eq('user_id', testUserId);
 
       await supabase
-        .from('chat_sessions')
+        .from('chat_sessions' as any)
         .delete()
         .eq('user_id', testUserId);
     }
 
-    await supabase.auth.signOut();
+    await supabase?.auth.signOut();
   });
 
   describe('Authentication & Authorization', () => {
@@ -125,7 +125,7 @@ describe('AI/MeTTa Integration E2E', () => {
     it('should evaluate tutoring decision based on mastery', async () => {
       // Seed low mastery data to trigger Intensive scaffolding
       await supabase
-        .from('learning_progress')
+        .from('learning_progress' as any)
         .upsert({
           user_id: testUserId,
           competency_name: 'MATH.addition.grade2',
@@ -134,7 +134,7 @@ describe('AI/MeTTa Integration E2E', () => {
           hints_used: 0,
           consecutive_wrong: 0,
           last_practiced: new Date().toISOString(),
-        });
+        } as any);
 
       const response = await fetch(`${TEST_API_URL}/api/chat`, {
         method: 'POST',
@@ -197,7 +197,7 @@ describe('AI/MeTTa Integration E2E', () => {
     it('should provide Independent scaffolding for high mastery', async () => {
       // Seed high mastery data
       await supabase
-        .from('learning_progress')
+        .from('learning_progress' as any)
         .upsert({
           user_id: testUserId,
           competency_name: 'MATH.subtraction.grade2',
@@ -206,7 +206,7 @@ describe('AI/MeTTa Integration E2E', () => {
           hints_used: 0,
           consecutive_wrong: 0,
           last_practiced: new Date().toISOString(),
-        });
+        } as any);
 
       const response = await fetch(`${TEST_API_URL}/api/chat`, {
         method: 'POST',
@@ -299,7 +299,7 @@ describe('AI/MeTTa Integration E2E', () => {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for async persistence
 
       const { data: sessions, error } = await supabase
-        .from('chat_sessions')
+        .from('chat_sessions' as any)
         .select('*')
         .eq('user_id', testUserId)
         .eq('subject', 'Mathematics')
@@ -309,15 +309,15 @@ describe('AI/MeTTa Integration E2E', () => {
       expect(error).toBeNull();
       expect(sessions).toBeDefined();
       expect(sessions!.length).toBeGreaterThan(0);
-      expect(sessions![0].user_id).toBe(testUserId);
+      expect((sessions as Array<{ user_id: string }>)[0].user_id).toBe(testUserId);
 
-      console.log(`✓ Chat session persisted: ${sessions![0].id}`);
+      console.log(`✓ Chat session persisted: ${(sessions as Array<{ id: string }>)[0].id}`);
     }, 30000);
 
     it('should update learning_progress with hints and attempts', async () => {
       // Clear existing progress
       await supabase
-        .from('learning_progress')
+        .from('learning_progress' as any)
         .delete()
         .eq('user_id', testUserId)
         .eq('competency_name', 'MATH.fractions.grade4');
@@ -355,7 +355,7 @@ describe('AI/MeTTa Integration E2E', () => {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       const { data: progress, error } = await supabase
-        .from('learning_progress')
+        .from('learning_progress' as any)
         .select('*')
         .eq('user_id', testUserId)
         .eq('competency_name', 'MATH.fractions.grade4')
@@ -365,8 +365,8 @@ describe('AI/MeTTa Integration E2E', () => {
         console.warn('No progress record found (expected for first interaction)');
       } else {
         expect(progress).toBeDefined();
-        expect(progress.user_id).toBe(testUserId);
-        console.log(`✓ Learning progress tracked: ${progress.attempts} attempts`);
+        expect((progress as { user_id: string }).user_id).toBe(testUserId);
+        console.log(`✓ Learning progress tracked: ${(progress as { attempts: number }).attempts} attempts`);
       }
     }, 30000);
   });
@@ -375,7 +375,7 @@ describe('AI/MeTTa Integration E2E', () => {
     it('should prevent reading other students progress', async () => {
       // Try to query progress with a different user_id filter
       const { data, error } = await supabase
-        .from('learning_progress')
+        .from('learning_progress' as any)
         .select('*')
         .neq('user_id', testUserId) // Try to read OTHER students' data
         .limit(1);
@@ -387,14 +387,14 @@ describe('AI/MeTTa Integration E2E', () => {
 
     it('should only return own chat sessions', async () => {
       const { data, error } = await supabase
-        .from('chat_sessions')
+        .from('chat_sessions' as any)
         .select('*');
 
       expect(error).toBeNull();
       expect(data).toBeDefined();
 
       // All returned sessions should belong to the authenticated user
-      const allOwnSessions = data!.every(session => session.user_id === testUserId);
+      const allOwnSessions = (data as Array<{ user_id: string }>).every(session => session.user_id === testUserId);
       expect(allOwnSessions).toBe(true);
 
       console.log(`✓ RLS enforces user owns ${data!.length} sessions`);

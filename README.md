@@ -61,13 +61,29 @@ The [Socratic Mentor Spec](studio/docs/SOCRATIC_MENTOR_SPEC.md) is the source
 of truth for the Omega-aware chat system prompt — scaffolding instructions,
 request shape, SSE wire format, and test gaps.
 
-The [CONTEXT.md](CONTEXT.md) domain glossary explains the CBC model, Kenyan
+The [domain context](docs/CONTEXT.md) explains the CBC model, Kenyan
 education terminology, and key architectural decisions. Read it before making
 any code change.
 
-[CODING_STANDARDS.md](CODING_STANDARDS.md) covers Studio coding conventions —
+The [Hyperon dependent-project review](docs/HYPERON_DEPENDENT_PROJECTS.md)
+records patterns from representative MeTTa projects and the guardrails required
+before expanding Omega beyond its current policy and tutoring boundaries.
+
+[Coding standards](docs/CODING_STANDARDS.md) covers Studio coding conventions —
 TypeScript patterns, component structure, Supabase client selection, test seams,
 and the safe-change workflow.
+
+The deployed architecture is split across **Vercel** and **Render**:
+
+- **Vercel** hosts the Next.js SyncSenta web application and its `/api/*` routes.
+- **Render** hosts the Python FastAPI AI service from `ai-agents/`, including the
+  Hyperon policy adapter, agent workflows, telemetry, and `/healthz` readiness
+  endpoint. The deployment is defined in [`render.yaml`](render.yaml).
+- **Supabase** provides authentication, PostgreSQL, RLS, and storage.
+- **Upstash Redis** provides rate limits and short-lived learning-session state.
+
+The [architecture guide](docs/ARCHITECTURE.md) documents the request flows,
+service boundaries, Render deployment, MeTTa/Omega student path, and known gaps.
 
 ## Contributing
 
@@ -75,8 +91,11 @@ This is a solo-developed project. The [Development guide](docs/DEVELOPMENT.md)
 is the place to start. Run `npx vitest run` and `npm run build` from `studio/`
 before committing any change to the Next.js app.
 
-The [TDD_ANALYSIS.md](TDD_ANALYSIS.md) documents current test coverage gaps and
+The [TDD analysis](docs/TDD_ANALYSIS.md) documents current test coverage gaps and
 the implementation plan for closing them, prioritised by production risk.
 
-The [OMEGA_METTA_STATUS.md](OMEGA_METTA_STATUS.md) tracks the implementation
+The [Omega/MeTTa status](docs/OMEGA_METTA_STATUS.md) tracks the implementation
 status of the Omega decision engine and the broader MeTTa neuro-symbolic system.
+
+Historical reports and superseded summaries are retained under
+[`docs/archive/`](docs/archive/) and are not authoritative for current behavior.

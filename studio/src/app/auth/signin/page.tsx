@@ -35,7 +35,7 @@ export default function SignInPage() {
         </div>
 
         <p className="text-xs text-teal-100/70">
-          © 2026 Ascendra. Built for Kenyan learners.
+          © 2026 Syncsenta. Built for Kenyan learners.
         </p>
       </div>
 

@@ -12,8 +12,6 @@
  * - Space-based architecture with Atomspace
  */
 
-import { supabase } from '@/lib/supabase/client';
-
 // MeTTa Language Core Types and Structures
 export interface MeTTaAtom {
   type: 'symbol' | 'expression' | 'grounded' | 'variable' | 'value';
@@ -50,6 +48,16 @@ export interface MeTTaPattern {
   template: MeTTaExpression;
   variables: Map<string, MeTTaType>;
   constraints: MeTTaExpression[];
+}
+
+/** Convert application labels into safe MeTTa symbols before parsing. */
+export function toMeTTaSymbol(value: string, fallback = 'unknown'): string {
+  const symbol = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return symbol || fallback;
 }
 
 /**
@@ -649,6 +657,12 @@ export class MeTTaSession {
     if (interaction.type === 'competency_assessment') {
       return this.parseExpression(
         `(assess-competency ${interaction.subject} ${interaction.skill} ${interaction.level})`
+      );
+    }
+
+    if (interaction.type === 'student_turn') {
+      return this.parseExpression(
+        `(student-turn ${toMeTTaSymbol(String(interaction.subject))} ${toMeTTaSymbol(String(interaction.grade))})`
       );
     }
 

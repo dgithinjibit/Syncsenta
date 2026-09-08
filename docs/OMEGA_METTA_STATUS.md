@@ -3,6 +3,22 @@
 *Comprehensive assessment of neuro-symbolic AI implementation in SyncSenta*  
 *Date: September 2, 2026*
 
+> **September 8, 2026 update:** A review of representative Hyperon dependent
+> projects confirms that Hyperon/MeTTa should be treated as a symbolic runtime,
+> not as persistence, authorization, isolation, audit, or fallback infrastructure.
+> Syncsenta now documents this boundary in
+> [`docs/HYPERON_DEPENDENT_PROJECTS.md`](docs/HYPERON_DEPENDENT_PROJECTS.md),
+> validates dynamic policy atoms before Hyperon evaluation, and exposes a stable
+> `fallback` evaluator label for telemetry consumers. Full MeTTa-native tutoring
+> orchestration remains intentionally not production-wired.
+>
+> **Student-side integration update:** `/api/chat` now records every student
+> turn through a request-scoped MeTTa session boundary before the Omega tutoring
+> decision is applied. This covers every subject label accepted by the student
+> routes, while durable session facts remain owned by the persistence API. The
+> current boundary uses the repository's TypeScript MeTTa core; production
+> Hyperon execution still depends on restoring and validating the AI backend.
+
 ---
 
 ## Executive Summary
@@ -10,6 +26,11 @@
 **Overall Implementation:** 30% complete  
 **Production-Ready Components:** Omega decision engine only  
 **Aspirational Components:** Full MeTTa neuro-symbolic system
+
+The percentage above refers to the broader MeTTa-native system, not the current
+policy adapter. The Python Hyperon policy path is active for selected telemetry
+flows, with a pure-Python fallback, but it is not a durable or isolated Omega
+execution service. See the dependent-project review before expanding scope.
 
 ### Component Breakdown
 

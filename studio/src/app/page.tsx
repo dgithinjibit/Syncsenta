@@ -154,14 +154,16 @@ function HomePageContent() {
           <div className="flex flex-col justify-center">
             <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              🚀 Grade 2 Demo Ready - Click any role below
+              Kenyan CBC learning for students, teachers, and families
             </div>
             <h1 className="max-w-3xl font-headline text-4xl font-bold tracking-tight text-primary sm:text-5xl lg:text-6xl">
-              Omega Agent Powered Learning for Grade 2 Students
+              Learning support that helps every student move forward
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
-              SyncSenta's Omega Agent provides intelligent, culturally-adapted learning experiences 
-              that sync seamlessly across all devices. Built for Kenyan Grade 2 students with CBC curriculum alignment.
+              SyncSenta is a Kenyan learning platform for students, teachers, heads of school,
+              and families. It combines CBC-aligned lessons, guided practice, teacher insight,
+              and consent-aware progress sharing in one place, with support for English,
+              Kiswahili, Kenyan examples, and classrooms with intermittent connectivity.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button size="lg" onClick={() => router.push(DEMO_MODE ? "/api/auth/demo-login?role=student" : "/student/demo")} className="min-h-12 sm:w-auto">
