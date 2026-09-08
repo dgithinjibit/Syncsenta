@@ -25,6 +25,7 @@ The student tutoring path uses the TypeScript MeTTa boundary and Omega decision 
 5. [`TDD_ANALYSIS.md`](TDD_ANALYSIS.md) — test gaps, test seams, and the Red–Green–Refactor workflow.
 6. [`OMEGA_METTA_STATUS.md`](OMEGA_METTA_STATUS.md) — current Omega and MeTTa implementation boundaries.
 7. [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJECTS.md) — external Hyperon patterns and guardrails.
+8. [`DEMO_ROLE_ACCESS.md`](DEMO_ROLE_ACCESS.md) — Supabase-backed student, teacher, parent, and head-of-school demo access.
 
 ## Supporting references
 
