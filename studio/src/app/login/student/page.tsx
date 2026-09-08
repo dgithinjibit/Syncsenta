@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft, GraduationCap, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +15,6 @@ const DEMO_STUDENT = {
 };
 
 export default function StudentLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState(DEMO_STUDENT.email);
   const [password, setPassword] = useState(DEMO_STUDENT.password);
   const [loading, setLoading] = useState(false);
@@ -46,8 +44,9 @@ export default function StudentLoginPage() {
         throw new Error('This account is not configured as a student account.');
       }
 
-      router.replace('/student');
-      router.refresh();
+      // Use a full navigation so the SSR middleware receives the freshly
+      // persisted Supabase auth cookies before protecting the workspace.
+      window.location.assign('/student');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to open the student workspace.');
     } finally {
