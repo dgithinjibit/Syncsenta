@@ -89,7 +89,7 @@ service boundaries, Render deployment, MeTTa/Omega student path, and known gaps.
 
 This is a solo-developed project. The [Development guide](docs/DEVELOPMENT.md)
 is the place to start. Run `npx vitest run` and `npm run build` from `studio/`
-before committing any change to the Next.js app.
+before committing any change to the Next.js app. [P.M](https://dgithinji331s-team-company.monday.com/boards/5102970375)
 
 The [TDD analysis](docs/TDD_ANALYSIS.md) documents current test coverage gaps and
 the implementation plan for closing them, prioritised by production risk.
