@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createAdaptiveQuestionBridge, type AdaptiveDecisionRequest } from '@/lib/adaptive-question-bridge'
-import { buildAdaptiveDecisionRequest } from '@/lib/adaptive-question-bridge'
+import { createAdaptiveQuestionBridge, type AdaptiveDecisionRequest } from '@/lib/progress/adaptive-question-bridge'
+import { buildAdaptiveDecisionRequest } from '@/lib/progress/adaptive-question-bridge'
 import { checkProductionFixtureGuard } from '@/lib/production-fixture-guard'
-import type { LearningLoopState } from '@/lib/student-learning-loop'
+import type { LearningLoopState } from '@/lib/progress/student-learning-loop'
 
 const MAX_BODY_BYTES = 8 * 1024
 const DECISION_TIMEOUT_MS = 120

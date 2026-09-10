@@ -14,7 +14,7 @@ import {
   syncCompetencyProgress,
   unlockAchievement,
   getDeviceSyncInfo
-} from '@/lib/session-persistence';
+} from '@/lib/session/session-persistence';
 
 export async function GET(request: NextRequest) {
   try {

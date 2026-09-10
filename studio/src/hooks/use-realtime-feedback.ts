@@ -13,7 +13,7 @@ import {
   type StudentProgress,
   type LiveClassroomState,
   generatePersonalizedFeedback
-} from '@/lib/realtime-feedback';
+} from '@/lib/teacher/realtime-feedback';
 
 /**
  * Hook for students to receive real-time teacher feedback

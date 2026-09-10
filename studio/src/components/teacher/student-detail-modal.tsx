@@ -44,7 +44,7 @@ import {
   getStudentRecentSessions,
   getStudentProgressBySubject,
   getStudentInterventions,
-} from '@/lib/teacher-dashboard';
+} from '@/lib/teacher/teacher-dashboard';
 import { formatDistanceToNow } from 'date-fns';
 
 interface TeacherStudent {

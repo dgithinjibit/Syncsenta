@@ -10,8 +10,8 @@ import {
   calculatePathProgress,
   type LearningPath,
   type LearningCheckpoint,
-} from '@/lib/learning-paths';
-import { getLearningProgress } from '@/lib/progress-tracking';
+} from '@/lib/curriculum/learning-paths';
+import { getLearningProgress } from '@/lib/progress/progress-tracking';
 
 interface LearningPathProgressProps {
   subject: string;

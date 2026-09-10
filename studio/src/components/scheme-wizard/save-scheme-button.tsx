@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Save, Loader2, Check } from "lucide-react";
 import { useSchemeWizardStore } from '@/stores/scheme-wizard-store';
-import { saveScheme } from '@/lib/scheme-v2-client';
+import { saveScheme } from '@/lib/teacher/scheme-v2-client';
 import { useToast } from '@/hooks/use-toast';
 import type { SchemeV2, SchemeRow, TeacherInputs as TeacherInputsType } from '@/types/curriculum';
 

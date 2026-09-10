@@ -30,7 +30,7 @@ import {
   Send,
   User
 } from 'lucide-react';
-import type { StudentProgress, TeacherFeedback } from '@/lib/realtime-feedback';
+import type { StudentProgress, TeacherFeedback } from '@/lib/teacher/realtime-feedback';
 
 interface StudentCardProps {
   student: StudentProgress;

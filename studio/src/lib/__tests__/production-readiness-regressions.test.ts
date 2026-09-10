@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   buildLearningState,
   masteryPercent,
-} from '@/lib/subject-session';
+} from '@/lib/chat/subject-session';
 import {
   GRADE_2_FEEDBACK_TEMPLATES,
   generatePersonalizedFeedback,
-} from '@/lib/realtime-feedback';
+} from '@/lib/teacher/realtime-feedback';
 
 describe('production readiness regressions', () => {
   it('preserves live hint and consecutive-wrong signals for Omega decisions', () => {

@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Lightbulb, Heart, Navigation, MessageSquare } from 'lucide-react';
-import { sendIntervention } from '@/lib/teacher-dashboard';
+import { sendIntervention } from '@/lib/teacher/teacher-dashboard';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 

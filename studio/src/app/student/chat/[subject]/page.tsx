@@ -25,7 +25,7 @@ import { AdaptiveDifficultyDisplay } from '@/components/student/adaptive-difficu
 import { ChatModeSelector, type ChatMode } from '@/components/student/chat-mode-selector';
 import { LearningPathProgress } from '@/components/student/learning-path-progress';
 import { useAuth } from '@/hooks/use-auth';
-import { tutorLabelFor } from '@/lib/grade-greetings';
+import { tutorLabelFor } from '@/lib/curriculum/grade-greetings';
 import { Card } from '@/components/ui/card';
 import { WellbeingCheckIn } from '@/components/student/wellbeing-checkin';
 import { resolveTeachingLanguage } from '@/lib/teaching-language-policy';

@@ -1,0 +1,56 @@
+name: Omega Threshold Sync
+
+# Runs whenever someone touches the Rust runtime or the TS decision engine.
+# Prevents silent threshold drift between the Rust source of truth and the
+# TypeScript port that runs in production.
+
+on:
+  push:
+    paths:
+      - 'rust-core/src/agent_runtime.rs'
+      - 'studio/src/lib/omega-agent/metta-core.ts'
+  pull_request:
+    paths:
+      - 'rust-core/src/agent_runtime.rs'
+      - 'studio/src/lib/omega-agent/metta-core.ts'
+  # Allow manual trigger for verification
+  workflow_dispatch:
+
+jobs:
+  check-thresholds:
+    name: Verify Omega TS ↔ Rust threshold parity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run threshold sync check
+        run: node studio/scripts/check-omega-thresholds.mjs
+
+      # If the check fails, print a clear remediation message
+      - name: Remediation hint (on failure)
+        if: failure()
+        run: |
+          echo ""
+          echo "============================================================"
+          echo "  OMEGA THRESHOLD DRIFT DETECTED"
+          echo "============================================================"
+          echo ""
+          echo "  The Omega tutoring thresholds in TypeScript no longer match"
+          echo "  the Rust source of truth."
+          echo ""
+          echo "  Source of truth:  rust-core/src/agent_runtime.rs"
+          echo "                    decide_tutoring() function"
+          echo ""
+          echo "  TS thresholds:    studio/src/lib/omega-agent/metta-core.ts"
+          echo "                    OMEGA_THRESHOLDS constant"
+          echo ""
+          echo "  Update OMEGA_THRESHOLDS to match the Rust values, then"
+          echo "  run: node studio/scripts/check-omega-thresholds.mjs"
+          echo "============================================================"

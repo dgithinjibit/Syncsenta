@@ -4,7 +4,7 @@ import {
   LOGICAL_WIDTH,
   getRenderScale,
   toLogicalPoint,
-} from '@/lib/sandbox-geometry';
+} from '@/lib/sandbox/sandbox-geometry';
 
 describe('responsive sandbox geometry', () => {
   it('preserves the logical coordinate system on a narrow phone canvas', () => {

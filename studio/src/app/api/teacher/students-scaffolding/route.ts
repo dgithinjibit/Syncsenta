@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getLearningSession } from '@/lib/session-persistence';
+import { getLearningSession } from '@/lib/session/session-persistence';
 
 export const dynamic = 'force-dynamic';
 

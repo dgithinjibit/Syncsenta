@@ -3,8 +3,8 @@ import {
   applyAdaptiveDecision,
   buildAdaptiveDecisionRequest,
   createAdaptiveQuestionBridge,
-} from '@/lib/adaptive-question-bridge'
-import { createLearningLoop } from '@/lib/student-learning-loop'
+} from '@/lib/progress/adaptive-question-bridge'
+import { createLearningLoop } from '@/lib/progress/student-learning-loop'
 
 describe('adaptive question bridge', () => {
   const request = buildAdaptiveDecisionRequest({

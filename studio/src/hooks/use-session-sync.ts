@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './use-auth';
-import type { LearningSession } from '@/lib/session-persistence';
+import type { LearningSession } from '@/lib/session/session-persistence';
 
 interface SyncOptions {
   autoSync?: boolean; // Auto-sync every 30 seconds

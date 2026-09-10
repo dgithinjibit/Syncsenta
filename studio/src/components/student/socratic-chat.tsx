@@ -48,14 +48,14 @@ import {
   saveHistory,
   clearHistory,
   type StoredChatMessage,
-} from '@/lib/socratic-history';
+} from '@/lib/chat/socratic-history';
 import {
   addChatMessage,
   createChatSession,
   getChatSessions,
   migrateLocalStorageHistory,
-} from '@/lib/chat-history-supabase';
-import { tutorIntroMessage } from '@/lib/grade-greetings';
+} from '@/lib/chat/chat-history-supabase';
+import { tutorIntroMessage } from '@/lib/curriculum/grade-greetings';
 import { useWebSpeech } from '@/hooks/use-web-speech';
 import { useAuth } from '@/hooks/use-auth';
 import { CallInterface } from '@/components/voice/call-interface';

@@ -8,7 +8,7 @@ import {
   getDifficultyLabel,
   type DifficultyLevel,
   type AdaptiveDifficultyContext,
-} from '@/lib/adaptive-difficulty';
+} from '@/lib/progress/adaptive-difficulty';
 
 interface AdaptiveDifficultyDisplayProps {
   userId: string;

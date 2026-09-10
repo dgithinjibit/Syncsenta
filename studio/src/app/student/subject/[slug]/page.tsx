@@ -11,10 +11,10 @@ import {
   getSubjectXP,
   getOrCreateChatSession,
   defaultCompetencyForSubject,
-} from '@/lib/subject-session';
-import { getChatMessages } from '@/lib/chat-history-supabase';
-import type { ChatHistoryMessage } from '@/lib/chat-history-supabase';
-import type { LearningSession } from '@/lib/session-persistence';
+} from '@/lib/chat/subject-session';
+import { getChatMessages } from '@/lib/chat/chat-history-supabase';
+import type { ChatHistoryMessage } from '@/lib/chat/chat-history-supabase';
+import type { LearningSession } from '@/lib/session/session-persistence';
 
 // Lazy-import the two layout components so the bundle is not bloated when
 // neither is needed.

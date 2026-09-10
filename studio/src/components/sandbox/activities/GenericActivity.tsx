@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Activity } from '@/lib/sandbox-types';
-import { CurriculumActivity } from '@/lib/curriculum-activities-mapper';
+import { Activity } from '@/lib/sandbox/sandbox-types';
+import { CurriculumActivity } from '@/lib/curriculum/curriculum-activities-mapper';
 import { Sparkles, Lightbulb, CheckCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { submitActivity } from '@/lib/sandbox-submission';
+import { submitActivity } from '@/lib/sandbox/sandbox-submission';
 import { useAuth } from '@/hooks/use-auth';
 import {
   buildFallbackHint,
@@ -17,7 +17,7 @@ import {
   buildFallbackPrompt,
   inferAdaptiveProfile,
   personalizePrompt,
-} from '@/lib/sandbox-personalization';
+} from '@/lib/sandbox/sandbox-personalization';
 
 interface GenericActivityProps {
   activity: Activity;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { buildSandboxArtifactInsert, type SandboxArtifactType } from '@/lib/sandbox-artifact-queue';
-import { selectSandboxProvider } from '@/lib/sandbox-provider';
+import { buildSandboxArtifactInsert, type SandboxArtifactType } from '@/lib/sandbox/sandbox-artifact-queue';
+import { selectSandboxProvider } from '@/lib/sandbox/sandbox-provider';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 
 export const runtime = 'nodejs';

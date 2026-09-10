@@ -8,7 +8,7 @@ import {
   evaluateAttempt,
   getNextHint,
   type LearningLoopState,
-} from '@/lib/student-learning-loop';
+} from '@/lib/progress/student-learning-loop';
 
 describe('student learning loop', () => {
   it('starts with a deterministic, resumable state', () => {

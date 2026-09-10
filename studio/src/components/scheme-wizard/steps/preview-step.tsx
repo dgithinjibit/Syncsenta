@@ -15,7 +15,7 @@ import { exportSchemeToDocx, type SchemeRow } from '@/lib/export-docx';
 import { useToast } from '@/hooks/use-toast';
 import { FeedbackWidget } from '@/components/teacher/feedback-widget';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { saveScheme } from '@/lib/scheme-v2-client';
+import { saveScheme } from '@/lib/teacher/scheme-v2-client';
 
 // Column headers for CBC scheme of work
 const COLUMN_HEADERS_EN = [

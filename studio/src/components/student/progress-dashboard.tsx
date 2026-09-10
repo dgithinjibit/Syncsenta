@@ -19,7 +19,7 @@ import {
   getSubjectProgressSummary,
   type CompetencyProgress,
   type StudentStats,
-} from '@/lib/progress-tracking';
+} from '@/lib/progress/progress-tracking';
 import type { Database } from '@/lib/supabase/types';
 import { Flame, Trophy, Clock, MessageSquare, Target, Award } from 'lucide-react';
 

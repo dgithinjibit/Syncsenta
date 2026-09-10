@@ -22,6 +22,13 @@
  *   - Increment questions_asked (every turn) + questions_answered /
  *     correct_answers post-stream when answer quality is detectable (Task 7)
  *   - Accept hintsUsed + competencyCode from client body (Tasks 6/8)
+ *
+ * Omega wiring changes (Sept 7, 2026):
+ *   - Replace "ends with ?" heuristic with classifyAnswerQuality() multi-signal
+ *     classifier so correct_answers is actually incremented when earned (#1, #2)
+ *   - Wire server-side Omega enrichment: cultural examples in Intensive prompts
+ *     and teacher alerts surfaced in the SSE [DONE] metadata packet (#3)
+ *   - Write one omega_scaffolding_events row per turn for outcome telemetry (#4)
  */
 
 import { NextRequest } from 'next/server';
@@ -33,15 +40,21 @@ import { z } from 'zod';
 import {
   buildCompassSystemPrompt,
   type LearnerLearningContext,
-} from '@/lib/socratic-prompts';
+} from '@/lib/chat/socratic-prompts';
 import { evaluateTutoringDecision } from '@/lib/omega-agent/metta-core';
-import { buildDynamicSystemPrompt, buildLearningState } from '@/lib/subject-session';
-import { getLearningSession, updateLearningSession } from '@/lib/session-persistence';
-import type { LearningSession } from '@/lib/session-persistence';
-import { checkChatRateLimit } from '@/lib/rate-limit-upstash';
+import { classifyAnswerQuality } from '@/lib/omega-agent/answer-quality';
+import { buildOmegaEnrichment, enrichSystemPrompt } from '@/lib/omega-agent/server-enrichment';
+import {
+  buildScaffoldingEventPayload,
+  payloadToDbRow,
+} from '@/lib/omega-agent/scaffolding-telemetry';
+import { buildDynamicSystemPrompt, buildLearningState, masteryPercent } from '@/lib/chat/subject-session';
+import { getLearningSession, updateLearningSession } from '@/lib/session/session-persistence';
+import type { LearningSession } from '@/lib/session/session-persistence';
+import { checkChatRateLimit } from '@/lib/session/rate-limit-upstash';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { addChatMessage, createChatSession } from '@/lib/chat-history-supabase';
-import { updateDailyActivity, updateLearningProgress } from '@/lib/progress-tracking';
+import { addChatMessage, createChatSession } from '@/lib/chat/chat-history-supabase';
+import { updateDailyActivity, updateLearningProgress } from '@/lib/progress/progress-tracking';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -327,12 +340,9 @@ export async function POST(req: NextRequest) {
       learnerContext,
     });
   } else {
-    // Task 4: typed helper — no `as any` cast.
-    // Task 5: reuse contextRow from the single fetch above.
-    // Task 2: hints_used and consecutive_wrong now come from DB via contextRow.
-    // Task 8: client-sent hintsUsed overrides DB value when present (more
-    //         up-to-date: it counts presses in the CURRENT session before the
-    //         DB has been updated). Take the higher of the two.
+    // Reuse contextRow from the single fetch above.
+    // Client-sent hintsUsed overrides DB value when present — client is more
+    // up-to-date within the session before the DB has been updated.
     const dbHintsUsed = contextRow?.hints_used ?? 0;
     const clientHintsUsed = body.hintsUsed ?? 0;
 
@@ -346,7 +356,7 @@ export async function POST(req: NextRequest) {
 
     const decision = evaluateTutoringDecision(learningState);
 
-    // Fire-and-forget — typed, no as any
+    // Fire-and-forget Redis scaffolding level write for teacher visibility.
     if (authenticatedUser) {
       updateScaffoldingLevel(authenticatedUser.id, decision.scaffolding, body.language)
         .catch((err) => console.error('[/api/chat] Redis scaffolding write failed:', err));
@@ -357,7 +367,24 @@ export async function POST(req: NextRequest) {
         ? (profile.language_preference as 'english' | 'kiswahili' | 'mixed')
         : body.language;
 
-    systemPrompt = buildDynamicSystemPrompt({
+    // ── Omega server enrichment (#3) ─────────────────────────────────────────
+    // Derives cultural examples + teacher alerts server-side using the same
+    // signals the Omega engine has. No extra I/O — pure function.
+    const currentMasteryPct = masteryPercent(
+      contextRow?.questions_answered ?? 0,
+      contextRow?.correct_answers    ?? 0,
+    );
+    const omegaEnrichment = buildOmegaEnrichment({
+      decision,
+      subject:         body.subject,
+      consecutiveWrong: contextRow?.consecutive_wrong ?? 0,
+      masteryPct:      currentMasteryPct,
+      competencyName:  contextRow?.competency_name ?? body.competencyCode ?? body.subject,
+      studentName:     body.studentName || profile.full_name || undefined,
+    });
+
+    // Base prompt + cultural examples injected when Intensive.
+    const basePrompt = buildDynamicSystemPrompt({
       decision,
       subject: body.subject,
       grade: verifiedGrade,
@@ -365,6 +392,17 @@ export async function POST(req: NextRequest) {
       studentName: body.studentName || profile.full_name || undefined,
       learnerContext,
     });
+    systemPrompt = enrichSystemPrompt(basePrompt, omegaEnrichment, decision.scaffolding);
+
+    // Attach enrichment to request scope so the post-stream block can use it.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (req as any).__omegaEnrichment = omegaEnrichment;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (req as any).__omegaDecision   = decision;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (req as any).__learningState   = learningState;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (req as any).__currentMasteryPct = currentMasteryPct;
   }
 
   // ── Build message array ─────────────────────────────────────────────────────
@@ -445,7 +483,6 @@ export async function POST(req: NextRequest) {
         }
 
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-        controller.close();
 
         // ── Post-stream persistence ──────────────────────────────────────────
         const latencyMs = Date.now() - startTime;
@@ -466,47 +503,95 @@ export async function POST(req: NextRequest) {
           } catch (e) { console.error('[/api/chat] Failed to update daily activity:', e); }
         }
 
-        // Task 7: Increment progress counters after every authenticated turn.
-        // questions_asked  — always +1 (the student asked a question)
-        // questions_answered — +1 when the response contains a substantive
-        //   answer (not just a question back). Simple heuristic: assistant
-        //   response contains a '?' means it's another Socratic question back,
-        //   so we don't count it as "answered". Any other response = answered.
-        // correct_answers  — we cannot auto-grade here; leave incrementing
-        //   correct_answers to the sandbox activity grader which has ground
-        //   truth. We DO increment questions_answered so mastery% moves.
-        // consecutive_wrong — reset to 0 when the model gives a direct
-        //   answer (no '?' at end); increment by 1 when response is another
-        //   question back (student didn't produce an answer).
+        // ── Omega post-stream: answer quality + correct_answers grading (#1, #2) ─
+        // classifyAnswerQuality() replaces the old "ends with ?" heuristic.
+        // It looks at BOTH the student message and the assistant response to
+        // determine whether the student actually got the answer right.
         if (body.competencyCode && !isDevChat && authenticatedUser) {
           try {
-            const responseEndsWithQuestion = fullResponse.trimEnd().endsWith('?');
-            // Increment DB hints_used if client reported more hints than DB
-            const newHintsUsed = Math.max(body.hintsUsed ?? 0, contextRow?.hints_used ?? 0);
+            // Retrieve the Omega state attached before the stream.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const omegaDecision   = (req as any).__omegaDecision;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const learningState   = (req as any).__learningState;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const omegaEnrichment = (req as any).__omegaEnrichment;
 
+            // Multi-signal answer classification (#1 + #2)
+            const classification = classifyAnswerQuality(
+              body.message,
+              fullResponse,
+              omegaDecision?.scaffolding ?? 'Guided',
+            );
+
+            const newHintsUsed = Math.max(body.hintsUsed ?? 0, contextRow?.hints_used ?? 0);
+            const newConsecutiveWrong = classification.shouldResetConsecutiveWrong
+              ? 0
+              : Math.min((contextRow?.consecutive_wrong ?? 0) + classification.consecutiveWrongDelta, 10);
+
+            // Write progress counters — correct_answers now actually increments
+            // when classification.shouldIncrementCorrect is true (#1).
             await updateLearningProgress(user.id, body.competencyCode, {
               competencyName:    body.competencyName || body.competencyCode,
               subject:           body.subject,
               grade:             verifiedGrade,
               questionsAsked:    1,
-              questionsAnswered: responseEndsWithQuestion ? 0 : 1,
-              correctAnswers:    0,  // graded by sandbox; not determinable here
+              questionsAnswered: classification.quality !== 'unanswered' ? 1 : 0,
+              correctAnswers:    classification.shouldIncrementCorrect ? 1 : 0,
               timeSpentMinutes:  Math.ceil(latencyMs / 60000),
             });
 
-            // Persist live hints_used + consecutive_wrong back to DB so the
-            // NEXT Omega decision cycle reads real values.
-            const consecutiveWrongDelta = responseEndsWithQuestion ? 1 : 0;
+            // Persist live hints_used + consecutive_wrong so the next Omega
+            // decision cycle reads real values.
             await supabase
               .from('learning_progress')
               .update({
                 hints_used:        newHintsUsed,
-                consecutive_wrong: responseEndsWithQuestion
-                  ? Math.min((contextRow?.consecutive_wrong ?? 0) + consecutiveWrongDelta, 10)
-                  : 0,  // reset on any direct answer
+                consecutive_wrong: newConsecutiveWrong,
               })
               .eq('user_id', user.id)
               .eq('competency_code', body.competencyCode);
+
+            // ── Scaffolding outcome telemetry (#4) ───────────────────────────
+            // Fire-and-forget — analytics data, not critical path.
+            if (omegaDecision && learningState) {
+              const eventPayload = buildScaffoldingEventPayload({
+                userId:           user.id,
+                competencyCode:   body.competencyCode,
+                sessionId:        sessionId,
+                decision:         omegaDecision,
+                attempts:         learningState.attempts,
+                correctAttempts:  learningState.correctAttempts,
+                hintsUsed:        newHintsUsed,
+                consecutiveWrong: contextRow?.consecutive_wrong ?? 0,
+                frustrationSignal: learningState.frustrationSignal,
+                answerQuality:    classification.quality,
+              });
+              supabaseAdmin
+                .from('omega_scaffolding_events')
+                .insert(payloadToDbRow(eventPayload))
+                .then(({ error }) => {
+                  if (error) console.error('[/api/chat] Telemetry write failed:', error.message);
+                });
+            }
+
+            // ── Teacher alert: SSE metadata event before close (#3) ──────────
+            // Sent BEFORE controller.close() so the client receives it.
+            // Clients should handle { type: 'omega_teacher_alert' } separately
+            // from delta chunks and forward to the teacher dashboard.
+            if (omegaEnrichment?.teacherAlert) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type:    'omega_teacher_alert',
+                    alert:   omegaEnrichment.teacherAlert,
+                    urgency: omegaEnrichment.alertUrgency,
+                    nextActivityType: omegaEnrichment.nextActivityType,
+                    competencyCode:   body.competencyCode,
+                  })}\n\n`,
+                ),
+              );
+            }
           } catch (e) { console.error('[/api/chat] Failed to update learning progress:', e); }
         }
 
@@ -517,6 +602,8 @@ export async function POST(req: NextRequest) {
           });
           await supabaseAdmin.rpc('increment_daily_quota', { p_user_id: user.id });
         }
+
+        controller.close();
       } catch (err) {
         const detail = err instanceof Error ? err.message : 'Stream interrupted';
         console.error('[/api/chat] Stream error:', detail);

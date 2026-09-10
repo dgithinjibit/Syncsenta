@@ -5,9 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { StudentHeader } from '@/components/layout/student-header';
 import { FloatingConceptChat } from '@/components/student/floating-concept-chat';
-import { getActivityById } from '@/lib/sandbox-activities';
-import { submitActivity } from '@/lib/sandbox-submission';
-import type { Activity, Manipulative } from '@/lib/sandbox-types';
+import { getActivityById } from '@/lib/sandbox/sandbox-activities';
+import { submitActivity } from '@/lib/sandbox/sandbox-submission';
+import type { Activity, Manipulative } from '@/lib/sandbox/sandbox-types';
 
 // Two renderers — we pick based on whether the activity has been
 // classified into a canvas manipulative. Un-classified entries

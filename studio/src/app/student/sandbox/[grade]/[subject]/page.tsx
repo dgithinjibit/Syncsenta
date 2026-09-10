@@ -10,9 +10,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { StudentHeader } from '@/components/layout/student-header';
 import { FloatingConceptChat } from '@/components/student/floating-concept-chat';
 import { ArrowLeft, Clock, Target, Trophy, Star, Lock, Calendar, AlertTriangle, Info } from 'lucide-react';
-import { getActivitiesForGradeSubject, getRecommendedActivities, getTermStatistics } from '@/lib/sandbox-activities';
-import { Activity, GradeId, SubjectId } from '@/lib/sandbox-types';
-import { getCurrentTerm, getTermName, formatTermInfo, getDateWarningMessage, isDeviceDateReasonable } from '@/lib/term-utils';
+import { getActivitiesForGradeSubject, getRecommendedActivities, getTermStatistics } from '@/lib/sandbox/sandbox-activities';
+import { Activity, GradeId, SubjectId } from '@/lib/sandbox/sandbox-types';
+import { getCurrentTerm, getTermName, formatTermInfo, getDateWarningMessage, isDeviceDateReasonable } from '@/lib/curriculum/term-utils';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 

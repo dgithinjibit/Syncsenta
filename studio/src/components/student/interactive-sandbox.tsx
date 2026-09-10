@@ -36,7 +36,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, RotateCcw, Send, Eraser, Sparkles } from 'lucide-react'
 import { buildApiUrl, API_ENDPOINTS } from '@/lib/api-config'
-import { getRenderScale, toLogicalPoint, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@/lib/sandbox-geometry'
+import { getRenderScale, toLogicalPoint, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@/lib/sandbox/sandbox-geometry'
 import {
   buildTutorContext,
   createLearningLoop,
@@ -46,10 +46,10 @@ import {
   serializeLearningLoop,
   type LearningEvent,
   type LearningLoopState,
-} from '@/lib/student-learning-loop'
-import { buildAdaptiveLearningStep } from '@/lib/sandbox-personalization'
-import { applyAdaptiveDecision, buildAdaptiveDecisionRequest, createAdaptiveQuestionBridge, createServerAdaptiveDecision } from '@/lib/adaptive-question-bridge'
-import { resolveTeacherApprovedMedia, type TeacherApprovedSandboxMedia } from '@/lib/sandbox-media'
+} from '@/lib/progress/student-learning-loop'
+import { buildAdaptiveLearningStep } from '@/lib/sandbox/sandbox-personalization'
+import { applyAdaptiveDecision, buildAdaptiveDecisionRequest, createAdaptiveQuestionBridge, createServerAdaptiveDecision } from '@/lib/progress/adaptive-question-bridge'
+import { resolveTeacherApprovedMedia, type TeacherApprovedSandboxMedia } from '@/lib/sandbox/sandbox-media'
 
 // ---------------------------------------------------------------------------
 // Types

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Flame, Zap, Award, Trophy, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { getStudentStats } from '@/lib/progress-tracking';
+import { getStudentStats } from '@/lib/progress/progress-tracking';
 import {
   getWeeklyPointsBreakdown,
   getStudentRank,

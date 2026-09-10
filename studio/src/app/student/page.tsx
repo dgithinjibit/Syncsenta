@@ -13,19 +13,19 @@ import {
 import { StudentHeader } from '@/components/layout/student-header';
 import { GamificationOverview } from '@/components/gamification/gamification-overview';
 import { LeaderboardPanel } from '@/components/gamification/leaderboard-panel';
-import { tutorTaglineFor } from '@/lib/grade-greetings';
+import { tutorTaglineFor } from '@/lib/curriculum/grade-greetings';
 import type { GamificationMode } from '@/components/student/gamification-panel';
 import { loadGamificationMode } from '@/components/student/gamification-mode-switcher';
 import { supabase } from '@/lib/supabase/client';
 import { CompetencyMap } from '@/components/student/competency-map';
 import { FloatingConceptChat } from '@/components/student/floating-concept-chat';
-import { getActivitiesForGradeSubject } from '@/lib/sandbox-activities';
-import { gradeNameToId } from '@/lib/grade-id';
-import type { GradeId, SubjectId } from '@/lib/sandbox-types';
+import { getActivitiesForGradeSubject } from '@/lib/sandbox/sandbox-activities';
+import { gradeNameToId } from '@/lib/curriculum/grade-id';
+import type { GradeId, SubjectId } from '@/lib/sandbox/sandbox-types';
 import { useAgeTheme } from '@/lib/theme/age-theme-context';
 import { ErrorState, classifyError } from '@/components/student/error-boundary';
 import { StatCardSkeleton, SubjectCardSkeleton } from '@/components/ui/skeleton';
-import { perfMonitor, measureAsync } from '@/lib/performance-monitor';
+import { perfMonitor, measureAsync } from '@/lib/telemetry/performance-monitor';
 
 interface StudentProfile {
   id: string;

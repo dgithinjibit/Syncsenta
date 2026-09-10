@@ -16,7 +16,7 @@ import {
   Download,
   Filter
 } from 'lucide-react';
-import { getTeacherStudentSubmissions } from '@/lib/sandbox-submission';
+import { getTeacherStudentSubmissions } from '@/lib/sandbox/sandbox-submission';
 import { useAuth } from '@/hooks/use-auth';
 
 interface ActivitySubmission {

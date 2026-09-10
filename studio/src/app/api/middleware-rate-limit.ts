@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { checkApiRateLimit, RateLimitResult } from '@/lib/rate-limit-upstash';
+import { checkApiRateLimit, RateLimitResult } from '@/lib/session/rate-limit-upstash';
 import { createClient } from '@/lib/supabase/server';
 
 export interface RateLimitOptions {

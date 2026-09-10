@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { buildReflectionEvidencePlan } from '@/lib/teacher-reflection-evidence';
+import { buildReflectionEvidencePlan } from '@/lib/teacher/teacher-reflection-evidence';
 
 export async function POST(request: NextRequest) {
   try {

@@ -9,8 +9,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getLearningSession } from '@/lib/session-persistence';
-import { SUBJECT_REGISTRY } from '@/lib/subject-session';
+import { getLearningSession } from '@/lib/session/session-persistence';
+import { SUBJECT_REGISTRY } from '@/lib/chat/subject-session';
 
 export const dynamic = 'force-dynamic';
 

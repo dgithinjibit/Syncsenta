@@ -27,7 +27,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { acknowledgeAlert, resolveAlert, dismissAlert } from '@/lib/teacher-dashboard';
+import { acknowledgeAlert, resolveAlert, dismissAlert } from '@/lib/teacher/teacher-dashboard';
 import { useAuth } from '@/hooks/use-auth';
 
 interface StudentAlert {

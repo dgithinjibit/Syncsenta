@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getStudentSchemes } from '@/lib/scheme-v2-client';
+import { getStudentSchemes } from '@/lib/teacher/scheme-v2-client';
 
 export const dynamic = 'force-dynamic'; // Mark as dynamic route
 

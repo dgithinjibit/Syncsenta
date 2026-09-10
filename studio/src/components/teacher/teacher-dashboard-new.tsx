@@ -27,7 +27,7 @@ import {
   type TeacherStudent,
   type StudentAlert,
   type ClassSummary,
-} from '@/lib/teacher-dashboard';
+} from '@/lib/teacher/teacher-dashboard';
 import {
   Users, Target, MessageSquare, AlertTriangle,
   RefreshCw, BookOpen, BarChart2, Bell,

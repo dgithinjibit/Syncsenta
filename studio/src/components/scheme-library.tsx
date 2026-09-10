@@ -32,8 +32,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { SchemeV2 } from '@/types/curriculum';
-import { getTeacherSchemes } from '@/lib/scheme-v2-client';
-import { loadSchemeIntoWizard, validateSchemeForLoading } from '@/lib/scheme-loader';
+import { getTeacherSchemes } from '@/lib/teacher/scheme-v2-client';
+import { loadSchemeIntoWizard, validateSchemeForLoading } from '@/lib/teacher/scheme-loader';
 import { useSchemeWizardStore } from '@/stores/scheme-wizard-store';
 import { ExportSchemeDialog } from '@/components/scheme-wizard/export-scheme-dialog';
 import { useToast } from '@/hooks/use-toast';

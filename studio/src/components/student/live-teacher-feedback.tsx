@@ -23,7 +23,7 @@ import {
   ThumbsUp,
   MessageSquare
 } from 'lucide-react';
-import type { TeacherFeedback } from '@/lib/realtime-feedback';
+import type { TeacherFeedback } from '@/lib/teacher/realtime-feedback';
 
 const FEEDBACK_ICONS = {
   encouragement: Heart,

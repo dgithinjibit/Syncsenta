@@ -30,7 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Construction } from 'lucide-react';
 import { useTeacherContext } from '@/stores/teacher-context';
-import type { Grade } from '@/lib/cbc-curriculum';
+import type { Grade } from '@/lib/curriculum/cbc-curriculum';
 
 // Flat page components delegated to. Loaded dynamically so a build failure
 // in any one page doesn't take down the whole dynamic route.

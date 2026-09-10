@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Check, ChevronRight, Sparkles } from 'lucide-react'
 import { StudentHeader } from '@/components/layout/student-header'
 import { FloatingConceptChat } from '@/components/student/floating-concept-chat'
-import type { SubjectId, ExtendedSubjectId } from '@/lib/sandbox-types'
+import type { SubjectId, ExtendedSubjectId } from '@/lib/sandbox/sandbox-types'
 
 type SubjectCard = {
   label: string

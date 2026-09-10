@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Grade, CBCLevel, TeachingModel } from '@/lib/cbc-curriculum';
+import type { Grade, CBCLevel, TeachingModel } from '@/lib/curriculum/cbc-curriculum';
 
 /**
  * Teacher Context Store
