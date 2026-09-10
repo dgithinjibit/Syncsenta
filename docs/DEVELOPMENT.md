@@ -86,7 +86,7 @@ is sufficient.
 ### Terminal 1 — AI Agents
 
 ```powershell
-Set-Location "c:\Users\hp\codes\Ascendra\ai-agents"
+Set-Location "c:\Users\hp\codes\Syncsenta\ai-agents"
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
@@ -104,7 +104,7 @@ Invoke-RestMethod http://127.0.0.1:8001/healthz
 ### Terminal 2 — Studio
 
 ```powershell
-Set-Location "c:\Users\hp\codes\Ascendra\studio"
+Set-Location "c:\Users\hp\codes\Syncsenta\studio"
 npm ci
 npm run dev
 # Opens at http://localhost:5173
@@ -130,7 +130,7 @@ Run from the component directory.
 ### Studio
 
 ```powershell
-Set-Location "c:\Users\hp\codes\Ascendra\studio"
+Set-Location "c:\Users\hp\codes\Syncsenta\studio"
 
 # Run all tests once (CI mode, recommended before commits)
 npx vitest run
@@ -166,7 +166,7 @@ Tests live in:
 ### AI Agents
 
 ```powershell
-Set-Location "c:\Users\hp\codes\Ascendra\ai-agents"
+Set-Location "c:\Users\hp\codes\Syncsenta\ai-agents"
 .\.venv\Scripts\Activate.ps1
 $env:PYTHONPATH = "$PWD\src"
 pytest
@@ -188,7 +188,7 @@ schema. Additional migrations follow the timestamp format `YYYYMMDDNNNNNN_*.sql`
 
 To apply migrations using Supabase CLI:
 ```powershell
-Set-Location "c:\Users\hp\codes\Ascendra"
+Set-Location "c:\Users\hp\codes\Syncsenta"
 npx supabase db push
 ```
 
@@ -198,7 +198,7 @@ The Rust service is built but not wired to production.
 
 ```powershell
 # Build (requires Rust toolchain)
-Set-Location "c:\Users\hp\codes\Ascendra"
+Set-Location "c:\Users\hp\codes\Syncsenta"
 cargo build --release -p rust-service
 
 # Run locally

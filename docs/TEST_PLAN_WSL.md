@@ -12,7 +12,7 @@
 
 ```bash
 # Switch to WSL Ubuntu terminal in VS Code, then run:
-cd /mnt/c/Users/hp/codes/Ascendra/ai-agents
+cd /mnt/c/Users/hp/codes/Syncsenta/ai-agents
 
 # Install pip if not available
 sudo apt update
@@ -47,7 +47,7 @@ nano .env
 ### Phase 1: Backend Python Tests (Critical)
 
 ```bash
-cd /mnt/c/Users/hp/codes/Ascendra/ai-agents
+cd /mnt/c/Users/hp/codes/Syncsenta/ai-agents
 
 # 1. Test MeTTa/Hyperon Integration
 pytest tests/test_metta_hyperon.py -v -s
@@ -82,7 +82,7 @@ pytest tests/ -v --cov=src/syncsenta_agents --cov-report=html --cov-report=term
 ### Phase 2: Frontend TypeScript Tests
 
 ```bash
-cd /mnt/c/Users/hp/codes/Ascendra
+cd /mnt/c/Users/hp/codes/Syncsenta
 
 # Check if test framework is set up
 npm run test 2>/dev/null || echo "Tests not configured"
@@ -99,7 +99,7 @@ npm test
 
 ```bash
 # Test backend API is running
-cd /mnt/c/Users/hp/codes/Ascendra/ai-agents
+cd /mnt/c/Users/hp/codes/Syncsenta/ai-agents
 uvicorn src.syncsenta_agents.main:app --reload --port 8000 &
 
 # Wait for startup
@@ -118,7 +118,7 @@ curl -X POST http://localhost:8000/api/v1/lessons/generate \
 
 ```bash
 # Test Supabase connection
-cd /mnt/c/Users/hp/codes/Ascendra/ai-agents
+cd /mnt/c/Users/hp/codes/Syncsenta/ai-agents
 python3 -c "
 from syncsenta_agents.db.supabase_client import get_supabase_client
 client = get_supabase_client()

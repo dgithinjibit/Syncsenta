@@ -7,6 +7,7 @@ import { TeacherSidebar } from "@/components/layout/teacher-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { useTeacherContext } from "@/stores/teacher-context";
 import { useAuth } from "@/hooks/use-auth";
+import { RoleGate } from "@/components/auth/role-gate";
 import Link from "next/link";
 
 export default function TeacherLayout({ children }: { children: ReactNode }) {
@@ -70,17 +71,19 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
   }, [user?.id, authLoading]);
 
   return (
-    <SidebarProvider>
-      <TeacherSidebar />
-      <SidebarInset className="flex flex-col">
-        <AppHeader />
-        <main className="p-4 md:p-6 flex-grow">
-          {children}
-        </main>
-        <footer className="mt-auto p-4 text-center text-xs text-muted-foreground">
-          © 2025 SyncSenta. All rights reserved. | <Link href="/terms" className="hover:underline">Terms & Conditions</Link> | <Link href="https://forms.gle/3vQhgtJbnEaGD6xV8" target="_blank" rel="noopener noreferrer" className="hover:underline">Provide Feedback</Link>
-        </footer>
-      </SidebarInset>
-    </SidebarProvider>
+    <RoleGate allowedRoles={['teacher']}>
+      <SidebarProvider>
+        <TeacherSidebar />
+        <SidebarInset className="flex flex-col">
+          <AppHeader />
+          <main className="p-4 md:p-6 flex-grow">
+            {children}
+          </main>
+          <footer className="mt-auto p-4 text-center text-xs text-muted-foreground">
+            © 2025 SyncSenta. All rights reserved. | <Link href="/terms" className="hover:underline">Terms & Conditions</Link> | <Link href="https://forms.gle/3vQhgtJbnEaGD6xV8" target="_blank" rel="noopener noreferrer" className="hover:underline">Provide Feedback</Link>
+          </footer>
+        </SidebarInset>
+      </SidebarProvider>
+    </RoleGate>
   );
 }

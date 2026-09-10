@@ -4,7 +4,7 @@
 
 ## Executive view
 
-Ascendra is a monorepo of related education products. The primary path is a
+Syncsenta is a monorepo of related education components. The primary path is a
 Next.js application called **Studio**, backed by a Python FastAPI service
 (**AI Agents**) and **Supabase**. A standalone **Scheme Scribe** Vite app,
 a **Rust adaptive service**, and an **ESP32-CAM firmware** prototype live
@@ -12,7 +12,7 @@ alongside that path.
 
 ## Two AI delivery paths in Studio
 
-Studio has two distinct AI paths that share intent but are not a single
+The Syncsenta web application has two distinct AI paths that share intent but are not a single
 abstraction:
 
 **Path 1 — Socratic student chat** (`/api/chat`)
@@ -75,7 +75,7 @@ Changes must preserve or deliberately consolidate both paths.
 
 ## Components and responsibilities
 
-### 1. Studio — `studio/`
+### 1. Syncsenta web application — `studio/`
 
 Next.js 16 App Router, React 18, TypeScript, Tailwind, shadcn/ui.
 
@@ -125,7 +125,7 @@ Next.js 16 App Router, React 18, TypeScript, Tailwind, shadcn/ui.
 
 ### 2. AI Agents service — `ai-agents/`
 
-FastAPI (Python 3.11), LangGraph, Groq. Deployed on Render.
+FastAPI (Python 3.11), LangGraph, Groq, and the Python Hyperon policy adapter. Deployed on Render from `render.yaml`.
 
 - Assessment quiz generation and grading
 - LangGraph orchestration + specialist agents
@@ -174,7 +174,7 @@ and `adaptive_question.rs`.
 - `POST /v1/adaptive-question`
 
 **Current status: built locally, not deployed to production.**
-Studio's `/api/chat` uses the TypeScript port in `metta-core.ts` as fallback.
+The Syncsenta `/api/chat` route uses the TypeScript port in `metta-core.ts` as fallback.
 Wire it by setting `SYNCSENTA_RUST_ADAPTIVE_URL` in Vercel env vars.
 Readiness probe: `scripts/rust-adaptive-readiness.sh`.
 
@@ -196,7 +196,7 @@ Not connected in production.
 
 ## Omega tutoring decision engine
 
-Every `/api/chat` request in socratic mode runs through the Omega decision engine
+Every `/api/chat` request in socratic mode passes through the request-scoped MeTTa boundary and then the Omega decision engine
 to compute scaffolding level before calling the LLM. This is the most critical
 AI component for adaptive student tutoring.
 
@@ -204,6 +204,9 @@ AI component for adaptive student tutoring.
 POST /api/chat (socratic mode)
   │
   ├─ Auth + profile lookup
+  │
+  ├─ Request-scoped MeTTa student-turn boundary
+  │   Normalize subject + grade and record the interaction
   │
   ├─ Query learning_progress table
   │   SELECT questions_answered, correct_answers, mastery_level

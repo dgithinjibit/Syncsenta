@@ -469,17 +469,20 @@ class TelemetryAgent:
         Analyze dwell time patterns.
         
         Algorithm:
-        1. Extract all hover durations
+        1. Extract durations from every timed interaction
         2. Calculate statistical measures (mean, median, std dev)
         3. Count hesitations (dwells > 3 seconds)
         4. Calculate confidence score based on dwell consistency
         """
-        hover_events = [e for e in events if e.event_type == EventType.HOVER and e.duration]
+        # Dwell is interaction time, not only pointer-hover time. Touch-first
+        # learners and keyboard users commonly produce timed clicks, drags, and
+        # submissions without emitting HOVER events.
+        timed_events = [e for e in events if e.duration is not None and e.duration > 0]
         
-        if not hover_events:
+        if not timed_events:
             return DwellAnalysis(0, 0, 0, 0, 0, 1.0)
         
-        durations = [e.duration for e in hover_events]
+        durations = [e.duration for e in timed_events]
         
         mean_dwell = statistics.mean(durations)
         median_dwell = statistics.median(durations)

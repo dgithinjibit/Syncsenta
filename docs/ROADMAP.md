@@ -1,12 +1,24 @@
-# Ascendra MVP Roadmap
+# Syncsenta MVP Roadmap
 
-**Project**: Ascendra (formerly Syncsenta) - AI-Powered Education Platform for Kenya  
+**Project**: Syncsenta - AI-Powered Education Platform for Kenya
 **Target**: 100% MVP Launch Readiness  
-**Last Updated**: 2026-08-29
+**Last Updated**: 2026-09-08
+
+**Omega/Hyperon review update**: 2026-09-08 — representative Hyperon
+dependents reviewed; adapter input validation and fallback telemetry contract
+hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJECTS.md).
 
 ---
 
-## Current Status: 95% Complete ✅
+## Current Status: 78% MVP web product / 70% overall evidence-weighted estimate
+
+The earlier 95% figure was an internal MVP estimate. The current assessment
+separates the deployed MVP web product from the full Phase 2/3 roadmap. Studio
+is a real deployed application with working routes, authentication
+foundations, curriculum activities, AI decision code, PWA assets, and
+automated tests, but the Render AI readiness path, production RAG proof,
+durable offline reconciliation, observability, and several role workflows
+remain incomplete.
 
 ### Recent Progress
 - ✅ Task 5: MeTTa/Hyperon telemetry integration (COMPLETE)
@@ -15,7 +27,9 @@
 - ✅ Rate limiting & CSRF protection implemented
 - ✅ Grade 2 student workflow designed (95% complete)
 
-**We've reached 95%!** Grade 2 workflow documented with 70+ activities already implemented. Only 5% remaining for true 100%.
+The full multi-phase roadmap is not 78% complete: mobile, collaboration,
+NEMIS, multi-tenancy, full indigenous-language support, voice, and advanced
+analytics remain future scope.
 
 ### Completed ✅
 - [x] **Core Architecture** (100%)
@@ -60,10 +74,15 @@
   - ⚠️ Grade 2: Onboarding wizard needed (final 5%)
 
 - [x] **Deployment Infrastructure** (100%)
-  - ✅ Vercel deployment (frontend) - ascendra-u1eu
+  - ✅ Vercel deployment (frontend) - sentastudio
   - ✅ Render deployment (backend Python service)
   - ✅ CI/CD pipelines via GitHub Actions
   - ✅ Environment variable management
+
+- [x] **Dependency security audit**
+  - ✅ Studio `npm audit` reports zero vulnerabilities
+  - ✅ Scheme Scribe `npm audit` reports zero vulnerabilities
+  - ✅ Python `pip-audit` reports no known vulnerabilities
 
 ---
 
@@ -84,6 +103,22 @@
 2. Add comprehensive docstrings
 3. Frontend component reorganization
 4. Improve test coverage to 80%
+
+#### Omega / Hyperon boundary hardening
+- [x] Review representative Hyperon dependent projects and record reusable patterns
+- [x] Keep raw policy-atom construction inside the Python Hyperon adapter
+- [x] Reject malformed dynamic policy symbols with a fail-closed verdict
+- [x] Stabilize the fallback evaluator label used by telemetry consumers
+- [x] Route every student chat turn through the request-scoped MeTTa boundary before Omega policy selection
+- [x] Normalize all subject labels before MeTTa parsing and test the subject-agnostic contract
+- [x] Keep every sandbox subject playable with a guided-foundations fallback while authored content expands
+- [ ] Add explicit Hyperon runtime/version contract and readiness checks
+- [ ] Restore and validate the deployed AI backend used by student chat
+- [ ] Author equivalent curriculum activities for every listed CBC subject and grade (fallback currently verified)
+- [ ] Add durable, versioned Omega knowledge/session persistence with restart tests
+- [ ] Add timeout, cancellation, resource limits, and bounded concurrency around Hyperon calls
+- [ ] Add policy decision audit fields: correlation ID, policy version, evaluator, reason, latency
+- [ ] Make adapter, persistence, replay, and end-to-end policy tests required CI gates
 
 ---
 
@@ -145,9 +180,9 @@
 **Priority**: MEDIUM
 
 - [x] Create AGENTS.md for AI-assisted development
-- [ ] Add API documentation (OpenAPI/Swagger)
-- [ ] Create deployment runbook
-- [ ] Add troubleshooting guide
+- [x] Add API documentation (FastAPI exposes OpenAPI/Swagger at `/docs` and `/openapi.json`)
+- [x] Create deployment runbook (`docs/DEPLOYMENT_RUNBOOK.md`)
+- [x] Add troubleshooting guide (`docs/TROUBLESHOOTING.md`)
 - [ ] Document environment variable requirements
 - [ ] Create video walkthrough for developers
 
@@ -185,7 +220,7 @@
 
 ### Medium Priority
 - [ ] Hyperon runtime installation not automated (graceful fallback working)
-- [ ] No automated dependency vulnerability scanning
+- [x] Dependency vulnerability audits run for Studio, Scheme Scribe, and Python requirements
 - [ ] Missing API documentation for Python backend
 - [ ] Frontend bundle size not optimized
 
@@ -253,7 +288,7 @@
 - [ ] Deploy Python backend to Render production
 - [ ] Configure production environment variables
 - [ ] Enable Supabase production mode
-- [ ] Set up custom domain (ascendra.co.ke?)
+- [ ] Confirm and set up the canonical Syncsenta custom domain
 - [ ] SSL certificate configuration
 - [ ] CDN setup for static assets
 - [ ] Database backup automation
@@ -351,7 +386,7 @@
 ## Contact & Support
 
 **Project Lead**: [Your Name]  
-**Repository**: https://github.com/dgithinjibit/Ascendra  
+**Repository**: https://github.com/dgithinjibit/Syncsenta
 **Documentation**: See `CODE_MAP.md`, `AGENTS.md`, and `docs/`
 
 ---

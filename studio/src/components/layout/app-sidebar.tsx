@@ -72,13 +72,13 @@ const teacherNavItems = [
 ];
 
 const schoolHeadNavItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/head", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/school-staff", icon: Users, label: "Staff" },
     { href: "/dashboard/school-finance", icon: Wallet, label: "Finance" },
 ];
 
 const countyOfficerNavItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/teacher", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/schools", icon: School, label: "Schools" },
     { href: "/dashboard/county-teachers", icon: BookUser, label: "Teachers" },
     { href: "/dashboard/county-comms", icon: Megaphone, label: "Comms" },

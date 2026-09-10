@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -14,6 +14,9 @@ import {
   Users,
   WifiOff,
   Loader2,
+  Database,
+  ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +36,7 @@ const roles = [
     title: "Students",
     description: "Learn at your pace with CBC-aligned guidance and feedback.",
     icon: GraduationCap,
-    href: "/auth/signup?role=student",
+    href: "/login",
     demoHref: "/api/auth/demo-login?role=student",
     items: [
       "Personalised learning journeys",
@@ -45,7 +48,7 @@ const roles = [
     title: "Teachers",
     description: "Prepare, assess, and support learners with less administration.",
     icon: Users,
-    href: "/auth/signup?role=teacher",
+    href: "/login",
     demoHref: "/api/auth/demo-login?role=teacher",
     items: [
       "Schemes and lesson plans",
@@ -57,7 +60,7 @@ const roles = [
     title: "Heads of School",
     description: "See school-level progress and the decisions that need attention.",
     icon: BarChart3,
-    href: "/auth/signup?role=head",
+    href: "/login",
     demoHref: "/api/auth/demo-login?role=head",
     items: [
       "Class and school aggregates",
@@ -69,7 +72,7 @@ const roles = [
     title: "Parents and Guardians",
     description: "Stay connected to a learner's progress without information overload.",
     icon: HeartHandshake,
-    href: "/auth/signup?role=parent",
+    href: "/login",
     demoHref: "/api/auth/demo-login?role=parent",
     items: [
       "Weekly learning summaries",
@@ -79,8 +82,30 @@ const roles = [
   },
 ];
 
+const liveCapabilities = [
+  {
+    title: "Real role workspaces",
+    description: "Sign in to open focused student, teacher, school, or family workflows.",
+    icon: Users,
+  },
+  {
+    title: "CBC curriculum tools",
+    description: "Create practice, schemes, assessments, and feedback around the repository curriculum.",
+    icon: BookOpenCheck,
+  },
+  {
+    title: "Protected learning data",
+    description: "Supabase authentication and row-level access rules keep each workspace scoped.",
+    icon: Database,
+  },
+  {
+    title: "Built for unreliable networks",
+    description: "Quiz and assessment flows include a local queue for work that needs to sync later.",
+    icon: ClipboardCheck,
+  },
+];
+
 function HomePageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [autoLoginLoading, setAutoLoginLoading] = useState<string | null>(null);
 
@@ -154,19 +179,23 @@ function HomePageContent() {
           <div className="flex flex-col justify-center">
             <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              🚀 Grade 2 Demo Ready - Click any role below
+              Kenyan CBC learning for students, teachers, and families
             </div>
             <h1 className="max-w-3xl font-headline text-4xl font-bold tracking-tight text-primary sm:text-5xl lg:text-6xl">
-              Omega Agent Powered Learning for Grade 2 Students
+              One connected learning workspace for every role
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
-              SyncSenta's Omega Agent provides intelligent, culturally-adapted learning experiences 
-              that sync seamlessly across all devices. Built for Kenyan Grade 2 students with CBC curriculum alignment.
+              SyncSenta brings CBC-aligned learning, teacher planning, school leadership,
+              and consent-aware family progress into one Kenyan platform. Every role gets
+              a focused workspace while the learner journey stays connected from classroom
+              practice to school-level insight.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" onClick={() => router.push(DEMO_MODE ? "/api/auth/demo-login?role=student" : "/student/demo")} className="min-h-12 sm:w-auto">
-                {DEMO_MODE ? "Try the demo" : "Try Student Demo"}
+              <Button size="lg" asChild className="min-h-12 sm:w-auto">
+                <Link href="/login">
+                Open your workspace
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
               </Button>
               <Button size="lg" variant="outline" asChild className="min-h-12 sm:w-auto">
                 <Link href="/products">See how it works</Link>
@@ -190,13 +219,13 @@ function HomePageContent() {
             <div className="relative w-full max-w-sm space-y-4">
               <div className="rounded-2xl border border-border bg-background p-5">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold">Today&apos;s learning path</span>
+                  <span className="font-semibold">One platform, four focused views</span>
                   <BookOpenCheck className="h-5 w-5 text-primary" aria-hidden="true" />
                 </div>
                 <div className="mt-5 space-y-4">
                   <div>
                     <div className="mb-2 flex justify-between text-xs text-muted-foreground">
-                      <span>Mathematics</span><span>In progress</span>
+                        <span>Student learning</span><span>Practice</span>
                     </div>
                     <div className="h-2 rounded-full bg-secondary">
                       <div className="h-2 w-3/5 rounded-full bg-primary" />
@@ -204,7 +233,7 @@ function HomePageContent() {
                   </div>
                   <div>
                     <div className="mb-2 flex justify-between text-xs text-muted-foreground">
-                      <span>Environmental Activities</span><span>Next</span>
+                        <span>Teacher planning</span><span>Review</span>
                     </div>
                     <div className="h-2 rounded-full bg-secondary">
                       <div className="h-2 w-2/5 rounded-full bg-accent" />
@@ -214,14 +243,62 @@ function HomePageContent() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-border bg-background p-4">
-                  <p className="text-xs text-muted-foreground">Teacher feedback</p>
-                  <p className="mt-2 text-sm font-semibold">Ready to review</p>
+                  <p className="text-xs text-muted-foreground">School insight</p>
+                  <p className="mt-2 text-sm font-semibold">Ready when needed</p>
                 </div>
                 <div className="rounded-2xl border border-border bg-background p-4">
-                  <p className="text-xs text-muted-foreground">Family update</p>
+                  <p className="text-xs text-muted-foreground">Family connection</p>
                   <p className="mt-2 text-sm font-semibold">Consent-aware</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Product proof */}
+        <section className="border-y border-border/70 bg-background" aria-labelledby="product-proof-heading">
+          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+                  Product in motion
+                </p>
+                <h2 id="product-proof-heading" className="mt-3 font-headline text-3xl font-bold text-primary sm:text-4xl">
+                  More than a landing page.
+                </h2>
+                <p className="mt-4 text-muted-foreground">
+                  SyncSenta is an active learning workspace with role-based routes, curriculum tools,
+                  protected data access, and network-aware assessment flows. Open a workspace to see the product itself.
+                </p>
+              </div>
+              <Button variant="outline" asChild className="min-h-11 shrink-0 sm:w-fit">
+                <Link href="/login">
+                  Open the live workspace
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {liveCapabilities.map((capability) => {
+                const Icon = capability.icon;
+                return (
+                  <Card key={capability.title} className="border-border bg-card/60">
+                    <CardHeader className="pb-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </div>
+                      <CardTitle className="pt-1 text-base">{capability.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm leading-6 text-muted-foreground">{capability.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            <div className="mt-6 flex items-start gap-2 text-sm text-muted-foreground">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <span>AI guidance is designed to support teachers and learners—not replace human review.</span>
             </div>
           </div>
         </section>

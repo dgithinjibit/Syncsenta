@@ -2,7 +2,7 @@
  * Teacher Dashboard Page
  */
 
-import { TeacherDashboardNew } from '@/components/teacher/teacher-dashboard-new';
+import { EnhancedTeacherDashboard } from '@/components/teacher/enhanced-teacher-dashboard';
 
 export const metadata = {
   title: 'Teacher Dashboard — syncsenta',
@@ -13,7 +13,7 @@ export default function TeacherDashboardPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
-        <TeacherDashboardNew />
+        <EnhancedTeacherDashboard />
       </div>
     </main>
   );

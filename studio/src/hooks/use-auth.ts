@@ -35,7 +35,7 @@ export interface AuthState {
 
 export interface AuthActions {
   signUp: (email: string, password: string, profile: ProfileSignup) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<Profile | null>;
   signInWithGoogle: (options?: { next?: string; flow?: 'signup' | 'signin' }) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: ProfileUpdate) => Promise<void>;
@@ -50,7 +50,7 @@ export function useAuth(): AuthState & AuthActions {
   const [error, setError] = useState<Error | null>(null);
 
   // Fetch user profile from database
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -60,9 +60,11 @@ export function useAuth(): AuthState & AuthActions {
 
       if (error) throw error;
       setProfile(data);
+      return data;
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError(err as Error);
+      return null;
     }
   };
 
@@ -127,7 +129,7 @@ export function useAuth(): AuthState & AuthActions {
           schoolId: studentPlacement?.schoolId ?? profileFields.school_id ?? null,
           classroomId: studentPlacement?.classroomId ?? profileFields.classroom_id ?? null,
           schoolName: studentPlacement?.schoolName ?? profileFields.school_name ?? null,
-          next: role === 'student' ? '/student' : '/dashboard',
+          next: role === 'student' ? '/student' : '/teacher',
         }),
       });
 
@@ -148,7 +150,7 @@ export function useAuth(): AuthState & AuthActions {
   };
 
   // Sign in with email and password
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<Profile | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -160,8 +162,9 @@ export function useAuth(): AuthState & AuthActions {
 
       if (error) throw error;
       if (data.user) {
-        await fetchProfile(data.user.id);
+        return await fetchProfile(data.user.id);
       }
+      return null;
     } catch (err) {
       console.error('Sign in error:', err);
       setError(err as Error);

@@ -1,10 +1,9 @@
-import SchoolAdminDashboard from "@/components/dashboards/school-admin-dashboard";
+'use client';
 
-/**
- * Canonical Head-of-School entry point.
- * The existing dashboard component is preserved while route aliases are
- * consolidated around /head for public onboarding and future role guards.
- */
+import SchoolAdminDashboard from "@/components/dashboards/school-admin-dashboard";
+import { RoleGate } from "@/components/auth/role-gate";
+
+/** Canonical Head-of-School entry point. */
 export default function HeadDashboardPage() {
-  return <SchoolAdminDashboard />;
+  return <RoleGate allowedRoles={['admin']}><SchoolAdminDashboard /></RoleGate>;
 }

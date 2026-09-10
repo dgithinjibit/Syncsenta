@@ -246,6 +246,28 @@ export async function POST(req: NextRequest) {
 
   const verifiedGrade = profile.grade || body.grade;
 
+  // Every student turn now passes through the MeTTa session boundary before
+  // Omega selects the tutoring policy.  The graph is intentionally scoped to
+  // this request; durable session facts remain owned by the persistence API.
+  // This keeps subject handling uniform for Mathematics, Languages, Sciences,
+  // Social Studies, Creative Arts, and every future CBC subject.
+  let mettaTurnStatus = 'recorded';
+  try {
+    const mettaSession = new MeTTaSession(
+      user.id,
+      new MeTTaEducationKnowledgeGraph(),
+      verifiedGrade,
+    );
+    await mettaSession.processInteraction({
+      type: 'student_turn',
+      subject: body.subject,
+      grade: verifiedGrade,
+    });
+  } catch (error) {
+    mettaTurnStatus = 'unavailable';
+    console.error('[/api/chat] MeTTa student-turn evaluation failed:', error);
+  }
+
   if (body.mode === 'compass' && !body.teacherContext) {
     return Response.json({ error: 'Compass mode requires teacherContext' }, { status: 400 });
   }
@@ -404,6 +426,8 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (req as any).__currentMasteryPct = currentMasteryPct;
   }
+
+  systemPrompt += `\nMeTTa student-turn boundary: ${mettaTurnStatus}. Omega policy decision remains authoritative.`;
 
   // ── Build message array ─────────────────────────────────────────────────────
   const trimmedHistory = body.history.slice(-MAX_HISTORY_TURNS * 2);

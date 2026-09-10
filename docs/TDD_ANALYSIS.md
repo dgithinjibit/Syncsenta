@@ -11,6 +11,12 @@
 **Priority gaps:** Omega decision engine, subject session flow, Supabase integration  
 **Recommendation:** Implement TDD for new features; retrofit tests for high-risk modules
 
+**September 8, 2026 progress:** The Omega decision-engine suite is present in
+`src/lib/__tests__/omega-decision.test.ts`, and the MeTTa knowledge graph/session
+contract suite is implemented in `src/lib/__tests__/metta-core.test.ts`. The new
+MeTTa tests cover seeded CBC knowledge, cultural adaptation matching, additive
+knowledge insertion, session isolation facts, and activity-progress processing.
+
 ---
 
 ## Existing Test Coverage
@@ -35,12 +41,12 @@
 
 ## Critical Gaps (High Priority)
 
-### 🔴 Priority 1: Omega Decision Engine
+### ✅ Priority 1: Omega Decision Engine
 
 **Module:** `lib/omega-agent/metta-core.ts`  
 **Function:** `evaluateTutoringDecision()`  
 **Risk:** Core tutoring logic, thresholds must match Rust implementation  
-**Current tests:** **NONE**
+**Current tests:** `src/lib/__tests__/omega-decision.test.ts` — branch, boundary, and edge-case coverage implemented.
 
 **Required test cases:**
 

@@ -1,7 +1,7 @@
 # SyncSenta Engineering Task Ledger
 
 **Project:** SyncSenta — Rust/MeTTa-first Kenyan CBC learning platform  
-**Repository:** `dgithinjibit/ascendra`  
+**Repository:** `dgithinjibit/Syncsenta`
 **Primary application:** `studio/`  
 **Owner context:** Daniel Githinji, GMT+3  
 **Last updated:** 2026-09-05  
@@ -153,3 +153,11 @@ The attached Render log showed the Python AI service building stale commit `9f67
 A canonical root `render.yaml` was added so the Render Blueprint explicitly sets `rootDir: ai-agents`, `PYTHON_VERSION=3.11.9`, the AI-agent build/start commands, and the `/healthz` health check. The existing AI-agent and Rust service definitions were not otherwise changed. The runtime test also exposed a duplicated telemetry dictionary indentation error, a duration-before-assignment error, and a PolicyRequest call using unsupported fields; these were corrected without changing teacher or other role UI. PolicyVerdict compatibility aliases were added for existing telemetry consumers.
 
 Verification: Python compilation passed; FastAPI application import passed with non-secret placeholder provider/database variables. The full Python test run reached 364 passed and 3 failures. The remaining failures are telemetry behavior/contract issues: dwell analysis does not interpret the fixture durations, the fallback evaluator reports `python-fallback` while the legacy test expects `fallback`, and the fallback approval reasoning is only `Approved` rather than a longer explanation. These are documented as residual backend quality issues, not Render dependency installation failures, and require a separate approval before broader behavioral changes.
+
+## Canonical role dashboard routing fix — 2026-09-06
+
+The role routing audit confirmed that the application had two Teacher surfaces: `/teacher` rendered the full `EnhancedTeacherDashboard` with schemes, lesson plans, assessments, students, interventions, resources, and professional development, while `/teacher/dashboard` rendered the narrower `TeacherDashboardNew`. The demo-login mapping also sent both Teacher and Head to `/teacher/dashboard`, which made Head open the wrong role surface, and sent Parent to `/dashboard` instead of `/parent`.
+
+The scoped fix makes `/teacher/dashboard` render the same full `EnhancedTeacherDashboard` as `/teacher`, maps Teacher to `/teacher`, maps Head to `/head`, and maps Parent to `/parent`. A pure `demo-destinations.ts` helper and three regression tests now enforce the role destinations. No teacher feature implementation or other role UI was changed.
+
+Verification: focused role-destination tests passed (3 tests), strict TypeScript passed, and the production build passed after supplying the required non-secret local Supabase placeholders. The build generated both `/teacher` and `/teacher/dashboard` successfully. Live unauthenticated route probes continue to redirect protected role paths to login by design; authenticated demo-login verification remains dependent on the configured non-production demo environment and valid Supabase credentials.

@@ -13,7 +13,7 @@ It delivers CBC-aligned learning to students, gives teachers a real-time
 analytics and intervention dashboard, and connects to parents and guardians.
 
 Deployed at: **sentastudio.vercel.app**
-Repo: **dgithinjibit/Ascendra** (monorepo — `studio/` is the Next.js app)
+Repo: **dgithinjibit/Syncsenta** (monorepo — `studio/` is the Next.js app)
 
 ---
 

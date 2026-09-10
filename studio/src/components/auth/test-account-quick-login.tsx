@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { TEST_ACCOUNTS, type TestAccountRole } from '@/lib/test-accounts';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getRoleHome } from '@/lib/auth/role-home';
 
 const ROLES: TestAccountRole[] = ['student', 'teacher', 'parent', 'admin'];
 
@@ -28,8 +29,8 @@ export function TestAccountQuickLogin() {
     setError(null);
     try {
       const account = TEST_ACCOUNTS[role];
-      await signIn(account.email, account.password);
-      router.push('/dashboard');
+      const profile = await signIn(account.email, account.password);
+      router.push(getRoleHome(profile?.role ?? role));
     } catch (err: any) {
       setError(`Failed to sign in as ${role}: ${err.message || 'Please try again'}`);
       setLoading(null);

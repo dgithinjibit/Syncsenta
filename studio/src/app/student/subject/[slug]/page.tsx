@@ -54,6 +54,12 @@ interface PageState {
   scaffoldingLevel: 'Independent' | 'Guided' | 'Intensive' | null;
 }
 
+function toSandboxGradeId(grade: string): string {
+  const normalized = grade.trim().toLowerCase();
+  const match = normalized.match(/(?:grade[- ]?|g)([1-6])/);
+  return match ? `g${match[1]}` : normalized.replace(/[^a-z0-9]+/g, '-');
+}
+
 export default function SubjectPage() {
   const params = useParams();
   const router = useRouter();
@@ -93,7 +99,12 @@ export default function SubjectPage() {
           fetch('/api/session/sync?action=get').then((r) =>
             r.ok ? r.json() : { session: null },
           ),
-          getOrCreateChatSession(supabase, userId, slug, grade),
+          // Sandbox subjects do not need a chat session. Creating one here
+          // made every activity route depend on chat-session RLS/insert
+          // permissions even though the activity player never reads it.
+          subjectMeta.layout === 'chat'
+            ? getOrCreateChatSession(supabase, userId, slug, grade)
+            : Promise.resolve({ sessionId: '', isNew: false }),
         ]);
 
         const redisSession: LearningSession | null =
@@ -117,8 +128,11 @@ export default function SubjectPage() {
             | 'Intensive'
             | undefined) ?? null;
 
-        // Fetch the last 40 messages for the session.
-        const rawMessages = await getChatMessages(chatSessionResult.sessionId);
+        // Fetch chat history only for chat-layout subjects. Sandbox routes do
+        // not need a chat session and should remain usable independently.
+        const rawMessages = chatSessionResult.sessionId
+          ? await getChatMessages(chatSessionResult.sessionId)
+          : [];
         const initialHistory: { role: 'user' | 'assistant'; content: string }[] =
           rawMessages
             .filter(
@@ -176,7 +190,7 @@ export default function SubjectPage() {
 
   const handleResume = () => {
     if (state.resumeActivity && subjectMeta.layout === 'sandbox') {
-      const gradeSlug = grade.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const gradeSlug = toSandboxGradeId(grade);
       router.push(
         `/student/sandbox/${gradeSlug}/${slug}/${state.resumeActivity.id}`,
       );
@@ -185,7 +199,7 @@ export default function SubjectPage() {
 
   const handleStartFresh = () => {
     if (subjectMeta.layout === 'sandbox') {
-      const gradeSlug = grade.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const gradeSlug = toSandboxGradeId(grade);
       router.push(`/student/sandbox/${gradeSlug}/${slug}`);
     }
     // For chat layout, "start fresh" simply scrolls the chat to top — no
@@ -256,7 +270,7 @@ function SandboxRedirect({
   const router = useRouter();
 
   useEffect(() => {
-    const gradeSlug = grade.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const gradeSlug = toSandboxGradeId(grade);
     if (resumeActivity) {
       router.replace(`/student/sandbox/${gradeSlug}/${slug}/${resumeActivity.id}`);
     } else {

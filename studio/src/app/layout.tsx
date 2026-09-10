@@ -5,17 +5,19 @@ import "../styles/accessibility.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AccessibilityPanel } from "@/components/accessibility/AccessibilityPanel";
 import { ConflictResolver } from '@/components/offline/ConflictResolver';
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Syncsenta - AI-Powered Learning for Kenyan Students',
-  description: 'Personalized CBC-aligned education with AI tutoring. Transform your learning experience with adaptive lessons, instant feedback, and comprehensive curriculum coverage.',
+  title: 'Syncsenta - Kenyan CBC Learning for Students and Schools',
+  description: 'Syncsenta brings CBC-aligned lessons, guided practice, teacher insight, and consent-aware family progress sharing together for Kenyan learners.',
+  manifest: '/manifest.json',
   keywords: ['CBC education', 'Kenya education', 'AI tutoring', 'personalized learning', 'online education', 'Kenyan curriculum'],
   authors: [{ name: 'Syncsenta Team' }],
   openGraph: {
-    title: 'Syncsenta - AI-Powered Learning',
-    description: 'Personalized CBC-aligned education with AI tutoring',
+    title: 'Syncsenta - Kenyan CBC Learning',
+    description: 'CBC-aligned lessons, guided practice, teacher insight, and family progress sharing for Kenyan learners.',
     url: 'https://syncsenta.com',
     siteName: 'Syncsenta',
     images: [
@@ -31,8 +33,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Syncsenta - AI-Powered Learning',
-    description: 'Personalized CBC-aligned education with AI tutoring',
+    title: 'Syncsenta - Kenyan CBC Learning',
+    description: 'CBC-aligned lessons, guided practice, teacher insight, and family progress sharing for Kenyan learners.',
     images: ['/og-image.jpg'],
     creator: '@syncsenta',
   },
@@ -79,6 +81,7 @@ export default function RootLayout({
           {children}
           <AccessibilityPanel />
           <ConflictResolver />
+          <PWAInstallPrompt />
         </ThemeProvider>
       </body>
     </html>

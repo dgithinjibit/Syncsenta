@@ -122,7 +122,7 @@ export default function SandboxPage() {
           <div className="mx-auto max-w-7xl">
             <div className="mb-8 flex flex-col justify-between gap-4 border-b border-teal-100 pb-6 sm:flex-row sm:items-end">
               <div>
-                <p className="text-sm font-bold uppercase tracking-[0.18em] text-orange-600">Canvas studio</p>
+                <p className="text-sm font-bold uppercase tracking-[0.18em] text-orange-600">Interactive learning</p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight text-teal-950 sm:text-5xl">Learn by making</h1>
                 <p className="mt-2 max-w-2xl text-base leading-7 text-teal-900/70">Choose a subject to open an interactive canvas for <strong>{grade}</strong>. Your attempts, hints, and progress stay connected to this learning context.</p>
               </div>

@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, WalletCards } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase/client';
+import { getRoleHome } from '@/lib/auth/role-home';
 
 declare global {
   interface Window {
@@ -20,11 +21,7 @@ type WalletAuthButtonProps = {
 };
 
 function destinationForRole(role?: WalletAuthButtonProps['role']): string {
-  if (role === 'student') return '/student';
-  if (role === 'parent') return '/parent';
-  if (role === 'admin') return '/head';
-  if (role === 'teacher') return '/teacher';
-  return '/dashboard';
+  return getRoleHome(role);
 }
 
 export function WalletAuthButton({ mode, role = 'student', fullName = '' }: WalletAuthButtonProps) {

@@ -119,7 +119,7 @@ export default function SandboxPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="education-kicker mb-2">Practice studio</p>
+              <p className="education-kicker mb-2">Guided practice</p>
               <h1 className="mb-2 font-headline text-3xl font-bold text-foreground sm:text-4xl">
                 {getSubjectName(subject)} Sandbox
               </h1>
