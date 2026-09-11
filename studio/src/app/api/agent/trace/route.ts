@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import agentTrace, { AgentTracePayload, createCanonicalTracePayload, computeSignedHash, verifyAgentSignature } from '../../../../lib/agentTrace';
+import { AgentTracePayload, createCanonicalTracePayload, computeSignedHash, verifyAgentSignature, insertAgentTrace, getTraceById } from '../../../../lib/agentTrace';
 
 const VALID_METHODS = ['POST', 'GET'];
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid agent signature' }, { status: 401 });
     }
 
-    const inserted = await agentTrace.insertAgentTrace(
+    const inserted = await insertAgentTrace(
       {
         trace_id,
         agent_id,
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing trace_id query parameter' }, { status: 400 });
     }
 
-    const trace = await agentTrace.getTraceById(trace_id);
+    const trace = await getTraceById(trace_id);
     return NextResponse.json({ success: true, data: trace });
   } catch (error) {
     console.error('Error in /api/agent/trace GET:', error);
