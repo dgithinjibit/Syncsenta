@@ -30,6 +30,11 @@ export interface AuthState {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
+  /** True while the profile row is being fetched from Supabase.
+   *  Stays true after `loading` is false when a session exists.
+   *  Use this in route guards to avoid redirecting before the profile
+   *  fetch completes. */
+  profileLoading: boolean;
   error: Error | null;
 }
 
@@ -47,10 +52,14 @@ export function useAuth(): AuthState & AuthActions {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // Separate from `loading` — tracks the async profile row fetch.
+  // Starts true, only becomes false once fetchProfile resolves (or no session).
+  const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   // Fetch user profile from database
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    setProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -65,6 +74,8 @@ export function useAuth(): AuthState & AuthActions {
       console.error('Error fetching profile:', err);
       setError(err as Error);
       return null;
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -75,9 +86,15 @@ export function useAuth(): AuthState & AuthActions {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        // fetchProfile sets profileLoading=false in its finally block.
+        // Do NOT set loading=false until after fetchProfile so that the
+        // very first render never sees loading=false + profile=null.
+        fetchProfile(session.user.id).finally(() => setLoading(false));
+      } else {
+        // No session — both loading states settle immediately.
+        setProfileLoading(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Listen for auth changes
@@ -87,11 +104,12 @@ export function useAuth(): AuthState & AuthActions {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id).finally(() => setLoading(false));
       } else {
         setProfile(null);
+        setProfileLoading(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -260,6 +278,7 @@ export function useAuth(): AuthState & AuthActions {
     profile,
     session,
     loading,
+    profileLoading,
     error,
     signUp,
     signIn,
