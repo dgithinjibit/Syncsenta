@@ -38,7 +38,7 @@ type Subject = {
 };
 
 export const recommendedSubjects: Subject[] = [
-    { name: 'AGI', icon: '/assets/ai.png' },
+    { name: 'AI Literacy', icon: '/assets/ai.png' },
     { name: 'Blockchain', icon: '/assets/bc.png' },
     { name: 'Financial Literacy', icon: '/assets/finance.png' },
 ];

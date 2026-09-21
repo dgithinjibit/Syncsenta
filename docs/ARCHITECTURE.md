@@ -10,6 +10,18 @@ Next.js application called **Studio**, backed by a Python FastAPI service
 a **Rust adaptive service**, and an **ESP32-CAM firmware** prototype live
 alongside that path.
 
+The Rust-first extended-track design for AI literacy, blockchain literacy, and
+financial literacy is documented in
+[`architecture/extended-track-synthesis-tutor.md`](architecture/extended-track-synthesis-tutor.md).
+
+The formal AI-literacy curriculum and CodeYetu-compatible LMS delivery model
+are documented in
+[`AI_CURRICULUM_CODEYETU_LMS_GUIDE.md`](AI_CURRICULUM_CODEYETU_LMS_GUIDE.md).
+
+Student route readiness and the Grade 4-first content expansion contract are
+documented in
+[`CONTENT_READINESS.md`](CONTENT_READINESS.md).
+
 ## Two AI delivery paths in Studio
 
 The Syncsenta web application has two distinct AI paths that share intent but are not a single
@@ -84,7 +96,8 @@ Next.js 16 App Router, React 18, TypeScript, Tailwind, shadcn/ui.
 | Route | Purpose |
 |---|---|
 | `/student` | Landing + journey selector |
-| `/student/sandbox` | Subject catalogue — routes all 10 subjects to `/student/subject/[slug]` |
+| `/student/sandbox` | Compatibility entry point that redirects to the unified `/student/learn_by_making` catalog |
+| `/student/learn_by_making` | Unified subject catalog; core subjects open grade-specific sandbox overviews and extended courses open chat-first subject pages |
 | `/student/subject/[slug]` | Subject entry page: XP badge, resume point, chat or sandbox layout |
 | `/student/sandbox/[grade]/[subject]` | Activity list |
 | `/student/sandbox/[grade]/[subject]/[activityId]` | Activity player (canvas + worksheet renderer, Redis resume) |
@@ -109,6 +122,10 @@ Next.js 16 App Router, React 18, TypeScript, Tailwind, shadcn/ui.
 | `POST /api/generate/scheme` | Proxies to FastAPI Lesson Architect |
 | `POST /api/generate/lesson-plan` | Proxies to FastAPI Lesson Architect |
 | `POST /api/generate/assessment` | Proxies to FastAPI Lesson Architect |
+| `GET/POST /api/lms/organisations` | List or create an organisation for an authorised school administrator |
+| `GET/POST /api/lms/programmes` | List or create organisation programmes |
+| `GET/POST /api/lms/cohorts` | List or create bounded mentor-led cohorts |
+| `GET/POST/PATCH /api/lms/enrollments` | List, invite, and update consent-aware learner enrollments |
 
 **Key library modules**
 
@@ -153,6 +170,11 @@ Primary database and auth layer.
 Key tables: `profiles`, `chat_sessions`, `chat_messages`, `learning_progress`,
 `point_transactions`, `behavioral_profiles`, `misconceptions`,
 `interventions`, `schemes`, `lesson_plans`, `exams`.
+
+The additive LMS boundary uses `lms_organisations`,
+`lms_organisation_members`, `lms_programmes`, `lms_cohorts`, and
+`lms_enrollments`. These tables are consent-aware and RLS-protected; they do
+not replace existing student, teacher, or chat tables.
 
 ### 4. Upstash Redis
 

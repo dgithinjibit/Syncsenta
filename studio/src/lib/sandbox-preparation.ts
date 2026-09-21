@@ -16,8 +16,11 @@ export function subjectToSandboxId(subject: string): SubjectId | null {
   if (normalized.includes('math')) return 'mathematics';
   if (normalized.includes('kiswahili')) return 'kiswahili';
   if (normalized.includes('environment')) return 'environmental';
+  if (normalized.includes('social')) return 'social-studies';
   if (normalized.includes('creative')) return 'creative';
   if (normalized.includes('english')) return 'english';
+  if (normalized === 'cre' || normalized.includes('religious')) return 'cre';
+  if (normalized.includes('indigenous')) return 'indigenous';
   return null;
 }
 
@@ -29,11 +32,20 @@ export function subjectToLearningSlug(subject: string): string {
   if (normalized.includes('math')) return 'mathematics';
   if (normalized.includes('kiswahili')) return 'kiswahili';
   if (normalized.includes('environment')) return 'environmental';
+  if (normalized.includes('social')) return 'social-studies';
   if (normalized.includes('creative')) return 'creative';
   if (normalized.includes('english')) return 'english';
   if (normalized.includes('religious') || normalized === 'cre') return 'cre';
   if (normalized.includes('indigenous')) return 'indigenous';
   return subjectToSandboxId(subject) ?? 'mathematics';
+}
+
+export function getSubjectLearningPath(grade: string, subject: string): string {
+  const gradeMatch = grade.trim().match(/(?:grade[- ]?|g)([1-9])$/i);
+  const gradeId = gradeMatch ? `g${gradeMatch[1]}` : gradeNameToId(grade);
+  const subjectId = subjectToSandboxId(subject);
+  if (subjectId) return `/student/sandbox/${gradeId}/${subjectId}`;
+  return `/student/subject/${encodeURIComponent(subjectToLearningSlug(subject))}`;
 }
 
 export function prepareSandboxForSubject(grade: string, subject: string): SandboxPreparation {

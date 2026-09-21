@@ -113,7 +113,13 @@ export default function SubjectPage() {
           // made every activity route depend on chat-session RLS/insert
           // permissions even though the activity player never reads it.
           subjectMeta.layout === 'chat'
-            ? getOrCreateChatSession(supabase, userId, slug, grade)
+            ? getOrCreateChatSession(supabase, userId, slug, grade).catch((error) => {
+                // Chat history is valuable but must not prevent the tutor from
+                // rendering. The API can still stream a response without a
+                // pre-created session and will report persistence separately.
+                console.warn('[SubjectPage] Chat session unavailable; continuing without history:', error);
+                return { sessionId: '', isNew: false };
+              })
             : Promise.resolve({ sessionId: '', isNew: false }),
         ]);
 
@@ -141,7 +147,10 @@ export default function SubjectPage() {
         // Fetch chat history only for chat-layout subjects. Sandbox routes do
         // not need a chat session and should remain usable independently.
         const rawMessages = chatSessionResult.sessionId
-          ? await getChatMessages(chatSessionResult.sessionId)
+          ? await getChatMessages(chatSessionResult.sessionId).catch((error) => {
+              console.warn('[SubjectPage] Chat history unavailable; starting a fresh visible chat:', error);
+              return [];
+            })
           : [];
         const initialHistory: { role: 'user' | 'assistant'; content: string }[] =
           rawMessages

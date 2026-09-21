@@ -20,14 +20,14 @@ export interface LiveClassItem {
 export const DEFAULT_TIMETABLE: readonly TimetableItem[] = [
   { id: 'mon-math', day: 'Monday', time: '08:00–08:40', subject: 'Mathematics', activity: 'Fractions and number sense', mode: 'lesson' },
   { id: 'tue-english', day: 'Tuesday', time: '09:00–09:40', subject: 'English', activity: 'Reading comprehension', mode: 'quiz' },
-  { id: 'wed-agi', day: 'Wednesday', time: '10:00–10:40', subject: 'AGI', activity: 'Evidence and human oversight', mode: 'sandbox' },
+  { id: 'wed-agi', day: 'Wednesday', time: '10:00–10:40', subject: 'AI Literacy', activity: 'Evidence and human oversight', mode: 'sandbox' },
   { id: 'thu-blockchain', day: 'Thursday', time: '11:00–11:40', subject: 'Blockchain', activity: 'Shared ledgers and verification', mode: 'sandbox' },
   { id: 'fri-finance', day: 'Friday', time: '08:00–08:40', subject: 'Financial Literacy', activity: 'Budgeting and opportunity cost', mode: 'lesson' },
 ];
 
 export const DEFAULT_LIVE_CLASSES: readonly LiveClassItem[] = [
   { id: 'live-math', title: 'Fractions clinic', subject: 'Mathematics', grade: 'Selected grade', teacher: 'Teacher 1', time: 'Today · 10:00 EAT', status: 'live' },
-  { id: 'live-agi', title: 'How should we trust an AI claim?', subject: 'AGI', grade: 'Selected grade', teacher: 'Teacher 1', time: 'Tomorrow · 09:00 EAT', status: 'upcoming' },
+  { id: 'live-agi', title: 'How should we trust an AI claim?', subject: 'AI Literacy', grade: 'Selected grade', teacher: 'Teacher 1', time: 'Tomorrow · 09:00 EAT', status: 'upcoming' },
   { id: 'live-finance', title: 'Build a safe weekly budget', subject: 'Financial Literacy', grade: 'Selected grade', teacher: 'Teacher 1', time: 'Friday · 11:00 EAT', status: 'upcoming' },
 ];
 

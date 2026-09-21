@@ -14,13 +14,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CalendarDays, GraduationCap, Layers, MessageCircle } from 'lucide-react';
+import { ArrowLeft, CalendarDays, GraduationCap, Layers, Loader2, MessageCircle } from 'lucide-react';
 import { StudentHeader } from '@/components/layout/student-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getAllGrades } from '@/data/curriculum';
 import { supabase } from '@/lib/supabase/client';
+import { getGradePersonalizationCopy } from '@/lib/student-journey';
 
 const STORAGE_LEVEL = 'learningJourney.level';
 const STORAGE_GRADE = 'learningJourney.grade';
@@ -72,6 +73,7 @@ export default function JourneyPage() {
   const [step, setStep] = useState<Step>('level');
   const [level, setLevel] = useState<LevelId | null>(null);
   const [grade, setGrade] = useState<string | null>(null);
+  const [isPreparingDashboard, setIsPreparingDashboard] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -102,7 +104,8 @@ export default function JourneyPage() {
   };
 
   const pickGrade = async (selectedGrade: string) => {
-    if (!coveredGrades.has(selectedGrade)) return;
+    if (!coveredGrades.has(selectedGrade) || isPreparingDashboard) return;
+    setIsPreparingDashboard(true);
     setGrade(selectedGrade);
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(STORAGE_GRADE, selectedGrade);
@@ -120,11 +123,26 @@ export default function JourneyPage() {
 
   const currentLevel = level ? LEVELS_BY_ID[level] : null;
 
+  const personalizationCopy = grade ? getGradePersonalizationCopy(grade) : null;
+
   return (
     <div className="education-shell">
       <StudentHeader showBackButton onBack={() => router.back()} variant="catalog" />
 
-      <main className="container mx-auto max-w-4xl px-4 py-8">
+      <main className="container mx-auto max-w-4xl px-4 py-8" aria-live="polite">
+        {isPreparingDashboard && personalizationCopy ? (
+          <div className="flex min-h-[22rem] flex-col items-center justify-center gap-4 text-center">
+            <div className="rounded-full bg-primary/10 p-4 text-primary">
+              <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold md:text-3xl">{personalizationCopy.title}</h1>
+              <p className="max-w-md text-muted-foreground">{personalizationCopy.description}</p>
+              <p className="text-sm text-muted-foreground">You can wait here—we are taking you to your dashboard next.</p>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="mb-8 space-y-2 text-center">
           <div className="inline-flex items-center gap-2 text-primary">
             <MessageCircle className="h-5 w-5" />
@@ -193,13 +211,15 @@ export default function JourneyPage() {
                   <Card
                     key={selectedGrade}
                     role="button"
-                    tabIndex={covered ? 0 : -1}
-                    aria-disabled={!covered}
-                onClick={() => void pickGrade(selectedGrade)}
-                onKeyDown={(event) => {
-                      if (covered && (event.key === 'Enter' || event.key === ' ')) void pickGrade(selectedGrade);
+                    tabIndex={covered && !isPreparingDashboard ? 0 : -1}
+                    aria-disabled={!covered || isPreparingDashboard}
+                    onClick={() => void pickGrade(selectedGrade)}
+                    onKeyDown={(event) => {
+                      if (covered && !isPreparingDashboard && (event.key === 'Enter' || event.key === ' ')) {
+                        void pickGrade(selectedGrade);
+                      }
                     }}
-                    className={covered ? 'cursor-pointer transition hover:border-primary hover:shadow-md' : 'cursor-not-allowed opacity-60'}
+                    className={covered && !isPreparingDashboard ? 'cursor-pointer transition hover:border-primary hover:shadow-md' : 'cursor-not-allowed opacity-60'}
                   >
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-lg">
@@ -226,6 +246,8 @@ export default function JourneyPage() {
                 Change school level
               </Button>
             </div>
+          </>
+        )}
           </>
         )}
       </main>

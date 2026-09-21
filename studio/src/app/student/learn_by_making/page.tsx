@@ -6,7 +6,7 @@ import { Check, ChevronRight, Sparkles } from 'lucide-react'
 import { StudentHeader } from '@/components/layout/student-header'
 import { FloatingConceptChat } from '@/components/student/floating-concept-chat'
 import type { SubjectId, ExtendedSubjectId } from '@/lib/sandbox/sandbox-types'
-import { cacheSandboxPreparation, prepareSandboxForSubject, subjectToLearningSlug } from '@/lib/sandbox-preparation'
+import { cacheSandboxPreparation, getSubjectLearningPath, prepareSandboxForSubject } from '@/lib/sandbox-preparation'
 import { resolveSelectedGrade } from '@/lib/learning-context'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -21,7 +21,7 @@ const CORE_SUBJECTS: SubjectCard[] = [
   { label: 'English', subject: 'english', image: '/images/learning-catalog/english.png' },
   { label: 'Kiswahili', subject: 'kiswahili', image: '/images/learning-catalog/kiswahili.png' },
   { label: 'Mathematics', subject: 'mathematics', image: '/images/learning-catalog/mathematics.png' },
-  { label: 'Social Studies', image: '/images/learning-catalog/social-studies.png' },
+  { label: 'Social Studies', subject: 'social-studies', image: '/images/learning-catalog/social-studies.png' },
   { label: 'Creative Arts', subject: 'creative', image: '/images/learning-catalog/creative-arts.png' },
   { label: 'Religious Education', subject: 'cre', image: '/images/learning-catalog/religious-education.png' },
   { label: 'Environmental Activities', subject: 'environmental', image: '/images/learning-catalog/environmental-activities.png' },
@@ -109,13 +109,7 @@ export default function LearnByMakingPage() {
     window.localStorage.setItem('learningJourney.subject', card.label)
     const preparation = prepareSandboxForSubject(grade, card.label)
     cacheSandboxPreparation(preparation)
-
-    if (preparation.subjectId && preparation.firstActivityId) {
-      router.push(`/student/sandbox/${preparation.gradeId}/${preparation.subjectId}/${preparation.firstActivityId}`)
-      return
-    }
-
-    router.push(`/student/subject/${encodeURIComponent(subjectToLearningSlug(card.label))}`)
+    router.push(getSubjectLearningPath(grade, subject))
   }, [grade, router])
 
   useEffect(() => {

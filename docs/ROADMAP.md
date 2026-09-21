@@ -2,7 +2,7 @@
 
 **Project**: Syncsenta - AI-Powered Education Platform for Kenya
 **Target**: 100% MVP Launch Readiness  
-**Last Updated**: 2026-09-08
+**Last Updated**: 2026-09-21
 
 **Omega/Hyperon review update**: 2026-09-08 — representative Hyperon
 dependents reviewed; adapter input validation and fallback telemetry contract
@@ -26,6 +26,44 @@ remain incomplete.
 - ✅ Security audit completed (85/100 rating)
 - ✅ Rate limiting & CSRF protection implemented
 - ✅ Grade 2 student workflow designed (95% complete)
+- ✅ Grade selection now shows an explicit personalization/loading state before dashboard navigation
+- ✅ LMS domain contracts and authenticated organisation/programme/cohort/enrollment API foundation added
+- ✅ Grade 4 core subjects now share the unified subject catalog and grade-specific sandbox overview contract
+- ✅ Generated guided-foundation activities now resolve through the activity player
+- ✅ Added `docs/CONTENT_READINESS.md` to keep canvas, worksheet, chat, and fallback claims explicit
+
+### 2026-09-21 — Grade 4 unified subject-overview slice ✅
+
+- ✅ Made `/student/learn_by_making` the unified subject catalog entry point.
+- ✅ Routed core subjects to `/student/sandbox/{grade}/{subject}` overviews.
+- ✅ Preserved AI Literacy, Blockchain Literacy, and Financial Literacy as chat-first courses.
+- ✅ Added Social Studies to the core subject contract and Grade 4 catalog.
+- ✅ Fixed generated guided-foundation activity resolution so catalog activities open in the player instead of returning `Activity Not Found`.
+- ✅ Preserved the legacy Grade 4 English plural fallback identifier for existing links and tests.
+- ✅ Added the Grade 4 content-readiness matrix covering canvas-ready, worksheet-ready, chat-ready, guided fallback, and catalog-only states.
+- ✅ Added regression coverage for Grade 4 Mathematics fallback resolution and core/extended subject routing.
+- ✅ Verified with focused tests, TypeScript, lint, production build, and `git diff --check`.
+
+### 2026-09-21 — Chat reliability and Grade 4 sandbox coverage ✅
+
+- ✅ Kept the student chat page renderable when optional chat-session creation or history reads fail.
+- ✅ Moved API chat-session creation to the authenticated request-scoped Supabase client.
+- ✅ Preserved model streaming when persistence is temporarily unavailable; persistence failures remain logged rather than blocking the learner.
+- ✅ Added curriculum-backed Grade 4 activity generation for Mathematics, English, Kiswahili, Environmental Activities, Social Studies, Creative Arts, CRE, and Indigenous Language.
+- ✅ Added deterministic Grade 4 activity IDs, prerequisite sequencing, term assignment, subject icons, and activity-player resolution.
+- ✅ Kept the legacy guided-foundation IDs resolvable for existing bookmarks and compatibility tests.
+- ✅ Added regression coverage for all eight Grade 4 core subject catalogues.
+- ✅ Verified the chatbot/sandbox changes with 19 focused tests, TypeScript, lint, and production build.
+
+### 2026-09-21 — All available curriculum data wired into sandboxes ✅
+
+- ✅ Generalized the deterministic sandbox activity generator from Grade 4 to Grades 1–9.
+- ✅ Consumed all available repository curriculum strands for lower primary, upper primary, and junior secondary core subjects.
+- ✅ Added subject-key normalization for English Activities, Creative Activities, Science & Technology, Integrated Science, CRE, Social Studies, Kiswahili, Mathematics, and Indigenous Language.
+- ✅ Added stable all-grade activity IDs, term assignment, prerequisite sequencing, subject icons, and activity-player resolution.
+- ✅ Preserved authored activities and the Grade 2 curriculum mapper without replacing existing routes or progress behavior.
+- ✅ Retained safe guided fallbacks for grade/subject combinations where the repository has no curriculum source.
+- ✅ Added all-grade regression coverage for every curriculum combination represented in the repository.
 
 The full multi-phase roadmap is not 78% complete: mobile, collaboration,
 NEMIS, multi-tenancy, full indigenous-language support, voice, and advanced
@@ -198,6 +236,13 @@ analytics remain future scope.
 - [ ] Parent-teacher messaging
 - [ ] Automated report card generation
 - [ ] Integration with Kenya Education Management System (NEMIS)
+- [ ] Deploy and stage-test LMS organisations, programmes, cohorts, and consent-aware enrollments
+- [ ] Add teacher LMS interface for mentor assignment, learner enrollment, and cohort progress
+- [ ] Add guardian consent and enrollment lifecycle UI
+- [ ] Review and enrich generated Grade 4 question banks with subject-specific distractors, explanations, and cultural examples
+- [ ] Add Grade 4 canvas manipulatives where direct manipulation improves the learning objective
+- [ ] Add browser-level smoke tests for chatbot rendering and every core subject overview
+- [ ] Teacher-review generated all-grade curriculum activities before marking them complete
 
 ### Phase 3: Scale & Localization
 - [ ] Multi-tenancy for multiple schools

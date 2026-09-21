@@ -27,12 +27,16 @@ the concept broken into the smallest possible step, with concrete Kenyan
 examples. One who has mastered the material gets open-ended challenges. Teachers
 can see each student's live scaffolding level in the dashboard.
 
-Ten subjects are supported across two layouts. Core CBC subjects (Mathematics,
-English, Kiswahili, Environmental Activities, Creative Arts, CRE, Indigenous
-Languages) route students into interactive canvas activities — fraction bars,
-counting tokens, pattern recognition — with XP progression and cross-device
-resume. Extended courses (Blockchain, Financial Literacy, AI) open directly
-into the full Socratic chat.
+Student learning uses two explicit layouts. Core CBC subjects (Mathematics,
+English, Kiswahili, Environmental Activities, Social Studies, Creative Arts,
+CRE, and Indigenous Language) open a grade-specific sandbox overview. Activities
+are labelled as canvas-ready, worksheet-ready, or guided fallback; only
+activities with a supported manipulative use the draggable canvas. Extended
+courses (Blockchain, Financial Literacy, and AI Literacy) remain chat-first and
+open into the full Omega-aware Socratic tutor.
+
+See the [student content readiness matrix](docs/CONTENT_READINESS.md) for the
+current Grade 4 coverage, route model, fallback boundaries, and expansion plan.
 
 ## Monorepo structure
 

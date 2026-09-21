@@ -520,6 +520,11 @@ export interface Database {
       voice_conversations: LegacyTable;
       voice_messages: LegacyTable;
       vision_submissions: LegacyTable;
+      lms_organisations: LegacyTable;
+      lms_organisation_members: LegacyTable;
+      lms_programmes: LegacyTable;
+      lms_cohorts: LegacyTable;
+      lms_enrollments: LegacyTable;
       teacher_assessments: {
         Row: {
           id: string; teacher_id: string; grade: string; subject: string; term: string;

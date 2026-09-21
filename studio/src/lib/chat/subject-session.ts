@@ -20,7 +20,7 @@ import { buildLearningTrackPromptBlock } from '../learning-track-policy';
 
 export interface SubjectMeta {
   label: string;
-  /** 'chat'    → renders SubjectChat (blockchain, finlit, AGI)
+  /** 'chat'    → renders SubjectChat (blockchain, finlit, AI literacy)
    *  'sandbox' → renders sandbox activity list (core CBC subjects) */
   layout: 'chat' | 'sandbox';
   xpPrefix: string;
@@ -32,13 +32,14 @@ export const SUBJECT_REGISTRY: Record<string, SubjectMeta> = {
   english:              { label: 'English',                 layout: 'sandbox', xpPrefix: 'ENG.' },
   kiswahili:            { label: 'Kiswahili',               layout: 'sandbox', xpPrefix: 'KSW.' },
   environmental:        { label: 'Environmental',           layout: 'sandbox', xpPrefix: 'ENV.' },
+  'social-studies':     { label: 'Social Studies',           layout: 'sandbox', xpPrefix: 'SOC.' },
   creative:             { label: 'Creative Arts',           layout: 'sandbox', xpPrefix: 'CRE.' },
   cre:                  { label: 'Religious Education',     layout: 'sandbox', xpPrefix: 'CRE2.' },
   indigenous:           { label: 'Indigenous Language',     layout: 'sandbox', xpPrefix: 'IND.' },
   // Extended courses (chat-first)
   blockchain:           { label: 'Blockchain',              layout: 'chat', xpPrefix: 'blockchain.' },
   'financial-literacy': { label: 'Financial Literacy',      layout: 'chat', xpPrefix: 'finlit.' },
-  ai:                   { label: 'AGI',                      layout: 'chat', xpPrefix: 'ai.' },
+  ai:                   { label: 'AI Literacy',              layout: 'chat', xpPrefix: 'ai.' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
