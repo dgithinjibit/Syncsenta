@@ -5,30 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { StudentHeader } from '@/components/layout/student-header';
 import { SubjectHeader } from '@/components/student/subject-header';
-import { supabase } from '@/lib/supabase/client';
+import { SocraticChat } from '@/components/student/socratic-chat';
 import {
   SUBJECT_REGISTRY,
   getSubjectXP,
-  getOrCreateChatSession,
   defaultCompetencyForSubject,
 } from '@/lib/chat/subject-session';
-import { getChatMessages } from '@/lib/chat/chat-history-supabase';
-import type { ChatHistoryMessage } from '@/lib/chat/chat-history-supabase';
 import type { LearningSession } from '@/lib/session/session-persistence';
-
-// Lazy-import the two layout components so the bundle is not bloated when
-// neither is needed.
-import dynamic from 'next/dynamic';
-
-const SubjectChat = dynamic(
-  () =>
-    import('@/components/student/subject-chat').then((m) => m.SubjectChat),
-  { ssr: false, loading: () => <PageSkeleton /> },
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Loading skeleton
-// ─────────────────────────────────────────────────────────────────────────────
 
 function PageSkeleton() {
   return (
@@ -40,13 +23,7 @@ function PageSkeleton() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface PageState {
-  sessionId: string;
-  initialHistory: { role: 'user' | 'assistant'; content: string }[];
   totalXP: number;
   level: number;
   nextLevelXP: number;
@@ -70,14 +47,11 @@ export default function SubjectPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-
   const { user, profile, loading: authLoading } = useAuth();
   const [state, setState] = useState<PageState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-
   const subjectMeta = SUBJECT_REGISTRY[slug];
 
-  // Redirect unknown slugs immediately (before auth resolves).
   useEffect(() => {
     if (!subjectMeta) {
       router.replace('/student/learn_by_making');
@@ -85,10 +59,7 @@ export default function SubjectPage() {
   }, [subjectMeta, router]);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!subjectMeta) return;
-
-    // Not logged in → redirect to login, preserve intended destination.
+    if (authLoading || !subjectMeta) return;
     if (!user) {
       router.replace(`/login?next=/student/subject/${slug}`);
       return;
@@ -103,34 +74,21 @@ export default function SubjectPage() {
 
     const load = async () => {
       try {
-        // Fetch all data in parallel.
-        const [xpResult, sessionSyncRaw, chatSessionResult] = await Promise.all([
+        // The unified SocraticChat owns conversation hydration/persistence.
+        // This shell fetches only the data needed for the subject header.
+        const [xpResult, sessionSyncRaw] = await Promise.all([
           getSubjectXP(userId, slug),
           fetch('/api/session/sync?action=get').then((r) =>
             r.ok ? r.json() : { session: null },
           ),
-          // Sandbox subjects do not need a chat session. Creating one here
-          // made every activity route depend on chat-session RLS/insert
-          // permissions even though the activity player never reads it.
-          subjectMeta.layout === 'chat'
-            ? getOrCreateChatSession(supabase, userId, slug, grade)
-            : Promise.resolve({ sessionId: '', isNew: false }),
         ]);
 
-        const redisSession: LearningSession | null =
-          sessionSyncRaw?.session ?? null;
-
+        const redisSession: LearningSession | null = sessionSyncRaw?.session ?? null;
         const resumeRaw = redisSession?.currentActivity;
         const resumeActivity =
           resumeRaw && resumeRaw.subject === slug
-            ? {
-                id: resumeRaw.id,
-                name: resumeRaw.name,
-                progress: resumeRaw.progress,
-              }
+            ? { id: resumeRaw.id, name: resumeRaw.name, progress: resumeRaw.progress }
             : null;
-
-        // Read last Omega scaffolding decision from Redis (written fire-and-forget by /api/chat).
         const scaffoldingLevel =
           (redisSession?.preferences?.scaffoldingLevel as
             | 'Independent'
@@ -138,23 +96,7 @@ export default function SubjectPage() {
             | 'Intensive'
             | undefined) ?? null;
 
-        // Fetch chat history only for chat-layout subjects. Sandbox routes do
-        // not need a chat session and should remain usable independently.
-        const rawMessages = chatSessionResult.sessionId
-          ? await getChatMessages(chatSessionResult.sessionId)
-          : [];
-        const initialHistory: { role: 'user' | 'assistant'; content: string }[] =
-          rawMessages
-            .filter(
-              (m: ChatHistoryMessage): m is ChatHistoryMessage & { role: 'user' | 'assistant' } =>
-                m.role === 'user' || m.role === 'assistant',
-            )
-            .slice(-40)
-            .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-
         setState({
-          sessionId: chatSessionResult.sessionId,
-          initialHistory,
           totalXP: xpResult.totalXP,
           level: xpResult.level,
           nextLevelXP: xpResult.nextLevelXP,
@@ -170,9 +112,7 @@ export default function SubjectPage() {
     load();
   }, [authLoading, user, profile, slug, subjectMeta, router]);
 
-  // ── Guard renders ──────────────────────────────────────────────────────────
-
-  if (!subjectMeta) return null; // redirecting
+  if (!subjectMeta) return null;
 
   if (authLoading || !state) {
     return (
@@ -205,9 +145,7 @@ export default function SubjectPage() {
   const handleResume = () => {
     if (state.resumeActivity && subjectMeta.layout === 'sandbox') {
       const gradeSlug = toSandboxGradeId(grade);
-      router.push(
-        `/student/sandbox/${gradeSlug}/${slug}/${state.resumeActivity.id}`,
-      );
+      router.push(`/student/sandbox/${gradeSlug}/${slug}/${state.resumeActivity.id}`);
     }
   };
 
@@ -216,8 +154,6 @@ export default function SubjectPage() {
       const gradeSlug = toSandboxGradeId(grade);
       router.push(`/student/sandbox/${gradeSlug}/${slug}`);
     }
-    // For chat layout, "start fresh" simply scrolls the chat to top — no
-    // navigation needed; the SubjectChat will handle a fresh context on its own.
   };
 
   return (
@@ -228,7 +164,6 @@ export default function SubjectPage() {
           onBack={() => router.push('/student/learn_by_making')}
           variant="catalog"
         />
-
         <SubjectHeader
           label={subjectMeta.label}
           slug={slug}
@@ -241,21 +176,17 @@ export default function SubjectPage() {
           onResume={handleResume}
           onStartFresh={handleStartFresh}
         />
-
         <main className="flex flex-1 flex-col overflow-hidden">
           {subjectMeta.layout === 'chat' ? (
-            <SubjectChat
-              subjectSlug={slug}
-              subjectLabel={subjectMeta.label}
-              grade={grade}
-              language={language}
+            <SocraticChat
+              studentId={user?.id ?? 'student'}
               studentName={studentName}
-              sessionId={state.sessionId}
-              initialHistory={state.initialHistory}
-              {...defaultCompetencyForSubject(slug)}
+              grade={grade}
+              subject={slug}
+              language={language}
+              competencyCode={defaultCompetencyForSubject(slug).competencyCode}
             />
           ) : (
-            /* Sandbox layout: redirect to the subject activity list */
             <SandboxRedirect
               slug={slug}
               grade={grade}
@@ -267,10 +198,6 @@ export default function SubjectPage() {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Sandbox redirect panel (shown briefly while router.push fires)
-// ─────────────────────────────────────────────────────────────────────────────
 
 function SandboxRedirect({
   slug,
