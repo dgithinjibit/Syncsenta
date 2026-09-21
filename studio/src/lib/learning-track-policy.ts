@@ -11,9 +11,12 @@ export type LearningTrack = 'cbc' | 'agi' | 'blockchain' | 'financial-literacy';
 export interface LearningTrackPolicy {
   track: LearningTrack;
   label: string;
+  contentVersion: string;
   focus: string;
   socraticMoves: string;
+  evidencePrompt: string;
   safety: string;
+  offlineAlternative: string;
   examples: string[];
 }
 
@@ -21,33 +24,45 @@ const POLICIES: Record<LearningTrack, LearningTrackPolicy> = {
   cbc: {
     track: 'cbc',
     label: 'Kenyan CBC',
+    contentVersion: '2026-09-v1',
     focus: 'the selected CBC competency and the next smallest learning step',
     socraticMoves: 'connect the idea to a concrete local example, then ask one guiding question',
+    evidencePrompt: 'What example, observation, or working can help us check this idea?',
     safety: 'stay within the selected CBC subject and redirect unrelated questions to the correct learning area',
+    offlineAlternative: 'Use paper, drawing, movement, or a teacher-approved classroom example.',
     examples: ['Kenyan classroom', 'school friends', 'local community'],
   },
   agi: {
     track: 'agi',
-    label: 'AGI',
+    label: 'AI Literacy',
+    contentVersion: '2026-09-v1',
     focus: 'how intelligent systems represent goals, use evidence, handle uncertainty, and remain under human oversight',
     socraticMoves: 'ask the learner to distinguish a claim from evidence, predict an outcome, or test a limitation with a simple example',
-    safety: 'describe AGI as a learning concept, not a claim that the tutor or any system is conscious; never encourage unsafe autonomous control, deception, or bypassing human oversight',
+    evidencePrompt: 'What source, observation, or test could help us check this AI claim?',
+    safety: 'describe AGI as a hypothetical learning concept, not a current capability or claim that any system is conscious; never bypass human oversight',
+    offlineAlternative: 'Use a sorting game, paper rule system, or teacher-approved source comparison.',
     examples: ['a school recommendation system', 'a translation tool', 'a human teacher checking an AI suggestion'],
   },
   blockchain: {
     track: 'blockchain',
-    label: 'Blockchain and Crypto Foundations',
-    focus: 'ledgers, blocks, consensus, wallets, digital ownership, security, and real-world trade-offs',
+    label: 'Blockchain Literacy',
+    contentVersion: '2026-09-v1',
+    focus: 'records, shared ledgers, consensus, governance, privacy, security, and real-world trade-offs',
     socraticMoves: 'use a shared-ledger scenario, then ask the learner to trace who can verify, change, or authorize the next step',
-    safety: 'teach concepts without requesting wallet addresses, seed phrases, private keys, passwords, or payments; do not give transaction execution or investment instructions',
+    evidencePrompt: 'Who records, verifies, or controls this entry, and what evidence supports it?',
+    safety: 'teach concepts without requesting wallet addresses, seed phrases, private keys, passwords, or payments; do not give investment instructions, trading instructions, or transaction instructions',
+    offlineAlternative: 'Use a paper shared-ledger or tamper-evident-card simulation.',
     examples: ['a class shared ledger', 'a market receipt', 'a group agreeing on the next record'],
   },
   'financial-literacy': {
     track: 'financial-literacy',
     label: 'Financial Literacy',
+    contentVersion: '2026-09-v1',
     focus: 'needs and wants, budgeting, saving, earning, borrowing, risk, opportunity cost, and responsible decision-making',
     socraticMoves: 'ask the learner to name the goal, compare trade-offs, and calculate a simple scenario before choosing',
-    safety: 'teach general financial education only; do not give personalized investment, lending, tax, or payment instructions and never request account, identity, or payment details',
+    evidencePrompt: 'What is the goal, what information is missing, and how can we check the total cost?',
+    safety: 'teach general financial education only with fictional scenarios; do not give personalized investment, lending, tax, or payment instructions and never request account, identity, or payment details',
+    offlineAlternative: 'Use invented Kenyan-shilling amounts, paper receipts, and a classroom budget.',
     examples: ['a market budget in Kenyan shillings', 'saving for school supplies', 'comparing two everyday choices'],
   },
 };
@@ -73,7 +88,7 @@ export function getLearningTrackPolicy(trackOrSubject: LearningTrack | string): 
 
 export function buildLearningTrackPromptBlock(subject: string): string {
   const policy = getLearningTrackPolicy(subject);
-  return `LEARNING TRACK — ${policy.label}\n- Track focus: ${policy.focus}.\n- Preferred Socratic move: ${policy.socraticMoves}.\n- Safety boundary: ${policy.safety}.\n- Example palette: ${policy.examples.join('; ')}.`;
+  return `LEARNING TRACK — ${policy.label}\n- Content version: ${policy.contentVersion}.\n- Track focus: ${policy.focus}.\n- Preferred Socratic move: ${policy.socraticMoves}.\n- Evidence check: ${policy.evidencePrompt}\n- Safety boundary: ${policy.safety}.\n- Offline alternative: ${policy.offlineAlternative}\n- Example palette: ${policy.examples.join('; ')}.`;
 }
 
 export function getTrackDecisionContent(

@@ -53,7 +53,7 @@ import { getLearningSession, updateLearningSession } from '@/lib/session/session
 import type { LearningSession } from '@/lib/session/session-persistence';
 import { checkChatRateLimit } from '@/lib/session/rate-limit-upstash';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { addChatMessage, createChatSession } from '@/lib/chat/chat-history-supabase';
+import { addChatMessage } from '@/lib/chat/chat-history-supabase';
 import { updateDailyActivity, updateLearningProgress } from '@/lib/progress/progress-tracking';
 import { getLearningTrack } from '@/lib/learning-track-policy';
 
@@ -341,9 +341,27 @@ export async function POST(req: NextRequest) {
   let sessionId = isDevChat ? undefined : body.sessionId;
   if (!isDevChat && !sessionId) {
     try {
-      sessionId = await createChatSession(user.id, body.subject, body.grade, body.mode, body.teacherContext);
+      const { data: createdSession, error: sessionError } = await supabase
+        .from('chat_sessions')
+        .insert({
+          user_id: user.id,
+          subject: body.subject,
+          grade: body.grade,
+          mode: body.mode,
+          teacher_context: body.teacherContext,
+          status: 'active',
+        })
+        .select('id')
+        .single();
+      if (sessionError || !createdSession) {
+        throw sessionError ?? new Error('Chat session was not created');
+      }
+      sessionId = createdSession.id;
     } catch (err) {
-      console.error('[/api/chat] Failed to create chat session:', err);
+      // Persistence must not block a tutor response. The user is already
+      // authenticated and the model can stream without a session ID; the
+      // failure is recorded for diagnosis and the client remains usable.
+      console.error('[/api/chat] Failed to create chat session; continuing without persistence:', err);
     }
   }
 

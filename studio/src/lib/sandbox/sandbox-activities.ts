@@ -2,6 +2,7 @@
 
 import { Activity, GradeId, SubjectId } from './sandbox-types';
 import { getCurriculumActivities, CurriculumActivity } from '../curriculum/curriculum-activities-mapper';
+import { getCurriculumData } from '@/data/curriculum';
 import { getAvailableTerms, getCurrentTerm } from '../curriculum/term-utils';
 
 // Grade 2 Mathematics Activities
@@ -764,6 +765,76 @@ function guidedFoundationActivity(grade: GradeId, subject: SubjectId): Activity[
   }];
 }
 
+function curriculumSubjectCandidates(grade: GradeId, subject: SubjectId): string[] {
+  const numericGrade = Number(String(grade).replace(/\D/g, ''));
+  switch (subject) {
+    case 'english': return numericGrade <= 3 ? ['English Activities', 'English'] : ['English'];
+    case 'creative': return numericGrade <= 3 ? ['Creative Activities', 'Creative Arts'] : ['Creative Arts'];
+    case 'environmental': return numericGrade <= 3 ? ['Environmental Activities', 'Science & Technology'] : ['Science & Technology', 'Integrated Science'];
+    case 'mathematics': return ['Mathematics'];
+    case 'kiswahili': return ['Kiswahili'];
+    case 'social-studies': return ['Social Studies'];
+    case 'cre': return ['CRE'];
+    case 'indigenous': return ['Indigenous Language'];
+  }
+}
+
+function iconForCurriculumSubject(subject: SubjectId, title: string): string {
+  const value = title.toLowerCase();
+  if (subject === 'mathematics') {
+    if (value.includes('fraction')) return '🍕';
+    if (value.includes('money')) return '💰';
+    if (value.includes('measure') || value.includes('length')) return '📏';
+    if (value.includes('shape') || value.includes('line')) return '📐';
+    return '🔢';
+  }
+  if (subject === 'english') return value.includes('read') ? '📖' : value.includes('write') ? '✍️' : '📝';
+  if (subject === 'kiswahili') return value.includes('soma') || value.includes('ufahamu') ? '📖' : '📝';
+  if (subject === 'social-studies') return value.includes('compass') || value.includes('location') ? '🧭' : '🌍';
+  if (subject === 'environmental') return '🔬';
+  if (subject === 'creative') return '🎨';
+  if (subject === 'cre') return '🤝';
+  return '📚';
+}
+
+function curriculumActivitiesForGrade(grade: GradeId, subject: SubjectId): Activity[] {
+  const gradeLabel = gradeNameToLabel(grade);
+  const curriculum = curriculumSubjectCandidates(grade, subject)
+    .map(candidate => getCurriculumData(gradeLabel, candidate))
+    .find(Boolean);
+  if (!curriculum) return [];
+
+  const rows = curriculum.flatMap((strand, strandIndex) =>
+    strand.subStrands.map((subStrand, subStrandIndex) => ({ strand, subStrand, strandIndex, subStrandIndex })),
+  );
+  const lessonsPerTerm = Math.max(1, Math.ceil(rows.length / 3));
+
+  return rows.map(({ strand, subStrand, strandIndex, subStrandIndex }, index) => {
+    const id = `${grade}-${subject}-s${strandIndex + 1}-ss${subStrandIndex + 1}`;
+    const learningObjectives = subStrand.learningOutcomes?.slice(0, 3) ?? [
+      `Explore ${subStrand.name.toLowerCase()}`,
+      `Explain one idea from ${subStrand.name.toLowerCase()} in your own words`,
+    ];
+    const term = (Math.floor(index / lessonsPerTerm) + 1) as 1 | 2 | 3;
+    return {
+      id,
+      grade,
+      subject,
+      type: index % 3 === 0 ? 'explore' : index % 3 === 1 ? 'practice' : 'create',
+      title: subStrand.name,
+      description: `Learn through a guided ${subStrand.name.toLowerCase()} activity from the ${strand.name.toLowerCase()} strand.`,
+      difficulty: Math.min(4, 1 + Math.floor(index / 4)),
+      prerequisites: index === 0 ? [] : [`g4-${subject}-s${rows[index - 1].strandIndex + 1}-ss${rows[index - 1].subStrandIndex + 1}`],
+      learningObjectives,
+      estimatedTime: Math.max(10, Math.min(25, subStrand.lessons * 2)),
+      term,
+      icon: iconForCurriculumSubject(subject, subStrand.name),
+      color: subject === 'mathematics' ? 'bg-indigo-500' : 'bg-teal-500',
+      tags: [String(grade), 'curriculum-backed', subject, strand.name.toLowerCase()],
+    } satisfies Activity;
+  });
+}
+
 function gradeNameToLabel(grade: GradeId): string {
   const match = String(grade).match(/([1-9])$/);
   return match ? `Grade ${match[1]}` : String(grade);
@@ -776,7 +847,13 @@ export function getActivitiesForGradeSubject(
   filterByTerm: boolean = true
 ): Activity[] {
   const key = `${grade}-${subject}`;
-  let activities = activityRegistry[key] || guidedFoundationActivity(grade, subject);
+  let activities = activityRegistry[key] || [];
+  const curriculumActivities = curriculumActivitiesForGrade(grade, subject);
+  if (curriculumActivities.length > 0) {
+    const existingIds = new Set(activities.map(activity => activity.id));
+    activities = [...activities, ...curriculumActivities.filter(activity => !existingIds.has(activity.id))];
+  }
+  if (activities.length === 0) activities = guidedFoundationActivity(grade, subject);
   
   // For Grade 2, merge with curriculum-based activities
   if (grade === 'g2' && ['english', 'kiswahili', 'mathematics'].includes(subject)) {
@@ -815,6 +892,22 @@ export function getActivityById(activityId: string): Activity | undefined {
     if (activity) return activity;
   }
 
+  // Generated guided-foundation activities are returned by the subject
+  // overview even when a full catalogue has not been authored yet. Resolve
+  // their stable IDs through the same source so the overview and player never
+  // disagree about whether the activity exists. Keep the plural Grade 4
+  // English ID as a compatibility alias for existing bookmarks and tests.
+  const guidedFoundationMatch = activityId.match(
+    /^(g[1-9])-(mathematics|english|kiswahili|environmental|social-studies|cre|creative|indigenous)-guided-foundations?$/,
+  );
+  if (guidedFoundationMatch) {
+    const [, grade, subject] = guidedFoundationMatch;
+    const generated = getActivitiesForGradeSubject(grade as GradeId, subject as SubjectId, false)
+      .find(activity => activity.id === activityId || activity.id === `${grade}-${subject}-guided-foundation`);
+    if (generated) return generated;
+    return guidedFoundationActivity(grade as GradeId, subject as SubjectId)[0];
+  }
+
   // Curriculum activities are only generated for Grade 2 today; the id prefix
   // tells us which subject mapper to consult so we don't pay the cost of
   // generating every curriculum on every lookup.
@@ -826,6 +919,15 @@ export function getActivityById(activityId: string): Activity | undefined {
       const found = curriculumActivities.find(a => a.id === activityId);
       if (found) return found;
     }
+  }
+
+  const curriculumMatch = activityId.match(
+    /^(g[1-9])-(mathematics|english|kiswahili|environmental|social-studies|cre|creative|indigenous)-s\d+-ss\d+$/,
+  );
+  if (curriculumMatch) {
+    const grade = curriculumMatch[1] as GradeId;
+    const subject = curriculumMatch[2] as SubjectId;
+    return curriculumActivitiesForGrade(grade, subject).find(activity => activity.id === activityId);
   }
 
   return undefined;

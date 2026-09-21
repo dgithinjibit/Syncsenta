@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getJourneyStepAfterGrade } from '../student-journey';
+import { getGradePersonalizationCopy, getJourneyStepAfterGrade } from '../student-journey';
 
 describe('student journey grade transition', () => {
   const coveredGrades = new Set(['Grade 1', 'Grade 2', 'Grade 3']);
@@ -10,5 +10,12 @@ describe('student journey grade transition', () => {
 
   it('keeps an unsupported grade on the grade step', () => {
     expect(getJourneyStepAfterGrade('Grade 10', coveredGrades)).toBe('grade');
+  });
+
+  it('gives the learner explicit feedback while the dashboard is prepared', () => {
+    expect(getGradePersonalizationCopy('Grade 6')).toEqual({
+      title: 'Personalizing your dashboard…',
+      description: 'Preparing Grade 6 lessons, activities, and tutor support.',
+    });
   });
 });

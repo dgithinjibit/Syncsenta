@@ -11,6 +11,8 @@ pub mod head_progress;
 pub mod holistic_development;
 pub mod indigenous_rag;
 pub mod intelligence_signals;
+pub mod learning_track;
+pub mod lms_contract;
 pub mod moe_router;
 pub mod observability;
 pub mod parent_report;
@@ -44,6 +46,11 @@ pub use holistic_development::{
 pub use indigenous_rag::{retrieve_sources as retrieve_indigenous_sources, IndigenousSource};
 pub use intelligence_signals::{
     classify_intelligence, IntelligenceSignal, SignalTag, SyncsentaAction,
+};
+pub use learning_track::{classify_subject, policy_for, TrackId, TrackPolicy};
+pub use lms_contract::{
+    session_policy, validate_session_start, DeliveryMode, LmsSessionPolicy, SessionKind,
+    SessionStartError,
 };
 pub use moe_router::{plan_specialists, MoePlan, SpecialistContract};
 pub use observability::{ObservabilityError, OperationalEvent, SafeDimension, SafeMetric};

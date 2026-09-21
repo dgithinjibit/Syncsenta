@@ -22,6 +22,7 @@ export type SubjectId =
   | 'english'
   | 'kiswahili'
   | 'environmental'
+  | 'social-studies'
   | 'cre'
   | 'creative'
   | 'indigenous'

@@ -12,9 +12,9 @@ const state = {
 };
 
 describe('learning track policy', () => {
-  it('maps the stable ai subject slug to AGI', () => {
+  it('maps the stable ai subject slug to AI Literacy', () => {
     expect(getLearningTrack('ai')).toBe('agi');
-    expect(getLearningTrackPolicy('ai').label).toBe('AGI');
+    expect(getLearningTrackPolicy('ai').label).toBe('AI Literacy');
   });
 
   it('maps blockchain and financial literacy aliases', () => {
@@ -24,16 +24,16 @@ describe('learning track policy', () => {
 });
 
 describe('track-aware Socratic tutor', () => {
-  it('adds AGI evidence and human-oversight boundaries', () => {
+  it('adds AI evidence and human-oversight boundaries', () => {
     const prompt = buildSocraticSystemPrompt({ grade: 'Grade 8', subject: 'ai' });
-    expect(prompt).toContain('LEARNING TRACK — AGI');
+    expect(prompt).toContain('LEARNING TRACK — AI Literacy');
     expect(prompt).toMatch(/evidence/i);
     expect(prompt).toMatch(/human oversight/i);
   });
 
-  it('adds blockchain credential and transaction safety boundaries', () => {
+  it('adds blockchain record and transaction safety boundaries', () => {
     const prompt = buildSocraticSystemPrompt({ grade: 'Grade 8', subject: 'blockchain' });
-    expect(prompt).toContain('LEARNING TRACK — Blockchain and Crypto Foundations');
+    expect(prompt).toContain('LEARNING TRACK — Blockchain Literacy');
     expect(prompt).toMatch(/private keys/i);
     expect(prompt).toMatch(/investment instructions/i);
   });
