@@ -4,7 +4,7 @@ services:
     name: syncsenta-frontend
     runtime: node
     rootDir: studio
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -31,13 +31,13 @@ services:
       - key: PORT
         value: 8080
 
-  # AI Agents Service (Python/CrewAI - ai-agents/)
+  # AI Agents Service (Python/FastAPI - ai-agents/)
   - type: web
     name: syncsenta-ai-agents
     runtime: python
     rootDir: ai-agents
-    buildCommand: pip install poetry && poetry install --no-dev
-    startCommand: poetry run uvicorn src.syncsenta_agents.api:app --host 0.0.0.0 --port 8000
+    buildCommand: pip install -r requirements.txt
+    startCommand: PYTHONPATH=src uvicorn syncsenta_agents.api.server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_API_KEY
         sync: false
@@ -47,6 +47,13 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+    healthCheckPath: /healthz
 
 databases:
   - name: syncsenta-db

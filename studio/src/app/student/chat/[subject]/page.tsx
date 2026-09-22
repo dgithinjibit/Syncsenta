@@ -39,7 +39,10 @@ export default function StudentChatPage() {
 
     useEffect(() => {
         const subject = decodeURIComponent((params.subject as string) || 'General');
-        const grade = localStorage.getItem('studentGrade') || 'g4';
+        const storedGrade = localStorage.getItem('learningJourney.grade') || localStorage.getItem('studentGrade');
+        const grade = storedGrade?.toLowerCase().startsWith('grade ')
+            ? `g${storedGrade.slice('Grade '.length)}`
+            : storedGrade || 'g4';
         
         setChatParams({
             subject,
@@ -49,7 +52,7 @@ export default function StudentChatPage() {
     }, [params.subject]);
 
     const handleBack = () => {
-        router.push('/student/journey?step=subject');
+        router.push('/student');
     };
 
     if (!chatParams) {

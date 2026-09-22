@@ -1,0 +1,16 @@
+[workspace]
+
+[package]
+name = "syncsenta-hyperon-bridge"
+version = "0.1.0"
+edition = "2021"
+description = "Experimental Rust embedding boundary for SyncSenta MeTTa policy evaluation"
+license = "MIT"
+
+[dependencies]
+hyperon = { git = "https://github.com/trueagi-io/hyperon-experimental.git", tag = "v0.2.10", default-features = false, features = ["pkg_mgmt"] }
+
+[dev-dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"

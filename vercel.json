@@ -1,6 +1,6 @@
 {
   "buildCommand": "cd studio && npm run build",
-  "installCommand": "cd studio && npm install",
+  "installCommand": "cd studio && npm ci",
   "framework": "nextjs",
   "outputDirectory": "studio/.next",
   "regions": ["iad1"]
