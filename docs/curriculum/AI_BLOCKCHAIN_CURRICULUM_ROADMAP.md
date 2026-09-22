@@ -100,6 +100,8 @@ The fail-closed generation checkpoint is also complete. Registered AI and Blockc
 
 The deterministic release validator and bounded generation trace are now implemented. Before release, literacy rows are checked for prohibited operations and observable modelling, guided practice, retrieval, mastery, transfer, and reflection. Successful requests record `plan`, `generate`, `critique`, and `verify` stages; blocked requests record `quarantine` with the reason and revisions used. The retry budget is fixed at one, and no unverified artifact is returned.
 
+The teacher-facing preview now surfaces the curriculum ID and version, teacher-review release state, synthetic/offline and teacher-mediation status, external-action status, schedule extension or consolidation information, and the generation trace. Teachers can therefore review the contract before exporting or saving rather than treating model output as automatically approved.
+
 The first deterministic release validator is now in place. Before a literacy scheme is returned, it rejects prohibited operations such as wallets, tokens, seed phrases, credentials, real transactions, private identity data, and unsupervised external AI. It also requires observable modelling, guided practice, retrieval, mastery checking, transfer, and reflection language. The validator is curriculum-specific and does not replace the Rust policy engine. The existing structural guardrail now preserves or supplies a reflection prompt so the release contract can be checked reliably.
 
 ## References

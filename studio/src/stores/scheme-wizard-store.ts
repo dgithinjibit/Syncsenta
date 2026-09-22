@@ -31,6 +31,8 @@ export interface StrandSelection {
  * Teacher inputs for scheme generation
  */
 export interface TeacherInputs {
+  teacherName?: string;
+  schoolName?: string;
   keyInquiryQuestions?: string;
   learningOutcomes?: string;
   learningExperiences?: string;
@@ -192,4 +194,3 @@ export const useSchemeWizardStore = create<SchemeWizardState>()(
     }
   )
 );
-
