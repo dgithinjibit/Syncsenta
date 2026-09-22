@@ -52,8 +52,11 @@ export interface QuizQuestion {
  */
 export interface SubStrandInfo {
   name: string;
+  lessons?: number;
   description?: string;
   learningOutcomes?: string[];
+  keyInquiryQuestion?: string;
+  suggestedExperiences?: string[];
 }
 
 /**

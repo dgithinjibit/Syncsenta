@@ -13,6 +13,8 @@ import type {
   WeeklyDistribution,
   Term,
 } from '@/types/curriculum';
+import { grade6AI, grade7AI, grade8AI, grade9AI, grade10AI, grade11AI, grade12AI } from './senior-school/ai';
+import { blockchainStrandsByGrade } from './blockchain';
 
 /**
  * Get all subjects available for a given grade
@@ -33,7 +35,7 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
   
   // Upper Primary (Grade 4-6)
   if (['Grade4', 'Grade5', 'Grade6'].includes(grade)) {
-    return [
+    const subjects: SubjectInfo[] = [
       { name: 'English', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
       { name: 'Kiswahili', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
       { name: 'Mathematics', category: 'non-language', grades: ['Grade4', 'Grade5', 'Grade6'] },
@@ -43,19 +45,35 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
       { name: 'Creative Arts', category: 'non-language', grades: ['Grade4', 'Grade5', 'Grade6'] },
       { name: 'Indigenous Language', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
     ];
+    if (grade === 'Grade6') {
+      subjects.unshift(
+        { name: 'AI Literacy', category: 'non-language', grades: ['Grade6'] },
+        { name: 'Blockchain Literacy', category: 'non-language', grades: ['Grade6'] },
+      );
+    }
+    return subjects;
   }
   
   // Senior School (Grade 10-12): Omega Claw subjects are available for teacher planning.
   if (['Grade10', 'Grade11', 'Grade12'].includes(grade)) {
     return [
-      { name: 'Artificial Intelligence', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
-      { name: 'Blockchain and Distributed Systems', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
+      { name: 'AI Literacy', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
+      { name: 'Blockchain Literacy', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
       { name: 'Computer Science', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
       { name: 'English', category: 'language', grades: ['Grade10', 'Grade11', 'Grade12'] },
     ];
   }
 
-  // Junior School (Grade 7-9) - placeholder for future
+  // Junior School (Grade 7-9)
+  if (['Grade7', 'Grade8', 'Grade9'].includes(grade)) {
+    return [
+      { name: 'AI Literacy', category: 'non-language', grades: ['Grade7', 'Grade8', 'Grade9'] },
+      { name: 'Blockchain Literacy', category: 'non-language', grades: ['Grade7', 'Grade8', 'Grade9'] },
+      { name: 'Computer Science', category: 'non-language', grades: ['Grade7', 'Grade8', 'Grade9'] },
+      { name: 'English', category: 'language', grades: ['Grade7', 'Grade8', 'Grade9'] },
+    ];
+  }
+
   return [];
 }
 
@@ -65,6 +83,14 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
  */
 export function getHardcodedStrands(grade: GradeLevel, subject: string): StrandInfo[] {
   const key = `${grade}-${subject}`;
+
+  if (subject === 'AI Literacy') {
+    return ({ Grade6: grade6AI, Grade7: grade7AI, Grade8: grade8AI, Grade9: grade9AI, Grade10: grade10AI, Grade11: grade11AI, Grade12: grade12AI } as Record<string, StrandInfo[]>)[grade] || [];
+  }
+
+  if (subject === 'Blockchain Literacy') {
+    return blockchainStrandsByGrade[grade] || [];
+  }
   
   // Mathematics strands (simplified example)
   if (subject === 'Mathematics' || subject === 'Mathematical Activities') {
@@ -156,6 +182,10 @@ export function getSubStrandsForStrand(
  * Get lessons per week for a subject
  */
 export function getLessonsPerWeek(subject: string): number {
+  if (subject === 'AI Literacy' || subject === 'Blockchain Literacy') {
+    return 2;
+  }
+
   // Language subjects typically have more lessons
   if (subject.toLowerCase().includes('english') || 
       subject.toLowerCase().includes('kiswahili') ||

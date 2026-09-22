@@ -11,6 +11,12 @@ from typing import Dict, List, Optional
 
 from .types import StrandInfo, SubStrandInfo, SchemeRow
 from .ai_literacy import AI_BLOCKCHAIN_PROGRESSION, AI_LITERACY_VERSION, grade6AILiteracy
+from .ai_identifiers import grade7AIIdentifiers, grade8AIIdentifiers, grade9AIIdentifiers, grade10AIIdentifiers, grade11AIIdentifiers, grade12AIIdentifiers
+from .blockchain_literacy import (
+    grade6BlockchainLiteracy, grade7BlockchainLiteracy, grade8BlockchainLiteracy,
+    grade9BlockchainLiteracy, grade10BlockchainLiteracy, grade11BlockchainLiteracy,
+    grade12BlockchainLiteracy,
+)
 
 # --- Grade/subject data -------------------------------------------------
 
@@ -106,6 +112,20 @@ _HARDCODED_STRANDS: Dict[str, List[StrandInfo]] = {
     "Grade 6|Mathematics": grade6Mathematics,
     "Grade 6|Social Studies": grade6SocialStudies,
     "Grade 6|AI": grade6AILiteracy,
+    "Grade 6|AI Literacy": grade6AILiteracy,
+    "Grade 7|AI Literacy": grade7AIIdentifiers,
+    "Grade 8|AI Literacy": grade8AIIdentifiers,
+    "Grade 9|AI Literacy": grade9AIIdentifiers,
+    "Grade 10|AI Literacy": grade10AIIdentifiers,
+    "Grade 11|AI Literacy": grade11AIIdentifiers,
+    "Grade 12|AI Literacy": grade12AIIdentifiers,
+    "Grade 6|Blockchain Literacy": grade6BlockchainLiteracy,
+    "Grade 7|Blockchain Literacy": grade7BlockchainLiteracy,
+    "Grade 8|Blockchain Literacy": grade8BlockchainLiteracy,
+    "Grade 9|Blockchain Literacy": grade9BlockchainLiteracy,
+    "Grade 10|Blockchain Literacy": grade10BlockchainLiteracy,
+    "Grade 11|Blockchain Literacy": grade11BlockchainLiteracy,
+    "Grade 12|Blockchain Literacy": grade12BlockchainLiteracy,
 }
 
 
@@ -158,6 +178,8 @@ _LOWER_PRIMARY_LESSONS: Dict[str, int] = {
 
 _UPPER_PRIMARY_LESSONS: Dict[str, int] = {
     "AI": 2,
+    "AI Literacy": 2,
+    "Blockchain Literacy": 2,
     "English": 5,
     "Kiswahili": 4,
     "Mathematics": 5,
@@ -171,6 +193,8 @@ _UPPER_PRIMARY_LESSONS: Dict[str, int] = {
 }
 
 _JUNIOR_SECONDARY_LESSONS: Dict[str, int] = {
+    "AI Literacy": 2,
+    "Blockchain Literacy": 2,
     "English": 5,
     "Kiswahili": 4,
     "Mathematics": 5,
@@ -203,6 +227,7 @@ GRADES = [
     "Grade 1", "Grade 2", "Grade 3",
     "Grade 4", "Grade 5", "Grade 6",
     "Grade 7", "Grade 8", "Grade 9",
+    "Grade 10", "Grade 11", "Grade 12",
 ]
 
 _LOWER_PRIMARY_SUBJECTS = [
@@ -211,13 +236,13 @@ _LOWER_PRIMARY_SUBJECTS = [
 ]
 
 _UPPER_PRIMARY_SUBJECTS = [
-    "AI", "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
+    "AI", "AI Literacy", "Blockchain Literacy", "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
     "German", "HRE", "Indigenous Language", "IRE", "Kiswahili", "Mandarin",
     "Mathematics", "Science & Technology", "Social Studies",
 ]
 
 _JUNIOR_SECONDARY_SUBJECTS = [
-    "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
+    "AI Literacy", "Blockchain Literacy", "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
     "German", "HRE", "Indigenous Language", "Integrated Science", "IRE",
     "Kiswahili", "Mandarin", "Mathematics", "Pre-Technical Studies",
     "Social Studies",
@@ -233,7 +258,7 @@ def get_subjects_for_grade(grade: str) -> List[str]:
         return _LOWER_PRIMARY_SUBJECTS
     if 4 <= num <= 6:
         return _UPPER_PRIMARY_SUBJECTS
-    if 7 <= num <= 9:
+    if 7 <= num <= 12:
         return _JUNIOR_SECONDARY_SUBJECTS
     return _UPPER_PRIMARY_SUBJECTS
 

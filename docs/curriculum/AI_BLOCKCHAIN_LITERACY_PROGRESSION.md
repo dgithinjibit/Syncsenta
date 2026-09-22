@@ -4,6 +4,8 @@
 
 SyncSenta now carries the Grade 6 AI literacy pack generated in the Lovable `scheme-scribe-ai` repository on 22 September 2026. The pack is registered in the runtime curriculum registry and remains compatible with the existing Omega-aware synthesis-tutor flow. It does not create a second tutor, a new policy engine, or a crypto workflow.
 
+The teacher-facing scheme wizard now exposes **AI Literacy** and **Blockchain Literacy** for Grade 6 and the harder progression for Grades 7–12. Both subjects use the same strand and sub-strand selection, term allocation, teacher-input, preview, and scheme-save flow as English, Mathematics, and other CBC subjects.
+
 ## Grade 6 entry point
 
 Grade 6 is an introductory, teacher-mediated course with two lessons per week. It introduces intelligence, artificial intelligence in Kenyan daily life, simple data collection and grouping, step-by-step instructions, learning by examples, talking machines, classroom problem-solving, honesty, privacy, and future work. The learning experiences are deliberately unplugged or demonstrative: sorting cards, role-play, posters, class data tables, and supervised examples. Programming, model building, wallets, tokens, seed phrases, real transactions, and unsupervised external AI use are out of scope.
@@ -17,6 +19,10 @@ The 66 lessons across 14 sub-strands are organised into five strands:
 | AI Techniques and Programming | Understand instructions, examples, and conversational machines without requiring code. |
 | AI System Design and Projects | Identify a local problem and present a simple supervised idea. |
 | Ethics, Society and AI Policy | Practise safety, honesty, privacy, and responsible discussion of work. |
+
+## Blockchain Literacy entry point
+
+Grade 6 Blockchain Literacy is a two-lesson-per-week introduction organised around records, shared ledgers, linked paper blocks, system choice, privacy, and a small human-reviewed community-record proposal. It explicitly teaches blockchain as record-keeping rather than cryptocurrency. Grades 7–9 add provenance, hashes, signatures, consensus, governance, system choice, and evidence-based design. Grades 10–12 add distributed-systems foundations, cryptographic building blocks, smart-contract oversight, architecture, regulation, and comparative research.
 
 ## Hardening by grade band
 
@@ -36,4 +42,4 @@ For AI, the course must distinguish present-day human-made pattern-generating sy
 
 ## Source and integration note
 
-The Grade 6 lesson content was ported from `dgithinjibit/scheme-scribe-ai` commit `0fc55c8f` (`Revised curriculum for Grade 6`, Lovable edit ID `edt-d21ac8f5-1723-4600-8940-0552ab43fac4`). The canonical runtime copy is `ai-agents/src/syncsenta_agents/curriculum/ai_literacy.py`; its registry key is `Grade 6|AI`. The import is additive and does not replace existing CBC subject packs.
+The Grade 6 AI lesson content was ported from `dgithinjibit/scheme-scribe-ai` commit `0fc55c8f` (`Revised curriculum for Grade 6`, Lovable edit ID `edt-d21ac8f5-1723-4600-8940-0552ab43fac4`). The canonical runtime copies are `ai-agents/src/syncsenta_agents/curriculum/ai_literacy.py`, the generated AI identifiers in `ai-agents/src/syncsenta_agents/curriculum/ai_identifiers.py`, and the frontend packs under `studio/src/data/curriculum/`. Registry keys use `Grade N|AI Literacy` and `Grade N|Blockchain Literacy`; the legacy `Grade 6|AI` alias remains for compatibility. The import is additive and does not replace existing CBC subject packs.

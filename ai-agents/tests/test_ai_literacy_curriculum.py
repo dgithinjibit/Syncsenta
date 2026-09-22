@@ -35,3 +35,18 @@ def test_progression_hardens_without_external_actions():
     assert junior["ai_level"] != grade6["ai_level"]
     assert junior["blockchain_level"] != grade6["blockchain_level"]
     assert "real_wallets" in junior["prohibited"]
+
+
+def test_ai_and_blockchain_packs_are_available_to_scheme_generation():
+    grade6_blockchain = get_hardcoded_strands("Grade 6", "Blockchain Literacy")
+    grade10_ai = get_hardcoded_strands("Grade 10", "AI Literacy")
+    grade12_blockchain = get_hardcoded_strands("Grade 12", "Blockchain Literacy")
+
+    assert grade6_blockchain is not None
+    assert grade10_ai is not None
+    assert grade12_blockchain is not None
+    assert grade6_blockchain[2]["name"] == "3.0 Linked Records and Blockchain"
+    assert grade10_ai[2]["name"] == "3.0 AI Techniques and Programming"
+    assert grade12_blockchain[2]["name"] == "3.0 Consensus, Smart Contracts, and Governance"
+    assert get_lessons_per_week("Grade 6", "Blockchain Literacy") == 2
+    assert "Blockchain Literacy" in get_subjects_for_grade("Grade 6")
