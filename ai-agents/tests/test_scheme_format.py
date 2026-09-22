@@ -229,7 +229,7 @@ def test_validate_and_sanitize_rows_emits_complete_scheme_row():
     assert "Learner is guided to" in row["learningExperiences"]
     assert "KLB Visionary" in row["learningResources"]
     assert row["assessmentMethods"]  # defaulted, non-empty
-    assert row["reflection"] == ""
+    assert "What became clearer" in row["reflection"]
 
 
 # ── generate_for_sub_strand (end-to-end with fake provider) ───────────────

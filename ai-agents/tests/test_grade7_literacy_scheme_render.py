@@ -31,9 +31,13 @@ class OfflineSchemeProvider:
                     "c) appreciate responsible use of technology"
                 ),
                 "keyInquiryQuestion": "How can we explain this idea safely?",
-                "learningExperiences": "Listen, model, practise independently, and explain to a partner.",
+                "learningExperiences": (
+                    "Listen to the teacher model, complete guided practise, "
+                    "retrieve the idea from memory, and complete an independent "
+                    "transfer task with a partner."
+                ),
                 "learningResources": "Paper cards, pencils, and a teacher-created fictional scenario.",
-                "assessmentMethods": "Observation, oral explanation, and a short exit ticket.",
+                "assessmentMethods": "Observation, oral explanation, mastery check, and a short exit ticket.",
                 "reflection": "What became clearer after practice?",
             }
         ])

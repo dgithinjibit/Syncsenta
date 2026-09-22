@@ -24,6 +24,7 @@ from ...curriculum import (
     normalize_subject_label,
 )
 from ...curriculum.term_mappings import get_term_allocation
+from ...curriculum.literacy_validation import validate_literacy_scheme_rows
 from ..scheme.batched import (
     NoOfficialDataError,
     RateLimitError,
@@ -188,6 +189,7 @@ class SchemeGenerator:
                 language=language,
                 personalization_context=personalization_context,
             )
+            validate_literacy_scheme_rows(scheme_rows, grade=grade, subject=subject)
 
             # Create scheme metadata
             scheme_id = f"scheme_{uuid.uuid4().hex[:12]}"
