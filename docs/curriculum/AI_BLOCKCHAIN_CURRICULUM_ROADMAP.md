@@ -1,6 +1,6 @@
 # AI and Blockchain Literacy Curriculum Roadmap
 
-**Status:** Phase 1 in progress  
+**Status:** Phase 2 in progress  
 **Owner:** Syncsenta curriculum and learning-platform team  
 **Baseline:** `2026-09-22.grade6.lovable-import.v1`
 
@@ -103,6 +103,14 @@ The deterministic release validator and bounded generation trace are now impleme
 The teacher-facing preview now surfaces the curriculum ID and version, teacher-review release state, synthetic/offline and teacher-mediation status, external-action status, schedule extension or consolidation information, and the generation trace. Teachers can therefore review the contract before exporting or saving rather than treating model output as automatically approved.
 
 The first deterministic release validator is now in place. Before a literacy scheme is returned, it rejects prohibited operations such as wallets, tokens, seed phrases, credentials, real transactions, private identity data, and unsupervised external AI. It also requires observable modelling, guided practice, retrieval, mastery checking, transfer, and reflection language. The validator is curriculum-specific and does not replace the Rust policy engine. The existing structural guardrail now preserves or supplies a reflection prompt so the release contract can be checked reliably.
+
+## Phase 2: Grade 6 complete pack
+
+Phase 2 is now active. The first checkpoint completes the authored teacher contract for every Grade 6 AI and Blockchain Literacy sub-strand. Each record now exposes learning outcomes, a key inquiry question, suggested low-resource experiences, assessment evidence, prerequisites, misconceptions, and safety notes in both the frontend registry and backend scheme-generation registry.
+
+The scheme prompt now consumes those fields as non-optional instructional context. Assessment evidence is preserved as observable checks, prerequisites are presented as readiness gates, misconceptions are presented for explicit correction, and safety notes are hard constraints. This prevents the generator from silently discarding the authored teacher guidance while retaining the Phase 1 fail-closed and release-validator behavior.
+
+The Phase 2 checkpoint is verified by a registry-wide test: all Grade 6 AI and Blockchain sub-strands have the complete metadata contract, and a prompt test confirms that the evidence and safety blocks reach scheme generation. The remaining Phase 2 work is to expose sub-strand evidence and safety notes in the teacher selection/review controls and to add a Grade 6 end-to-end offline scheme fixture for both subjects.
 
 ## References
 

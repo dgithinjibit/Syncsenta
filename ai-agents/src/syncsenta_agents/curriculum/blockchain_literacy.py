@@ -80,6 +80,32 @@ _grade6_outcomes = {
 }
 for _strand in grade6BlockchainLiteracy:
     for _sub_strand in _strand["subStrands"]:
+        _sub_strand.setdefault("learningOutcomes", [
+            f"explain the main idea of {_sub_strand['name']}",
+            f"apply {_sub_strand['name']} to a fictional classroom example",
+            "show care for accuracy, privacy, and human review",
+        ])
+        _sub_strand.setdefault("suggestedExperiences", [
+            "Listen to a teacher model using paper cards and repeat the key rule.",
+            "Complete a guided fictional-record practice with a partner.",
+            "Complete a short independent mastery check and explain one choice.",
+        ])
+        _sub_strand["assessmentEvidence"] = [
+            f"Teacher observation: learner can explain {_sub_strand['name']}.",
+            "Guided-to-independent mastery check using a fictional classroom record.",
+            "Short oral, drawing, sorting, or written exit response with reflection.",
+        ]
+        _sub_strand["prerequisites"] = [
+            "Learner can listen to a short model and explain an example in their own words."
+        ]
+        _sub_strand["misconceptions"] = [
+            "A linked or shared record is not automatically true and is not cryptocurrency."
+        ]
+        _sub_strand["safetyNotes"] = [
+            "Use paper records and fictional entries only; never create wallets, tokens, accounts, or real transactions.",
+            "Never request passwords, PINs, seed phrases, private keys, identity records, or private financial information.",
+            "Include a human correction and review route for every classroom record.",
+        ]
         if _sub_strand["name"] in _grade6_experiences:
             _sub_strand["learningOutcomes"] = _grade6_outcomes[_sub_strand["name"]]
             _sub_strand["suggestedExperiences"] = _grade6_experiences[_sub_strand["name"]]

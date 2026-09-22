@@ -1,4 +1,5 @@
 import type { StrandInfo, SubStrandInfo } from './types';
+import { completeGrade6Pack } from './grade6-metadata';
 
 /**
  * Blockchain Literacy curriculum pack.
@@ -26,7 +27,7 @@ const ss = (
   suggestedExperiences,
 });
 
-const grade6Strands: StrandInfo[] = [
+const grade6Strands: StrandInfo[] = completeGrade6Pack([
   {
     name: '1.0 Records and Trust',
     description: 'Understand why people keep records and how trust is built.',
@@ -67,7 +68,7 @@ const grade6Strands: StrandInfo[] = [
       ss('5.2 Explain, Review, Improve', 4, 'How can we improve an idea after feedback?', ['communicate how the proposed system works', 'respond to teacher and peer feedback', 'reflect on one improvement and one remaining uncertainty'], ['Present by speech, drawing, role-play, or writing', 'Use a two-point feedback card', 'Revise and complete a mastery reflection']),
     ],
   },
-];
+], 'Blockchain Literacy');
 
 const juniorStrands = (grade: number): StrandInfo[] => [
   {

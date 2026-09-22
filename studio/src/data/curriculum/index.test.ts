@@ -78,4 +78,19 @@ describe('CBC curriculum registry', () => {
     expect(experiences.some((experience) => experience.toLowerCase().includes('relay'))).toBe(true);
     expect(experiences.join(' ').toLowerCase()).not.toMatch(/wallet|seed phrase|real transaction/);
   });
+
+  it('completes every Grade 6 literacy sub-strand with evidence and safety notes', () => {
+    for (const subject of ['AI Literacy', 'Blockchain Literacy']) {
+      const strands = getHardcodedStrands('Grade6', subject);
+      const subStrands = strands?.flatMap((strand) => strand.subStrands) ?? [];
+      expect(subStrands.length).toBeGreaterThan(0);
+      for (const subStrand of subStrands) {
+        expect(subStrand.learningOutcomes?.length).toBeGreaterThanOrEqual(3);
+        expect(subStrand.keyInquiryQuestion).toBeTruthy();
+        expect(subStrand.suggestedExperiences?.length).toBeGreaterThanOrEqual(3);
+        expect(subStrand.assessmentEvidence?.length).toBeGreaterThanOrEqual(3);
+        expect(subStrand.safetyNotes?.length).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
 });

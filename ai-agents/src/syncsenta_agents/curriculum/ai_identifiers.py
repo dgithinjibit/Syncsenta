@@ -30,6 +30,35 @@ grade6AIIdentifiers: list[StrandInfo] = [
     ]},
 ]
 
+for _strand in grade6AIIdentifiers:
+    for _sub_strand in _strand["subStrands"]:
+        _sub_strand.setdefault("learningOutcomes", [
+            f"explain the main idea of {_sub_strand['name']}",
+            f"apply {_sub_strand['name']} to a fictional classroom example",
+            "show care for accuracy, privacy, and honest acknowledgement of assistance",
+        ])
+        _sub_strand.setdefault("suggestedExperiences", [
+            "Listen to a teacher model using picture cards and repeat the key idea.",
+            "Complete a guided synthetic-data practice with a partner.",
+            "Complete a short independent mastery check and explain one choice.",
+        ])
+        _sub_strand["assessmentEvidence"] = [
+            f"Teacher observation: learner can explain {_sub_strand['name']}.",
+            "Guided-to-independent mastery check using a fictional example.",
+            "Short oral, drawing, sorting, or written exit response with reflection.",
+        ]
+        _sub_strand["prerequisites"] = [
+            "Learner can listen to a short model and explain an example in their own words."
+        ]
+        _sub_strand["misconceptions"] = [
+            "A machine output is not automatically true, fair, or intelligent."
+        ]
+        _sub_strand["safetyNotes"] = [
+            "Use fictional or synthetic examples only; never enter learner names, locations, images, or contact details.",
+            "Use intelligent tools only through teacher demonstration or an approved offline simulation.",
+            "Learners must check, explain, and acknowledge assistance rather than treating output as automatically true.",
+        ]
+
 grade7AIIdentifiers: list[StrandInfo] = [
     {"name": '1.0 Foundations of Intelligence', "subStrands": [
         {"name": '1.1 Defining Artificial Intelligence', "lessons": 5, "keyInquiryQuestion": 'What makes a system artificially intelligent?'},

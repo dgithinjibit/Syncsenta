@@ -90,3 +90,16 @@ def test_ai_and_blockchain_packs_are_available_to_scheme_generation():
     assert grade12_blockchain[2]["name"] == "3.0 Consensus, Smart Contracts, and Governance"
     assert get_lessons_per_week("Grade 6", "Blockchain Literacy") == 2
     assert "Blockchain Literacy" in get_subjects_for_grade("Grade 6")
+
+
+def test_every_grade6_literacy_substrand_has_phase2_teacher_contract():
+    for subject in ("AI Literacy", "Blockchain Literacy"):
+        strands = get_hardcoded_strands("Grade 6", subject)
+        assert strands
+        for strand in strands:
+            for sub_strand in strand["subStrands"]:
+                assert len(sub_strand.get("learningOutcomes", [])) >= 3
+                assert sub_strand.get("keyInquiryQuestion")
+                assert len(sub_strand.get("suggestedExperiences", [])) >= 3
+                assert len(sub_strand.get("assessmentEvidence", [])) >= 3
+                assert len(sub_strand.get("safetyNotes", [])) >= 3

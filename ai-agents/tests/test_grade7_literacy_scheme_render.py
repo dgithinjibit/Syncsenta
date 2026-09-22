@@ -10,6 +10,8 @@ import pytest
 
 from syncsenta_agents.core.exceptions import AgentError
 from syncsenta_agents.agents.lesson_planning.scheme_generator import SchemeGenerator, SchemeMode
+from syncsenta_agents.agents.scheme.batched import _build_official_context
+from syncsenta_agents.curriculum import get_hardcoded_strands
 
 
 class OfflineSchemeProvider:
@@ -78,6 +80,26 @@ def test_grade7_ai_scheme_renders_from_registered_strands():
     } for row in rows)
     assert any("Defining Artificial Intelligence" in row["subStrand"] for row in rows)
     assert provider.prompts
+
+
+def test_grade6_phase2_metadata_reaches_scheme_prompt():
+    strands = get_hardcoded_strands("Grade 6", "AI Literacy")
+    assert strands
+    sub_strand = strands[0]["subStrands"][0]
+    context, has_official_data = _build_official_context(
+        sub_strand,
+        strand=strands[0]["name"],
+        grade="Grade 6",
+        subject="AI Literacy",
+        is_sw=False,
+    )
+
+    assert has_official_data is True
+    assert "TEACHER ASSESSMENT EVIDENCE" in context
+    assert "PREREQUISITES" in context
+    assert "KNOWN MISCONCEPTIONS" in context
+    assert "NON-NEGOTIABLE SAFETY NOTES" in context
+    assert "synthetic" in context.lower()
 
 
 def test_grade7_blockchain_scheme_renders_from_registered_strands():

@@ -11,6 +11,10 @@ class SubStrandInfo(TypedDict, total=False):
     learningOutcomes: List[str]
     suggestedExperiences: List[str]
     keyInquiryQuestion: str
+    assessmentEvidence: List[str]
+    prerequisites: List[str]
+    misconceptions: List[str]
+    safetyNotes: List[str]
 
 
 class StrandInfo(TypedDict):

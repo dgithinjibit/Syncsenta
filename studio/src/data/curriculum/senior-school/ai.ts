@@ -1,4 +1,5 @@
 import type { StrandInfo, SubStrandInfo } from "../types";
+import { completeGrade6Pack } from "../grade6-metadata";
 
 export const AI_LITERACY_VERSION = "2026-09-22.grade6.lovable-import.v1";
 
@@ -47,7 +48,7 @@ function build(subs: SubStrandInfo[][]): StrandInfo[] {
 // safe and honest use. No programming, no model building.
 // ─────────────────────────────────────────────────────────────
 
-export const grade6AI: StrandInfo[] = build([
+export const grade6AI: StrandInfo[] = completeGrade6Pack(build([
   [
     ss("1.1 What is Intelligence?", 4, "How do we know that something is intelligent?", [
       "identify examples of intelligent behaviour in people, animals and machines",
@@ -184,7 +185,7 @@ export const grade6AI: StrandInfo[] = build([
       "Learners discuss careers they would like in a world with intelligent machines",
     ]),
   ],
-]);
+]), "AI Literacy");
 
 // ─────────────────────────────────────────────────────────────
 // JUNIOR SCHOOL (Grades 7-9) — 3 lessons/week, 99 lessons

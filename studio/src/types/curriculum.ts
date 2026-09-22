@@ -57,6 +57,10 @@ export interface SubStrandInfo {
   learningOutcomes?: string[];
   keyInquiryQuestion?: string;
   suggestedExperiences?: string[];
+  assessmentEvidence?: string[];
+  prerequisites?: string[];
+  misconceptions?: string[];
+  safetyNotes?: string[];
 }
 
 /**
