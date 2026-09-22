@@ -58,7 +58,7 @@ service_role key: eyJhbGc... (keep this secret!)
 ### Step 5: Update Render Environment Variables
 
 1. Go to your Render dashboard: https://dashboard.render.com
-2. Find your backend service: `ascendra-e3jc` (or similar)
+2. Find the canonical backend service: `ascendra-1`
 3. Go to **Environment** tab
 4. Add/update these variables:
 
