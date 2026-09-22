@@ -6,6 +6,9 @@ import asyncio
 import json
 from typing import Optional
 
+import pytest
+
+from syncsenta_agents.core.exceptions import AgentError
 from syncsenta_agents.agents.lesson_planning.scheme_generator import SchemeGenerator, SchemeMode
 
 
@@ -87,3 +90,21 @@ def test_grade7_blockchain_scheme_renders_from_registered_strands():
     } for row in rows)
     assert any("Data Provenance and Claims" in row["subStrand"] for row in rows)
     assert any("fictional" in system.lower() or "blockchain" in system.lower() for _, system in provider.prompts)
+
+
+def test_unregistered_literacy_grade_fails_closed_before_generic_scaffold():
+    provider = OfflineSchemeProvider()
+    generator = SchemeGenerator(provider)
+
+    with pytest.raises(AgentError, match="fails closed"):
+        asyncio.run(
+            generator.generate_scheme(
+                grade="Grade 13",
+                subject="AI Literacy",
+                term="Term 1",
+                mode=SchemeMode.STANDARD,
+                teacher_id="offline-test-teacher",
+            )
+        )
+
+    assert provider.prompts == []

@@ -101,6 +101,12 @@ class SchemeGenerator:
             subject = normalize_subject_label(subject)
             curriculum_envelope = get_literacy_envelope(grade, subject)
             schedule_audit = get_literacy_schedule_audit(grade, subject)
+            is_literacy_subject = subject in {"AI Literacy", "Blockchain Literacy"}
+            if is_literacy_subject and curriculum_envelope is None:
+                raise AgentError(
+                    f"No authored curriculum pack is registered for {grade} {subject}; "
+                    "literacy generation fails closed instead of using a generic scaffold."
+                )
             self.logger.info(
                 "Generating scheme",
                 grade=grade,
@@ -129,6 +135,11 @@ class SchemeGenerator:
             )
 
             if not term_allocation:
+                if is_literacy_subject:
+                    raise AgentError(
+                        f"The authored curriculum allocation is unavailable for {grade} "
+                        f"{subject} {term}; review the curriculum pack before generating."
+                    )
                 # No curated data — synthesize minimal scaffold
                 self.logger.warning(
                     "No curriculum data — generating scheme from scratch",

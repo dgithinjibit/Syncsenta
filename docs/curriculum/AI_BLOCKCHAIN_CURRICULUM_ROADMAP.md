@@ -96,6 +96,8 @@ The cadence audit is now implemented without making an unapproved pedagogical de
 
 The remaining cadence decision is now explicit: either adopt a higher weekly cadence for the AI junior and senior bands, or approve a multi-year/extended delivery plan with retrieval and consolidation weeks. Until that decision is made, the runtime preserves authored content and reports the mismatch rather than compressing it.
 
+The fail-closed generation checkpoint is also complete. Registered AI and Blockchain requests now require an authored envelope and authored term allocation; an unavailable or unknown literacy pack raises a teacher-facing error before any model call and cannot enter the generic scaffold path. Generic scaffolding remains available only for genuinely unregistered non-literacy subjects.
+
 ## References
 
 [1]: https://github.com/dgithinjibit/Syncsenta "Syncsenta repository"
