@@ -101,7 +101,7 @@ export function TeacherDashboard() {
     const getWebSocketUrl = () => {
       // If NEXT_PUBLIC_BACKEND_WS_URL is set, use it
       if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BACKEND_WS_URL) {
-        return process.env.NEXT_PUBLIC_BACKEND_WS_URL;
+        return `${process.env.NEXT_PUBLIC_BACKEND_WS_URL.replace(/\/$/, '')}/dashboard/ws/teacher`;
       }
       
       // Otherwise, construct from current location
