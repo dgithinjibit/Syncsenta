@@ -15,13 +15,19 @@ import type {
 } from '@/types/curriculum';
 import { grade6AI, grade7AI, grade8AI, grade9AI, grade10AI, grade11AI, grade12AI } from './senior-school/ai';
 import { blockchainStrandsByGrade } from './blockchain';
+import { grade4Kiswahili } from './upper-primary/kiswahili';
+import { grade4ScienceTechnology } from './upper-primary/science-technology-grade4';
+import { grade1Kiswahili, grade2Kiswahili, grade3Kiswahili } from './lower-primary/kiswahili';
+import { grade1EnvironmentalActivities } from './lower-primary/environmental-activities';
 
 /**
  * Get all subjects available for a given grade
  */
 export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
+  const normalizedGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
+
   // Lower Primary (PP1-Grade 3)
-  if (['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'].includes(grade)) {
+  if (['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'].includes(normalizedGrade)) {
     return [
       { name: 'English Language Activities', category: 'language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
       { name: 'Kiswahili Language Activities', category: 'language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
@@ -34,7 +40,7 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
   }
   
   // Upper Primary (Grade 4-6)
-  if (['Grade4', 'Grade5', 'Grade6'].includes(grade)) {
+  if (['Grade4', 'Grade5', 'Grade6'].includes(normalizedGrade)) {
     const subjects: SubjectInfo[] = [
       { name: 'English', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
       { name: 'Kiswahili', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
@@ -45,7 +51,7 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
       { name: 'Creative Arts', category: 'non-language', grades: ['Grade4', 'Grade5', 'Grade6'] },
       { name: 'Indigenous Language', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
     ];
-    if (grade === 'Grade6') {
+    if (normalizedGrade === 'Grade6') {
       subjects.unshift(
         { name: 'AI Literacy', category: 'non-language', grades: ['Grade6'] },
         { name: 'Blockchain Literacy', category: 'non-language', grades: ['Grade6'] },
@@ -55,7 +61,7 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
   }
   
   // Senior School (Grade 10-12): Omega Claw subjects are available for teacher planning.
-  if (['Grade10', 'Grade11', 'Grade12'].includes(grade)) {
+  if (['Grade10', 'Grade11', 'Grade12'].includes(normalizedGrade)) {
     return [
       { name: 'AI Literacy', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
       { name: 'Blockchain Literacy', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
@@ -65,7 +71,7 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
   }
 
   // Junior School (Grade 7-9)
-  if (['Grade7', 'Grade8', 'Grade9'].includes(grade)) {
+  if (['Grade7', 'Grade8', 'Grade9'].includes(normalizedGrade)) {
     return [
       { name: 'AI Literacy', category: 'non-language', grades: ['Grade7', 'Grade8', 'Grade9'] },
       { name: 'Blockchain Literacy', category: 'non-language', grades: ['Grade7', 'Grade8', 'Grade9'] },
@@ -90,6 +96,23 @@ export function getHardcodedStrands(grade: GradeLevel, subject: string): StrandI
 
   if (subject === 'Blockchain Literacy') {
     return blockchainStrandsByGrade[grade] || [];
+  }
+
+  if (subject === 'Kiswahili' && String(grade).replace(/\s+/g, '') === 'Grade4') {
+    return grade4Kiswahili;
+  }
+
+  if (subject === 'Science and Technology' && String(grade).replace(/\s+/g, '') === 'Grade4') {
+    return grade4ScienceTechnology;
+  }
+
+  if (subject === 'Environmental Activities' && String(grade).replace(/\s+/g, '') === 'Grade1') {
+    return grade1EnvironmentalActivities;
+  }
+
+  if (subject === 'Kiswahili Language Activities') {
+    const lowerGrade = String(grade).replace(/\s+/g, '');
+    return ({ Grade1: grade1Kiswahili, Grade2: grade2Kiswahili, Grade3: grade3Kiswahili } as Record<string, StrandInfo[]>)[lowerGrade] || [];
   }
   
   // Mathematics strands (simplified example)
@@ -153,10 +176,34 @@ export function getHardcodedStrands(grade: GradeLevel, subject: string): StrandI
       },
     ];
   }
+
+  if (['Social Studies', 'CRE', 'Religious Education', 'Creative Activities', 'Creative Arts'].includes(subject)) {
+    return [
+      {
+        name: `${subject} Foundations`,
+        description: `Guided foundations for ${subject.toLowerCase()}`,
+        subStrands: [
+          { name: 'Knowledge and Meaning', learningOutcomes: ['identify a key idea', 'explain it using a familiar example'] },
+          { name: 'Practice and Community', learningOutcomes: ['apply the idea in a fictional scenario', 'share a respectful response'] },
+        ],
+      },
+    ];
+  }
   
-  // Default empty strands with warning
-  console.warn(`[Curriculum] No strands defined for ${key}`);
-  return [];
+  // Graceful offline fallback: keep the activity player usable while a full
+  // authored pack is being ported. This is deliberately bounded and does not
+  // pretend to be an official subject-specific sequence.
+  console.warn(`[Curriculum] No authored strands defined for ${key}; using guided foundations`);
+  return [
+    {
+      name: `${subject} Guided Foundations`,
+      description: `Offline starter activities for ${subject.toLowerCase()}`,
+      subStrands: [
+        { name: 'Notice and Explain', learningOutcomes: ['identify one familiar idea', 'explain it in their own words'] },
+        { name: 'Practise and Share', learningOutcomes: ['apply the idea in a safe fictional scenario', 'share a reflection with a partner'] },
+      ],
+    },
+  ];
 }
 
 /**
@@ -339,29 +386,25 @@ export function getCurriculumData(
   subject: string
 ): CurriculumData | null {
   const subjects = getSubjectsForGrade(grade);
-  const subjectInfo = subjects.find(s => s.name === subject);
-  
-  if (!subjectInfo) {
-    console.warn(`[Curriculum] Subject "${subject}" not found for grade ${grade}`);
-    return null;
-  }
-  
   const strands = getHardcodedStrands(grade, subject);
   
   if (strands.length === 0) {
     console.warn(`[Curriculum] No curriculum data for ${grade} ${subject}`);
     return null;
   }
+
+  const subjectInfo = subjects.find(s => s.name === subject);
+  const category = subjectInfo?.category ?? (subject.toLowerCase().includes('english') || subject.toLowerCase().includes('kiswahili') ? 'language' : 'non-language');
   
   const data: CurriculumData = {
     grade,
     subject,
-    category: subjectInfo.category,
+    category,
     strands,
   };
   
   // Add term allocations for non-language subjects
-  if (subjectInfo.category === 'non-language') {
+  if (category === 'non-language') {
     data.termAllocations = [
       getTermAllocation(grade, subject, 'Term1'),
       getTermAllocation(grade, subject, 'Term2'),
@@ -370,7 +413,7 @@ export function getCurriculumData(
   }
   
   // Add weekly distributions for language subjects
-  if (subjectInfo.category === 'language') {
+  if (category === 'language') {
     data.weeklyDistributions = getWeeklyDistribution(grade, subject, 'Term1');
   }
   

@@ -28,6 +28,62 @@ grade6BlockchainLiteracy = _pack([
     ("5.0 Responsible Community Projects", [("5.1 Community Record Proposal", 5, "What record could help our community, and what could go wrong?"), ("5.2 Explain, Review, Improve", 4, "How can we improve an idea after feedback?")]),
 ])
 
+# Rich, low-resource experiences are kept in the backend pack as well as the
+# teacher UI so the scheme prompt can render them instead of inventing online
+# activities. All records and values are fictional.
+_grade6_experiences = {
+    "2.1 Paper Shared Ledger": [
+        "Ledger relay: each group adds one fictional entry, passes its copy, and checks whether the next group recorded the same entry.",
+        "Human checksum: pairs read the same three entries aloud, circle differences, and agree on a correction without erasing the original.",
+        "Use bottle tops, beans, or stones as counters to act out additions and removals before writing the entry.",
+    ],
+    "2.2 Rules and Verification": [
+        "Verification stations: check date, owner, quantity, and reason using four paper stations.",
+        "Tamper detective: the teacher changes one copied card while learners use a checklist to find the mismatch.",
+        "Consensus corners: learners stand by Accept, Reject, or Ask for Clarification and give one reason.",
+    ],
+    "3.1 Linked Paper Blocks": [
+        "Block builder: teams make cards with entry, previous-card number, verifier mark, and a simple colour pattern.",
+        "Link-and-pass relay: each team adds a block, reads the previous reference aloud, and passes the chain to another team.",
+        "Tamper hunt: secretly alter one earlier card, then let teams trace which later links no longer agree.",
+        "Repair without rewriting: learners attach a correction card and explain why an old record remains visible.",
+        "Chain freeze: groups point to the first block, latest block, and the link that connects them.",
+        "Exit ticket: explain what linking helps us notice and what it cannot prove.",
+    ],
+    "3.2 Blockchain Is Not Cryptocurrency": [
+        "Human ledger versus blockchain drama: learners act as record keepers, verifiers, and observers.",
+        "Sort picture cards into record, payment, identity, or unsafe request without using real accounts.",
+        "Myth–evidence line: learners place statements on Agree, Unsure, or Disagree and justify the placement.",
+    ],
+}
+_grade6_outcomes = {
+    "2.1 Paper Shared Ledger": [
+        "explain a shared ledger using a classroom example",
+        "create and compare matching fictional paper-ledger copies",
+        "cooperate when checking an entry and correcting a mismatch",
+    ],
+    "2.2 Rules and Verification": [
+        "state simple rules for accepting a record",
+        "verify a fictional entry against an agreed rule",
+        "explain why checking is different from trusting blindly",
+    ],
+    "3.1 Linked Paper Blocks": [
+        "describe a block as a group of linked fictional records",
+        "show how changing an earlier card affects later links",
+        "recognise that linking provides tamper evidence but does not make information true",
+    ],
+    "3.2 Blockchain Is Not Cryptocurrency": [
+        "distinguish blockchain record-keeping from cryptocurrency and investment",
+        "give one safe educational example of a shared record",
+        "reject wallet, token, trading, or credential requests in a classroom scenario",
+    ],
+}
+for _strand in grade6BlockchainLiteracy:
+    for _sub_strand in _strand["subStrands"]:
+        if _sub_strand["name"] in _grade6_experiences:
+            _sub_strand["learningOutcomes"] = _grade6_outcomes[_sub_strand["name"]]
+            _sub_strand["suggestedExperiences"] = _grade6_experiences[_sub_strand["name"]]
+
 
 def _junior(grade: int) -> List[StrandInfo]:
     return _pack([

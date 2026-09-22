@@ -7,14 +7,12 @@ principles and maintain clean separation of concerns.
 
 from .scheme_generator import SchemeGenerator
 from .lesson_plan_generator import LessonPlanGenerator
-from .assessment_generator import AssessmentGenerator
-from .content_adapter import ContentAdapter
+from ..assessment import AssessmentAgent as AssessmentGenerator
 from .repository import LessonArchitectRepository
 
 __all__ = [
     "SchemeGenerator",
     "LessonPlanGenerator",
     "AssessmentGenerator",
-    "ContentAdapter",
     "LessonArchitectRepository",
 ]

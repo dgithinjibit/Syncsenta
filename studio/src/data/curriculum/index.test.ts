@@ -30,4 +30,16 @@ describe('CBC curriculum registry', () => {
     expect(grade10?.[2].name).toBe('3.0 Consensus, Smart Contracts, and Governance');
     expect(getTermAllocation('Grade6', 'Blockchain Literacy', 'Term1')?.strands.length).toBeGreaterThan(0);
   });
+
+  it('includes several offline paper-block interactions with no real credentials or transactions', () => {
+    const linkedBlocks = getHardcodedStrands('Grade6', 'Blockchain Literacy')
+      ?.find((strand) => strand.name === '3.0 Linked Records and Blockchain')
+      ?.subStrands.find((subStrand) => subStrand.name === '3.1 Linked Paper Blocks');
+    const experiences = linkedBlocks?.suggestedExperiences ?? [];
+
+    expect(experiences.length).toBeGreaterThanOrEqual(7);
+    expect(experiences.some((experience) => experience.toLowerCase().includes('tamper'))).toBe(true);
+    expect(experiences.some((experience) => experience.toLowerCase().includes('relay'))).toBe(true);
+    expect(experiences.join(' ').toLowerCase()).not.toMatch(/wallet|seed phrase|real transaction/);
+  });
 });
