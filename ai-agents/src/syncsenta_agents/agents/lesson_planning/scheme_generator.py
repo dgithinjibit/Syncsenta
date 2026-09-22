@@ -18,6 +18,8 @@ from ...curriculum import (
     CURRICULUM_REGISTRY,
     get_hardcoded_strands,
     get_lessons_per_week,
+    normalize_grade_label,
+    normalize_subject_label,
 )
 from ...curriculum.term_mappings import get_term_allocation
 from ..scheme.batched import (
@@ -93,6 +95,8 @@ class SchemeGenerator:
             AgentError: If generation fails.
         """
         try:
+            grade = normalize_grade_label(grade)
+            subject = normalize_subject_label(subject)
             self.logger.info(
                 "Generating scheme",
                 grade=grade,

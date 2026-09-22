@@ -7,6 +7,7 @@ upper_primary/) into a single lookup keyed by ``"Grade X|Subject"``.
 
 from __future__ import annotations
 
+import re
 from typing import Dict, List, Optional
 
 from .types import StrandInfo, SubStrandInfo, SchemeRow
@@ -229,6 +230,19 @@ GRADES = [
     "Grade 7", "Grade 8", "Grade 9",
     "Grade 10", "Grade 11", "Grade 12",
 ]
+
+
+def normalize_grade_label(grade: str) -> str:
+    """Return the canonical spaced grade label used by registry lookups."""
+    value = str(grade).strip()
+    match = re.fullmatch(r"Grade\s*(\d+)", value, flags=re.IGNORECASE)
+    return f"Grade {int(match.group(1))}" if match else value
+
+
+def normalize_subject_label(subject: str) -> str:
+    """Resolve compatibility aliases without creating a second curriculum key."""
+    value = " ".join(str(subject).strip().split())
+    return "AI Literacy" if value == "AI" else value
 
 _LOWER_PRIMARY_SUBJECTS = [
     "Creative Activities", "CRE", "English Activities",

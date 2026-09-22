@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getHardcodedStrands, getLessonsPerWeek, getSubjectsForGrade, getTermAllocation } from './index';
+import { getAllGrades, getHardcodedStrands, getLessonsPerWeek, getSubjectsForGrade, getTermAllocation } from './index';
 
 describe('CBC curriculum registry', () => {
   it('resolves Grade 6 AI Literacy from the canonical local adapter', () => {
@@ -11,6 +11,10 @@ describe('CBC curriculum registry', () => {
 
   it('accepts the persisted compact Grade6 value used by the wizard', () => {
     expect(getHardcodedStrands('Grade6', 'AI Literacy')).not.toBeNull();
+  });
+
+  it('exposes every junior-secondary grade in the selector', () => {
+    expect(getAllGrades()).toEqual(expect.arrayContaining(['Grade7', 'Grade8', 'Grade9']));
   });
 
   it('exposes Grade 6 AI and blockchain packs to the teacher wizard', () => {

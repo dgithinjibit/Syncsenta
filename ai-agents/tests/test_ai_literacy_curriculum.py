@@ -4,6 +4,8 @@ from syncsenta_agents.curriculum import (
     get_hardcoded_strands,
     get_lessons_per_week,
     get_subjects_for_grade,
+    normalize_grade_label,
+    normalize_subject_label,
 )
 
 
@@ -15,6 +17,13 @@ def test_grade6_ai_pack_is_registered_and_versioned():
     assert len(strands) == 5
     assert strands[0]["name"] == "1.0 Foundations of Intelligence"
     assert strands[-1]["name"] == "5.0 Ethics, Society and AI Policy"
+
+
+def test_scheme_aliases_resolve_to_canonical_labels():
+    assert normalize_grade_label("Grade6") == "Grade 6"
+    assert normalize_grade_label(" grade 7 ") == "Grade 7"
+    assert normalize_subject_label("AI") == "AI Literacy"
+    assert normalize_subject_label(" Blockchain   Literacy ") == "Blockchain Literacy"
 
 
 def test_grade6_ai_pack_has_66_lessons_and_is_two_lessons_per_week():

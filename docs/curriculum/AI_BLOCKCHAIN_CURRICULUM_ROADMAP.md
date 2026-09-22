@@ -88,7 +88,9 @@ The fourth risk is **empty-content failure**, in which missing authored curricul
 
 ## Immediate next actions
 
-Phase 1 begins with the parallel-help review of pedagogy, architecture, and safety/meta-prompt design. After those reviews are synthesized, the implementation work should add the shared curriculum-contract fields and the generation-contract checks before expanding the authored Grade 6 pack further.
+The parallel-help review completed its first pass across pedagogy, architecture, and safety/meta-prompt design. It confirmed that the progression itself is directionally sound, but identified **contract drift** as the first blocker. The frontend and backend do not yet share one versioned envelope, Grade 7–9 discoverability was incomplete, compact and spaced grade labels could resolve differently, and the scheme generator could fall through to a plausible-looking generic scaffold. The review also identified a cadence conflict: some authored AI packs declare three or four lessons per week while the current literacy runtime uses two. This roadmap intentionally does not guess that annual cadence; it remains a Phase 1 decision requiring an explicit schedule test and teacher-visible consolidation weeks.
+
+The first implementation checkpoint therefore normalizes grade and subject aliases at the backend scheme boundary, exposes Grades 7–9 in the frontend selector, and adds regression coverage for both behaviors. The next checkpoint is the shared versioned curriculum envelope and fail-closed authored-pack lookup. The safety review requires that envelope to carry teacher mediation, synthetic-data status, source/evidence requirements, prohibited operations, and release state while leaving Rust as the policy source of truth.
 
 ## References
 
