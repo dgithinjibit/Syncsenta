@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from .types import StrandInfo, SubStrandInfo, SchemeRow
+from .ai_literacy import AI_BLOCKCHAIN_PROGRESSION, AI_LITERACY_VERSION, grade6AILiteracy
 
 # --- Grade/subject data -------------------------------------------------
 
@@ -104,6 +105,7 @@ _HARDCODED_STRANDS: Dict[str, List[StrandInfo]] = {
     "Grade 5|Mathematics": grade5Mathematics,
     "Grade 6|Mathematics": grade6Mathematics,
     "Grade 6|Social Studies": grade6SocialStudies,
+    "Grade 6|AI": grade6AILiteracy,
 }
 
 
@@ -155,6 +157,7 @@ _LOWER_PRIMARY_LESSONS: Dict[str, int] = {
 }
 
 _UPPER_PRIMARY_LESSONS: Dict[str, int] = {
+    "AI": 2,
     "English": 5,
     "Kiswahili": 4,
     "Mathematics": 5,
@@ -208,7 +211,7 @@ _LOWER_PRIMARY_SUBJECTS = [
 ]
 
 _UPPER_PRIMARY_SUBJECTS = [
-    "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
+    "AI", "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
     "German", "HRE", "Indigenous Language", "IRE", "Kiswahili", "Mandarin",
     "Mathematics", "Science & Technology", "Social Studies",
 ]
@@ -267,7 +270,7 @@ __all__ = [
     "get_hardcoded_strands", "get_sub_strands_for_strand",
     "get_lessons_per_week", "get_subjects_for_grade",
     "COLUMN_HEADERS", "KISWAHILI_SUBJECTS", "GRADES",
-    "CURRICULUM_REGISTRY",
+    "CURRICULUM_REGISTRY", "AI_LITERACY_VERSION", "AI_BLOCKCHAIN_PROGRESSION",
     # Curriculum-validation subsystem
     "Topic", "AlternativeTopic", "MisalignedTopic", "ValidationResult",
     "CurriculumData", "ValidatorStrandInfo", "ValidatorSubStrandInfo",
