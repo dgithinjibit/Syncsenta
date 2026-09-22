@@ -37,7 +37,7 @@ The source documentation describes ten or more subject entries. Seven are CBC-or
 | Persistence | Supabase for structured data and Upstash Redis for short-lived learning-session state | Reasonable split, but durability boundaries need clarification |
 | MeTTa/Hyperon | Mostly archived or prototype code; request-scoped references and documentation are inconsistent | Do not expand until the boundary is simplified |
 | Rust adaptive service | Built locally but not verified as production-wired | Remove from the critical path or deploy deliberately |
-| Commercial monetization | Environment variables exist for M-Pesa and Stripe | Payment infrastructure is a placeholder, not a business model |
+| Commercial monetization | M-Pesa environment variables exist | Payment infrastructure is a placeholder, not a business model |
 | Operations | Vercel and Render manifests exist | Full-system health is not currently verifiable because the Render health endpoint timed out |
 
 ## Verified technical holes
