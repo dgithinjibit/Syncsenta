@@ -15,10 +15,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getRoleHome } from '@/lib/auth/role-home';
 
 const DEMO_ACCOUNTS = [
-  { role: 'student',  label: '🎒 Join as Student',  email: 'student01@syncsenta.dev',  password: 'Demo@Student01',  redirect: '/student' },
-  { role: 'teacher',  label: '📚 Join as Teacher',  email: 'teacher01@syncsenta.dev',  password: 'Demo@Teacher01',  redirect: '/teacher' },
-  { role: 'parent',   label: '👨‍👩‍👧 Join as Parent',   email: 'parent01@syncsenta.dev',   password: 'Demo@Parent01',   redirect: '/parent' },
-  { role: 'head',     label: '🏫 Join as Head',      email: 'head01@syncsenta.dev',      password: 'Demo@Head01',      redirect: '/head' },
+  { role: 'student',  label: '🎒 Join as Student',  email: 'student01@syncsenta.dev',  password: 'Demo@Student01' },
+  { role: 'teacher',  label: '📚 Join as Teacher',  email: 'teacher01@syncsenta.dev',  password: 'Demo@Teacher01' },
+  { role: 'parent',   label: '👨‍👩‍👧 Join as Parent',   email: 'parent01@syncsenta.dev',   password: 'Demo@Parent01' },
+  { role: 'head',     label: '🏫 Join as Head',      email: 'head01@syncsenta.dev',      password: 'Demo@Head01' },
 ] as const;
 
 export function SignInForm() {
@@ -50,8 +50,10 @@ export function SignInForm() {
     setDemoLoading(account.role);
     setError(null);
     try {
-      await signIn(account.email, account.password);
-      router.push(account.redirect);
+      // Let the server establish the Supabase session cookie, then follow its
+      // role-aware redirect. This avoids relying on a client-side auth state
+      // update that may not be available immediately after the button click.
+      window.location.assign(`/api/auth/demo-login?role=${encodeURIComponent(account.role)}`);
     } catch (err: any) {
       setError(`Demo login failed: ${err.message || 'Please try again'}`);
       setDemoLoading(null);
