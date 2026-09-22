@@ -13,9 +13,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Download, FileText, Sparkles, CheckCircle2 } from 'lucide-react';
 import { exportSchemeToDocx, type SchemeRow } from '@/lib/export-docx';
 import { useToast } from '@/hooks/use-toast';
-import { FeedbackWidget } from '@/components/teacher/feedback-widget';
-import { getSupabaseClient } from '@/lib/supabase/client';
-import { saveScheme } from '@/lib/teacher/scheme-v2-client';
 
 // Column headers for CBC scheme of work
 const COLUMN_HEADERS_EN = [
@@ -44,15 +41,6 @@ const COLUMN_HEADERS_SW = [
   'Tafakari',
 ];
 
-function escapePrintHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 export function PreviewStep() {
   const {
     selectedGrade,
@@ -66,37 +54,10 @@ export function PreviewStep() {
     setGenerating,
     setGeneratedScheme,
     setGenerationError,
-    savedSchemeId,
-    setSaving,
-    setSaveError,
-    setSavedSchemeId,
   } = useSchemeWizardStore();
 
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
-  const [printProfile, setPrintProfile] = useState({ teacherName: '', schoolName: '' });
-
-  useEffect(() => {
-    let active = true;
-    const loadPrintProfile = async () => {
-      const supabase = getSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name, school_name')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (active) {
-        setPrintProfile({
-          teacherName: data?.full_name || user.user_metadata?.full_name || user.email || '',
-          schoolName: data?.school_name || user.user_metadata?.school_name || '',
-        });
-      }
-    };
-    void loadPrintProfile();
-    return () => { active = false; };
-  }, []);
 
   // Determine if Kiswahili subject
   const isKiswahili = selectedSubject?.toLowerCase().includes('kiswahili');
@@ -115,19 +76,16 @@ export function PreviewStep() {
 
     try {
       // Prepare request payload
-      const teacherId = getLocalTeacherId();
       const payload = {
-        teacher_id: teacherId,
         grade: selectedGrade,
         subject: selectedSubject,
-        term: selectedTerm?.replace(/^Term([1-3])$/, 'Term $1'),
+        term: selectedTerm,
         strands: selectedStrands,
         teacherInputs,
-        language: selectedSubject?.toLowerCase().includes('kiswahili') ? 'kiswahili' : 'english',
       };
 
       // Call backend API for scheme generation
-      const response = await fetch('/api/generate/scheme', {
+      const response = await fetch('/api/v1/schemes/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,16 +94,12 @@ export function PreviewStep() {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || error.detail || error.error || 'Failed to generate scheme');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to generate scheme');
       }
 
       const data = await response.json();
-      setGeneratedScheme({
-        id: data.scheme_id,
-        title: data.title,
-        rows: data.rows || [],
-      });
+      setGeneratedScheme(data.scheme);
     } catch (error) {
       console.error('[PreviewStep] Generation error:', error);
       setGenerationError(
@@ -168,31 +122,15 @@ export function PreviewStep() {
 
     setIsExporting(true);
 
-    // Show immediate feedback
-    toast({
-      title: 'Preparing Export',
-      description: 'Generating your DOCX file...',
-    });
-
     try {
-      // Use setTimeout to make export non-blocking
-      await new Promise<void>((resolve, reject) => {
-        setTimeout(async () => {
-          try {
-            await exportSchemeToDocx(
-              generatedScheme.rows as SchemeRow[],
-              selectedGrade || 'Unknown Grade',
-              selectedSubject || 'Unknown Subject',
-              selectedTerm || 'Unknown Term',
-              undefined,
-              undefined
-            );
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        }, 0);
-      });
+      await exportSchemeToDocx(
+        generatedScheme.rows as SchemeRow[],
+        selectedGrade || 'Unknown Grade',
+        selectedSubject || 'Unknown Subject',
+        selectedTerm || 'Unknown Term',
+        teacherInputs?.teacherName,
+        teacherInputs?.schoolName
+      );
 
       toast({
         title: 'Export Successful',
@@ -211,123 +149,12 @@ export function PreviewStep() {
   };
 
   const handlePrint = () => {
-    if (!selectedGrade || !selectedSubject || !selectedTerm || !rows?.length) return;
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: 'Print preview blocked',
-        description: 'Allow pop-ups for SyncSenta, then try Print / PDF again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const printRows = rows.map((row: any) => `
-      <tr>
-        <td>${escapePrintHtml(row.week)}</td>
-        <td>${escapePrintHtml(row.lesson)}</td>
-        <td>${escapePrintHtml(row.strand)}</td>
-        <td>${escapePrintHtml(row.subStrand)}</td>
-        <td>${escapePrintHtml(row.specificLearningOutcome)}</td>
-        <td>${escapePrintHtml(row.learningExperiences)}</td>
-        <td>${escapePrintHtml(row.keyInquiryQuestion)}</td>
-        <td>${escapePrintHtml(row.learningResources)}</td>
-        <td>${escapePrintHtml(row.assessmentMethods)}</td>
-        <td class="reflection-cell">${escapePrintHtml(row.reflection) || '&nbsp;'}</td>
-      </tr>`).join('');
-
-    const title = isKiswahili ? 'Mpango wa Kazi' : 'Scheme of Work';
-    const labels = isKiswahili
-      ? ['Wiki', 'Somo', 'Mada', 'Mada Ndogo', 'Matokeo Maalum', 'Shughuli za Ujifunzaji', 'Swali Dadisi', 'Vifaa vya Kujifunzia', 'Tathmini', 'Tafakari']
-      : ['Week', 'Lesson', 'Strand', 'Sub-Strand', 'Specific Learning Outcome', 'Learning Experiences', 'Key Inquiry Question', 'Learning Resources', 'Assessment Methods', 'Reflection'];
-
-    printWindow.document.write(`<!doctype html>
-<html><head><meta charset="utf-8"><title>${escapePrintHtml(title)} - ${escapePrintHtml(selectedSubject)}</title>
-<style>
-  @page { size: landscape; margin: 10mm; }
-  * { box-sizing: border-box; }
-  body { margin: 0; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 8pt; }
-  .print-sheet { width: 100%; }
-  .brand { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 7px; margin-bottom: 8px; }
-  h1 { font-size: 16pt; margin: 0 0 3px; }
-  .subtitle { font-size: 8pt; color: #444; }
-  .meta { width: 100%; border-collapse: collapse; margin: 6px 0 9px; table-layout: fixed; }
-  .meta td { border: 1px solid #777; padding: 4px 5px; vertical-align: top; }
-  .meta .label { width: 11%; font-weight: 700; background: #f0f0f0; }
-  .meta .value { width: 22%; }
-  .scheme { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: auto; }
-  .scheme th, .scheme td { border: 1px solid #555; padding: 3px 4px; vertical-align: top; overflow-wrap: anywhere; }
-  .scheme th { background: #e6e6e6; font-size: 7pt; line-height: 1.12; }
-  .scheme td { font-size: 7pt; line-height: 1.15; }
-  .scheme tr { page-break-inside: avoid; page-break-after: auto; }
-  .scheme th:nth-child(1), .scheme td:nth-child(1) { width: 3%; text-align: center; }
-  .scheme th:nth-child(2), .scheme td:nth-child(2) { width: 4%; text-align: center; }
-  .scheme th:nth-child(3), .scheme td:nth-child(3) { width: 9%; }
-  .scheme th:nth-child(4), .scheme td:nth-child(4) { width: 10%; }
-  .scheme th:nth-child(5), .scheme td:nth-child(5) { width: 15%; }
-  .scheme th:nth-child(6), .scheme td:nth-child(6) { width: 15%; }
-  .scheme th:nth-child(7), .scheme td:nth-child(7) { width: 12%; }
-  .scheme th:nth-child(8), .scheme td:nth-child(8) { width: 11%; }
-  .scheme th:nth-child(9), .scheme td:nth-child(9) { width: 9%; }
-  .scheme th:nth-child(10), .scheme td:nth-child(10) { width: 12%; }
-  .reflection-cell { min-height: 28px; }
-  .footer { margin-top: 8px; display: flex; justify-content: space-between; font-size: 7pt; color: #555; }
-</style></head><body><main class="print-sheet">
-  <header class="brand"><div><h1>${escapePrintHtml(title)}</h1><div class="subtitle">CBC Curriculum — KICD Kenya</div></div><div class="subtitle">Generated ${escapePrintHtml(new Date().toLocaleDateString('en-KE'))}</div></header>
-  <table class="meta"><tr><td class="label">Teacher</td><td class="value">${escapePrintHtml(printProfile.teacherName) || '&nbsp;'}</td><td class="label">School</td><td class="value">${escapePrintHtml(printProfile.schoolName) || '&nbsp;'}</td><td class="label">Grade</td><td class="value">${escapePrintHtml(selectedGrade)}</td></tr><tr><td class="label">Subject</td><td class="value">${escapePrintHtml(selectedSubject)}</td><td class="label">Term</td><td class="value">${escapePrintHtml(selectedTerm)}</td><td class="label">Lessons</td><td class="value">${escapePrintHtml(rows.length)}</td></tr></table>
-  <table class="scheme"><thead><tr>${labels.map((label) => `<th>${escapePrintHtml(label)}</th>`).join('')}</tr></thead><tbody>${printRows}</tbody></table>
-  <div class="footer"><span>Teacher signature: ______________________________</span><span>Head of school: ______________________________</span><span>Page <span class="pageNumber"></span></span></div>
-</main></body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    window.setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 350);
+    window.print();
   };
 
   const handleSave = async () => {
-    if (!generatedScheme?.rows?.length || !selectedGrade || !selectedSubject || !selectedTerm) return;
-
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const supabase = getSupabaseClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('Please sign in before saving a scheme to your library.');
-      }
-
-      const response = await saveScheme({
-        teacher_id: session.user.id,
-        grade: selectedGrade,
-        subject: selectedSubject,
-        term: selectedTerm,
-        scheme_rows: generatedScheme.rows as SchemeRow[],
-        teacher_inputs: {
-          keyInquiryQuestions: teacherInputs.keyInquiryQuestions ? [teacherInputs.keyInquiryQuestions] : [],
-          learningOutcomes: teacherInputs.learningOutcomes ? [teacherInputs.learningOutcomes] : [],
-          learningExperiences: teacherInputs.learningExperiences ? [teacherInputs.learningExperiences] : [],
-          learningResources: teacherInputs.learningResources ? [teacherInputs.learningResources] : [],
-          assessmentMethods: teacherInputs.assessmentMethods ? [teacherInputs.assessmentMethods] : [],
-        },
-        curriculum_ref: `${selectedGrade}-${selectedSubject}-${selectedTerm}`,
-        version: 1,
-      }, session.access_token);
-
-      setSavedSchemeId(response.id);
-      toast({
-        title: 'Scheme saved to library',
-        description: `Saved with library ID ${response.id}.`,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save scheme.';
-      setSaveError(message);
-      toast({ title: 'Save failed', description: message, variant: 'destructive' });
-    } finally {
-      setSaving(false);
-    }
+    // TODO: Implement scheme saving in Task 7.1
+    console.log('[PreviewStep] Scheme saving not yet implemented');
   };
 
   if (isGenerating) {
@@ -343,7 +170,7 @@ export function PreviewStep() {
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Sparkles className="h-4 w-4" />
-          <span>Powered by SyncSenta</span>
+          <span>Powered by GPT-4o</span>
         </div>
       </div>
     );
@@ -401,9 +228,9 @@ export function PreviewStep() {
 
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3">
-        <Button onClick={handleSave} size="lg" disabled={!!savedSchemeId}>
+        <Button onClick={handleSave} size="lg">
           <FileText className="mr-2 h-4 w-4" />
-          {savedSchemeId ? 'Saved to Library' : 'Save to Library'}
+          Save to Library
         </Button>
         <Button onClick={handleExportDOCX} variant="outline" disabled={isExporting}>
           {isExporting ? (
@@ -422,22 +249,10 @@ export function PreviewStep() {
           <Download className="mr-2 h-4 w-4" />
           Print / PDF
         </Button>
+        <Button onClick={handleGenerate} variant="ghost">
+          Regenerate
+        </Button>
       </div>
-
-      {/* Feedback Widget */}
-      {generatedScheme?.id && (
-        <FeedbackWidget
-          contentType="scheme"
-          contentId={generatedScheme.id}
-          context={{
-            grade: selectedGrade,
-            subject: selectedSubject,
-            term: selectedTerm,
-            strands: selectedStrands,
-          }}
-          className="border-t pt-4"
-        />
-      )}
 
       {/* Scheme preview */}
       <Card>
@@ -457,8 +272,8 @@ export function PreviewStep() {
             </div>
 
             {/* Table */}
-            <div className="w-full rounded-lg border overflow-hidden">
-              <div className="overflow-x-auto overflow-y-visible">
+            <div className="w-full rounded-lg border">
+              <div className="overflow-x-auto">
                 <table className="min-w-[1400px] w-full text-sm">
                   <thead>
                     <tr>
@@ -527,15 +342,4 @@ export function PreviewStep() {
       </Card>
     </div>
   );
-}
-
-function getLocalTeacherId(): string {
-  if (typeof window === 'undefined') return 'teacher_local';
-  const key = 'syncsenta:teacherId';
-  let teacherId = window.localStorage.getItem(key);
-  if (!teacherId) {
-    teacherId = `teacher_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
-    window.localStorage.setItem(key, teacherId);
-  }
-  return teacherId;
 }

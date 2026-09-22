@@ -41,23 +41,15 @@ export function AppHeader() {
   const [userEmail, setUserEmail] = useState('user@example.com');
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [title, setTitle] = useState('Dashboard');
-  const [isClient, setIsClient] = useState(false);
-
-  // Ensure we're on the client before accessing localStorage
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   useEffect(() => {
-    if (!isClient) return;
-    
     const storedName = localStorage.getItem('userName');
     const storedEmail = localStorage.getItem('userEmail');
     const storedAvatar = localStorage.getItem('userAvatar');
     if (storedName) setUserName(storedName);
     if (storedEmail) setUserEmail(storedEmail);
     if (storedAvatar) setUserAvatar(storedAvatar);
-  }, [isClient]);
+  }, []);
   
   useEffect(() => {
       setTitle(getTitleFromPath(pathname));
@@ -73,14 +65,13 @@ export function AppHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="outline"
-              className="flex items-center gap-2 rounded-full h-12 px-4 bg-background/80 border-border text-foreground hover:bg-muted hover:border-border/80"
+              variant="ghost"
+              className="relative h-10 w-10 rounded-full"
             >
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-10 w-10">
                 <AvatarImage src={userAvatar || undefined} alt="User Avatar" />
                 <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="hidden sm:inline">Profile</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>

@@ -1,0 +1,28 @@
+[package]
+name = "syncsenta-blockchain"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web3/Blockchain
+ethers = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Utilities
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+# IPFS
+# TODO: Re-enable when dependency issues are resolved (Task 5)
+# ipfs-api = { workspace = true }
+# cid = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

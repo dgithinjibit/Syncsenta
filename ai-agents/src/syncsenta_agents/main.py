@@ -1,47 +1,63 @@
 """Main entry point for SyncSenta AI Agents system."""
 
-import uvicorn
+import asyncio
+from typing import Dict, Any
+
 from .core.config import config
 from .core.logging import configure_logging, get_logger
+from .core.models import AgentRequest
+from .orchestrator.main import SyncSentaOrchestrator
 
 
-def main() -> None:
-    """Main application entry point - starts the FastAPI server."""
+async def main() -> None:
+    """Main application entry point."""
     
     # Configure logging
     configure_logging(debug=config.debug)
     logger = get_logger("main")
     
-    # Check Supabase configuration
-    import os
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
-    
-    if not supabase_url or not supabase_key:
-        logger.warning(
-            "Supabase credentials not configured. Database features will be disabled.",
-            missing_url=not supabase_url,
-            missing_key=not supabase_key,
-            help="Set SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables to enable database features."
-        )
-    else:
-        logger.info("Supabase credentials found - database features enabled")
-    
     logger.info(
-        "Starting SyncSenta AI Agents FastAPI server",
+        "Starting SyncSenta AI Agents system",
         environment=config.environment,
-        port=8001
+        ollama_url=config.ollama_base_url,
+        stellar_network=config.stellar_network
     )
     
-    # Start FastAPI server
-    uvicorn.run(
-        "syncsenta_agents.api.server:app",
-        host="0.0.0.0",
-        port=8001,
-        log_level="info",
-        access_log=True
-    )
+    try:
+        # Initialize orchestrator
+        orchestrator = SyncSentaOrchestrator()
+        await orchestrator.initialize()
+        
+        logger.info("SyncSenta AI Agents system initialized successfully")
+        
+        # Example usage
+        test_request = AgentRequest(
+            message="What are the Grade 4 Mathematics learning outcomes for fractions?",
+            user_id="user1",
+            grade="g4",
+            subject="Mathematics",
+            role="student",
+        )
+
+        logger.info("Processing test request", request=test_request.model_dump())
+        response = await orchestrator.process_request(test_request)
+        
+        logger.info(
+            "Test request completed",
+            success=response.success,
+            primary_agent=response.primary_agent,
+            response_time_ms=response.response_time_ms
+        )
+        
+        print(f"\n🤖 Agent Response:")
+        print(f"Primary Agent: {response.primary_agent}")
+        print(f"Response: {response.response}")
+        print(f"Response Time: {response.response_time_ms}ms")
+        
+    except Exception as e:
+        logger.error("Failed to start SyncSenta AI Agents system", error=str(e))
+        raise
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

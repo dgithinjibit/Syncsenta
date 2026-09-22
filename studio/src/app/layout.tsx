@@ -1,61 +1,21 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import "../styles/accessibility.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { AccessibilityPanel } from "@/components/accessibility/AccessibilityPanel";
-import { ConflictResolver } from '@/components/offline/ConflictResolver';
-import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
+import type { Metadata } from 'next';
+import './globals.css';
+import { app } from '@/lib/firebase'; // Ensure Firebase is initialized
+import { Inter } from 'next/font/google';
+import { cn } from '@/lib/utils';
+import Script from 'next/script';
+import { ClientProviders } from '@/components/client-providers';
 
-const inter = Inter({ subsets: ["latin"] });
+const fontSans = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+})
 
 export const metadata: Metadata = {
-  title: 'Syncsenta - Kenyan CBC Learning for Students and Schools',
-  description: 'Syncsenta brings CBC-aligned lessons, guided practice, teacher insight, and consent-aware family progress sharing together for Kenyan learners.',
-  manifest: '/manifest.json',
-  keywords: ['CBC education', 'Kenya education', 'AI tutoring', 'personalized learning', 'online education', 'Kenyan curriculum'],
-  authors: [{ name: 'Syncsenta Team' }],
-  openGraph: {
-    title: 'Syncsenta - Kenyan CBC Learning',
-    description: 'CBC-aligned lessons, guided practice, teacher insight, and family progress sharing for Kenyan learners.',
-    url: 'https://syncsenta.com',
-    siteName: 'Syncsenta',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Syncsenta - AI-Powered Learning Platform',
-      },
-    ],
-    locale: 'en_KE',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Syncsenta - Kenyan CBC Learning',
-    description: 'CBC-aligned lessons, guided practice, teacher insight, and family progress sharing for Kenyan learners.',
-    images: ['/og-image.jpg'],
-    creator: '@syncsenta',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-  verification: {
-    google: 'your-google-verification-code',
-  },
+  title: 'SyncSenta',
+  description: 'AI-powered Kenyan education ecosystem',
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
-    apple: '/icon.png',
+    icon: '/logo.svg',
   },
 };
 
@@ -67,25 +27,32 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/icon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/icon.png" />
-        <meta name="theme-color" content="#f8f5ec" />
+        {/* Suppress MetaMask errors - we don't use Web3 in MVP */}
+        <Script id="suppress-metamask-errors" strategy="beforeInteractive">
+          {`
+            // Suppress MetaMask connection errors
+            if (typeof window !== 'undefined') {
+              const originalError = console.error;
+              console.error = function(...args) {
+                const errorMessage = args.join(' ');
+                // Suppress MetaMask and Web3 related errors
+                if (errorMessage.includes('MetaMask') || 
+                    errorMessage.includes('ethereum') ||
+                    errorMessage.includes('chrome-extension://nkbi<REDACTED_SECRET>')) {
+                  return;
+                }
+                originalError.apply(console, args);
+              };
+            }
+          `}
+        </Script>
       </head>
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
+      <body className={cn("font-body antialiased", fontSans.variable)}>
+        <ClientProviders>
           {children}
-          <AccessibilityPanel />
-          <ConflictResolver />
-          <PWAInstallPrompt />
-        </ThemeProvider>
+        </ClientProviders>
+        <Script src='https://meet.jit.si/external_api.js' async />
       </body>
     </html>
   );
 }
-
-// Made with Bob

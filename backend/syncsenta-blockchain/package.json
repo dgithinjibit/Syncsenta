@@ -1,0 +1,21 @@
+{
+  "name": "syncsenta-blockchain",
+  "version": "0.1.0",
+  "description": "SyncSenta smart contracts for Polygon blockchain",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.ts --network polygon_mumbai",
+    "deploy:mainnet": "hardhat run scripts/deploy.ts --network polygon",
+    "verify": "hardhat verify --network polygon_mumbai",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "hardhat": "^2.22.0",
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.0",
+    "@types/node": "^20.0.0"
+  }
+}

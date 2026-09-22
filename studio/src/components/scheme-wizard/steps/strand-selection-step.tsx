@@ -10,6 +10,8 @@ import { useSchemeWizardStore } from '@/stores/scheme-wizard-store';
 import {
   getHardcodedStrands,
   getTermAllocation,
+  getWeeklyDistribution,
+  getSubjectsForGrade,
 } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,24 +35,17 @@ export function StrandSelectionStep() {
     nextStep,
   } = useSchemeWizardStore();
 
-  const [localStrands, setLocalStrands] = useState<StrandSelection[]>(selectedStrands || []);
+  const [localStrands, setLocalStrands] = useState<StrandSelection[]>(selectedStrands);
   const [error, setError] = useState<string | null>(null);
 
   // Determine if this is a language subject
-  const isLanguageSubject = Boolean(selectedSubject && [
-    'English',
-    'English Activities',
-    'Kiswahili',
-    'Indigenous Language',
-    'Arabic',
-    'French',
-    'German',
-    'Mandarin',
-  ].includes(selectedSubject));
+  const isLanguageSubject = selectedSubject && selectedGrade
+    ? getSubjectsForGrade(selectedGrade).find(s => s.name === selectedSubject)?.category === 'language'
+    : false;
 
   // Get available strands
   const availableStrands = selectedGrade && selectedSubject
-    ? getHardcodedStrands(selectedGrade, selectedSubject) ?? []
+    ? getHardcodedStrands(selectedGrade, selectedSubject)
     : [];
 
   // Initialize with term allocation or weekly distribution
@@ -60,13 +55,22 @@ export function StrandSelectionStep() {
     if (isLanguageSubject) {
       // Weekly mode for language subjects
       setWeeklyMode(true);
-      const allocation = getTermAllocation(selectedGrade, selectedSubject, selectedTerm);
+      const distribution = getWeeklyDistribution(selectedGrade, selectedSubject, selectedTerm);
       
-      if (allocation && allocation.length > 0) {
-        // Convert term allocation to strand selections
-        const initialStrands: StrandSelection[] = allocation.map(a => ({
-          strand: a.strandName,
-          subStrands: a.subStrands.map(ss => ss.name),
+      if (distribution.length > 0) {
+        // Group by strand and sub-strand
+        const strandMap = new Map<string, Set<string>>();
+        
+        distribution.forEach(d => {
+          if (!strandMap.has(d.strand)) {
+            strandMap.set(d.strand, new Set());
+          }
+          strandMap.get(d.strand)!.add(d.subStrand);
+        });
+        
+        const initialStrands: StrandSelection[] = Array.from(strandMap.entries()).map(([strand, subStrands]) => ({
+          strand,
+          subStrands: Array.from(subStrands),
           weeks: 13, // Full term for language subjects
         }));
         
@@ -77,21 +81,8 @@ export function StrandSelectionStep() {
       setWeeklyMode(false);
       const allocation = getTermAllocation(selectedGrade, selectedSubject, selectedTerm);
       
-      if (allocation && allocation.length > 0) {
-        const fallbackWeeks = Math.max(1, Math.floor(13 / allocation.length));
-        setLocalStrands(allocation.map((entry) => {
-          const lessons = entry.subStrands.reduce((total, subStrand) => {
-            const value = Number((subStrand as { lessons?: number }).lessons || 0);
-            return total + (Number.isFinite(value) ? value : 0);
-          }, 0);
-          return {
-            strand: entry.strandName,
-            subStrands: entry.subStrands.map((subStrand) => subStrand.name),
-            weeks: lessons > 0 ? Math.min(13, Math.ceil(lessons / 5)) : fallbackWeeks,
-          };
-        }));
-      } else {
-        setLocalStrands([]);
+      if (allocation) {
+        setLocalStrands(allocation.strands);
       }
     }
   }, [selectedGrade, selectedSubject, selectedTerm, isLanguageSubject, setWeeklyMode]);

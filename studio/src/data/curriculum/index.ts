@@ -1,422 +1,376 @@
-// Re-export types
-export type { SubStrandInfo, StrandInfo, SchemeRow } from "./types";
+/**
+ * CBC Curriculum Data Layer
+ * Unified curriculum data module for KICD CBC (PP1-Senior School)
+ */
 
-// Re-export pre-primary grade data
-export { pp1LanguageActivities } from "./pre-primary/pp1-language-activities";
-export { pp2LanguageActivities } from "./pre-primary/pp2-language-activities";
-export { pp1MathematicalActivities } from "./pre-primary/pp1-mathematical-activities";
-export { pp2MathematicalActivities } from "./pre-primary/pp2-mathematical-activities";
-export { pp1CRE } from "./pre-primary/pp1-cre";
-export { pp2CRE } from "./pre-primary/pp2-cre";
-export { pp1HRE } from "./pre-primary/pp1-hre";
-export { pp2HRE } from "./pre-primary/pp2-hre";
-export { pp1CreativeActivities } from "./pre-primary/pp1-creative-activities";
-export { pp2CreativeActivities } from "./pre-primary/pp2-creative-activities";
-export { pp1EnvironmentalActivities } from "./pre-primary/pp1-environmental-activities";
-export { pp2EnvironmentalActivities } from "./pre-primary/pp2-environmental-activities";
-
-// Re-export grade data
-export { grade1CreativeActivities, grade2CreativeActivities, grade3CreativeActivities } from "./lower-primary/creative-activities";
-export { grade1CRE, grade2CRE, grade3CRE } from "./lower-primary/cre";
-export { grade1HRE, grade2HRE, grade3HRE } from "./lower-primary/hre";
-export { grade1Kiswahili, grade2Kiswahili, grade3Kiswahili } from "./lower-primary/kiswahili";
-export { grade1Mathematics, grade2Mathematics, grade3Mathematics } from "./lower-primary/mathematics";
-export {
-  grade1EnvironmentalActivities,
-  grade2EnvironmentalActivities,
-  grade3EnvironmentalActivities,
-} from "./lower-primary/environmental-activities";
-export {
-  grade1EnglishActivities,
-  grade2EnglishActivities,
-  grade3EnglishActivities,
-} from "./lower-primary/english-activities";
-export { grade6Agriculture } from "./upper-primary/agriculture";
-export { grade4Agriculture } from "./upper-primary/agriculture-grade4";
-export { grade5Agriculture } from "./upper-primary/agriculture-grade5";
-export { grade4Mathematics } from "./upper-primary/mathematics-grade4";
-export { grade4ScienceTechnology } from "./upper-primary/science-technology-grade4";
-export { grade5ScienceTechnology } from "./upper-primary/science-technology-grade5";
-export { grade6ScienceTechnology } from "./upper-primary/science-technology-grade6";
-export { grade4CRE } from "./upper-primary/cre";
-export { grade5CRE } from "./upper-primary/cre-grade5";
-export { grade6CRE } from "./upper-primary/cre-grade6";
-export { grade4CreativeArts } from "./upper-primary/creative-arts";
-export { grade5CreativeArts } from "./upper-primary/creative-arts-grade5";
-export { grade6CreativeArts } from "./upper-primary/creative-arts-grade6";
-export { grade4English, grade5English, grade6English } from "./upper-primary/english";
-export { grade4IndigenousLanguage, grade5IndigenousLanguage, grade6IndigenousLanguage } from "./upper-primary/indigenous-language";
-export { grade4SocialStudies } from "./upper-primary/social-studies";
-export { grade5SocialStudies } from "./upper-primary/social-studies-grade5";
-export { grade6SocialStudies } from "./upper-primary/social-studies-grade6";
-export { grade5Mathematics } from "./upper-primary/mathematics-grade5";
-export { grade6Mathematics } from "./upper-primary/mathematics-grade6";
-export { grade4Kiswahili } from "./upper-primary/kiswahili";
-export { grade5Kiswahili } from "./upper-primary/kiswahili-grade5";
-export { grade6Kiswahili } from "./upper-primary/kiswahili-grade6";
-export { grade1IRE, grade2IRE, grade3IRE } from "./lower-primary/ire";
-// Junior Secondary exports
-export { grade7Mathematics } from "./junior-secondary/mathematics-grade7";
-export { grade8Mathematics } from "./junior-secondary/mathematics-grade8";
-export { grade9Mathematics } from "./junior-secondary/mathematics-grade9";
-export { grade7English } from "./junior-secondary/english-grade7";
-export { grade8English } from "./junior-secondary/english-grade8";
-export { grade9English } from "./junior-secondary/english-grade9";
-export { grade7IntegratedScience } from "./junior-secondary/integrated-science-grade7";
-export { grade8IntegratedScience } from "./junior-secondary/integrated-science-grade8";
-export { grade9IntegratedScience } from "./junior-secondary/integrated-science-grade9";
-export { grade7SocialStudies } from "./junior-secondary/social-studies-grade7";
-export { grade8SocialStudies } from "./junior-secondary/social-studies-grade8";
-export { grade9SocialStudies } from "./junior-secondary/social-studies-grade9";
-
-import type { StrandInfo } from "./types";
-import type { GradeLevel } from "../../types/curriculum";
-
-// Pre-primary imports
-import { pp1LanguageActivities } from "./pre-primary/pp1-language-activities";
-import { pp2LanguageActivities } from "./pre-primary/pp2-language-activities";
-import { pp1MathematicalActivities } from "./pre-primary/pp1-mathematical-activities";
-import { pp2MathematicalActivities } from "./pre-primary/pp2-mathematical-activities";
-import { pp1CRE } from "./pre-primary/pp1-cre";
-import { pp2CRE } from "./pre-primary/pp2-cre";
-import { pp1HRE } from "./pre-primary/pp1-hre";
-import { pp2HRE } from "./pre-primary/pp2-hre";
-import { pp1CreativeActivities } from "./pre-primary/pp1-creative-activities";
-import { pp2CreativeActivities } from "./pre-primary/pp2-creative-activities";
-import { pp1EnvironmentalActivities } from "./pre-primary/pp1-environmental-activities";
-import { pp2EnvironmentalActivities } from "./pre-primary/pp2-environmental-activities";
-import { grade1CreativeActivities, grade2CreativeActivities, grade3CreativeActivities } from "./lower-primary/creative-activities";
-import { grade1CRE, grade2CRE, grade3CRE } from "./lower-primary/cre";
-import { grade1HRE, grade2HRE, grade3HRE } from "./lower-primary/hre";
-import { grade1Kiswahili, grade2Kiswahili, grade3Kiswahili } from "./lower-primary/kiswahili";
-import { grade1Mathematics, grade2Mathematics, grade3Mathematics } from "./lower-primary/mathematics";
-import {
-  grade1EnvironmentalActivities,
-  grade2EnvironmentalActivities,
-  grade3EnvironmentalActivities,
-} from "./lower-primary/environmental-activities";
-import {
-  grade1EnglishActivities,
-  grade2EnglishActivities,
-  grade3EnglishActivities,
-} from "./lower-primary/english-activities";
-import { grade1IRE, grade2IRE, grade3IRE } from "./lower-primary/ire";
-import { grade6Agriculture } from "./upper-primary/agriculture";
-import { grade4Agriculture } from "./upper-primary/agriculture-grade4";
-import { grade5Agriculture } from "./upper-primary/agriculture-grade5";
-import { grade4Mathematics } from "./upper-primary/mathematics-grade4";
-import { grade4ScienceTechnology } from "./upper-primary/science-technology-grade4";
-import { grade5ScienceTechnology } from "./upper-primary/science-technology-grade5";
-import { grade6ScienceTechnology } from "./upper-primary/science-technology-grade6";
-import { grade4CRE } from "./upper-primary/cre";
-import { grade5CRE } from "./upper-primary/cre-grade5";
-import { grade6CRE } from "./upper-primary/cre-grade6";
-import { grade4CreativeArts } from "./upper-primary/creative-arts";
-import { grade5CreativeArts } from "./upper-primary/creative-arts-grade5";
-import { grade6CreativeArts } from "./upper-primary/creative-arts-grade6";
-import { grade4English, grade5English, grade6English } from "./upper-primary/english";
-import { grade4IndigenousLanguage, grade5IndigenousLanguage, grade6IndigenousLanguage } from "./upper-primary/indigenous-language";
-import { grade4SocialStudies } from "./upper-primary/social-studies";
-import { grade5SocialStudies } from "./upper-primary/social-studies-grade5";
-import { grade6SocialStudies } from "./upper-primary/social-studies-grade6";
-import { grade5Mathematics } from "./upper-primary/mathematics-grade5";
-import { grade6Mathematics } from "./upper-primary/mathematics-grade6";
-import { grade4Kiswahili } from "./upper-primary/kiswahili";
-import { grade5Kiswahili } from "./upper-primary/kiswahili-grade5";
-import { grade6Kiswahili } from "./upper-primary/kiswahili-grade6";
-
-// Junior Secondary imports
-import { grade7Mathematics } from "./junior-secondary/mathematics-grade7";
-import { grade8Mathematics } from "./junior-secondary/mathematics-grade8";
-import { grade9Mathematics } from "./junior-secondary/mathematics-grade9";
-import { grade7English } from "./junior-secondary/english-grade7";
-import { grade8English } from "./junior-secondary/english-grade8";
-import { grade9English } from "./junior-secondary/english-grade9";
-import { grade7IntegratedScience } from "./junior-secondary/integrated-science-grade7";
-import { grade8IntegratedScience } from "./junior-secondary/integrated-science-grade8";
-import { grade9IntegratedScience } from "./junior-secondary/integrated-science-grade9";
-import { grade7SocialStudies } from "./junior-secondary/social-studies-grade7";
-import { grade8SocialStudies } from "./junior-secondary/social-studies-grade8";
-import { grade9SocialStudies } from "./junior-secondary/social-studies-grade9";
-
-// ─── Strand registry keyed by "Grade X|Subject" ───
-
-type CurriculumKey = string;
+import type {
+  GradeLevel,
+  SubjectInfo,
+  StrandInfo,
+  SubStrandInfo,
+  CurriculumData,
+  TermAllocation,
+  WeeklyDistribution,
+  Term,
+} from '@/types/curriculum';
 
 /**
- * The wizard state uses compact values (for example `Grade4`), while the
- * curriculum registry is keyed with display values (for example `Grade 4`).
- * Accept either form at this boundary so persisted wizard drafts remain
- * compatible with the curriculum data.
+ * Get all subjects available for a given grade
  */
-function normalizeGrade(grade: string): string {
-  return grade.replace(/^Grade(\d+)$/, 'Grade $1');
-}
+export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
+  // Lower Primary (PP1-Grade 3)
+  if (['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'].includes(grade)) {
+    return [
+      { name: 'English Language Activities', category: 'language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
+      { name: 'Kiswahili Language Activities', category: 'language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
+      { name: 'Mathematical Activities', category: 'non-language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
+      { name: 'Environmental Activities', category: 'non-language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
+      { name: 'Creative Activities', category: 'non-language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
+      { name: 'Religious Education', category: 'non-language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
+      { name: 'Indigenous Language', category: 'language', grades: ['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'] },
+    ];
+  }
+  
+  // Upper Primary (Grade 4-6)
+  if (['Grade4', 'Grade5', 'Grade6'].includes(grade)) {
+    return [
+      { name: 'English', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
+      { name: 'Kiswahili', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
+      { name: 'Mathematics', category: 'non-language', grades: ['Grade4', 'Grade5', 'Grade6'] },
+      { name: 'Agriculture', category: 'non-language', grades: ['Grade4', 'Grade5', 'Grade6'] },
+      { name: 'Science and Technology', category: 'non-language', grades: ['Grade4', 'Grade5', 'Grade6'] },
+      { name: 'Social Studies', category: 'non-language', grades: ['Grade4', 'Grade5', 'Grade6'] },
+      { name: 'Creative Arts', category: 'non-language', grades: ['Grade4', 'Grade5', 'Grade6'] },
+      { name: 'Indigenous Language', category: 'language', grades: ['Grade4', 'Grade5', 'Grade6'] },
+    ];
+  }
+  
+  // Senior School (Grade 10-12): Omega Claw subjects are available for teacher planning.
+  if (['Grade10', 'Grade11', 'Grade12'].includes(grade)) {
+    return [
+      { name: 'Artificial Intelligence', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
+      { name: 'Blockchain and Distributed Systems', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
+      { name: 'Computer Science', category: 'non-language', grades: ['Grade10', 'Grade11', 'Grade12'] },
+      { name: 'English', category: 'language', grades: ['Grade10', 'Grade11', 'Grade12'] },
+    ];
+  }
 
-const hardcodedStrands: Record<CurriculumKey, StrandInfo[]> = {
-  // ── Pre-Primary ──────────────────────────────────────────────────────────
-  "PP1|Language Activities": pp1LanguageActivities,
-  "PP1|Mathematical Activities": pp1MathematicalActivities,
-  "PP1|Environmental Activities": pp1EnvironmentalActivities,
-  "PP1|Creative Activities": pp1CreativeActivities,
-  "PP1|CRE": pp1CRE,
-  "PP1|HRE": pp1HRE,
-  "PP2|Language Activities": pp2LanguageActivities,
-  "PP2|Mathematical Activities": pp2MathematicalActivities,
-  "PP2|Environmental Activities": pp2EnvironmentalActivities,
-  "PP2|Creative Activities": pp2CreativeActivities,
-  "PP2|CRE": pp2CRE,
-  "PP2|HRE": pp2HRE,
-  // ── Lower Primary ────────────────────────────────────────────────────────
-  "Grade 1|Creative Activities": grade1CreativeActivities,
-  "Grade 2|Creative Activities": grade2CreativeActivities,
-  "Grade 3|Creative Activities": grade3CreativeActivities,
-  "Grade 1|CRE": grade1CRE,
-  "Grade 2|CRE": grade2CRE,
-  "Grade 3|CRE": grade3CRE,
-  "Grade 1|HRE": grade1HRE,
-  "Grade 2|HRE": grade2HRE,
-  "Grade 3|HRE": grade3HRE,
-  "Grade 1|IRE": grade1IRE,
-  "Grade 2|IRE": grade2IRE,
-  "Grade 3|IRE": grade3IRE,
-  "Grade 1|Kiswahili": grade1Kiswahili,
-  "Grade 2|Kiswahili": grade2Kiswahili,
-  "Grade 3|Kiswahili": grade3Kiswahili,
-  "Grade 1|Environmental Activities": grade1EnvironmentalActivities,
-  "Grade 2|Environmental Activities": grade2EnvironmentalActivities,
-  "Grade 3|Environmental Activities": grade3EnvironmentalActivities,
-  "Grade 1|English Activities": grade1EnglishActivities,
-  "Grade 2|English Activities": grade2EnglishActivities,
-  "Grade 3|English Activities": grade3EnglishActivities,
-  "Grade 1|Mathematics": grade1Mathematics,
-  "Grade 2|Mathematics": grade2Mathematics,
-  "Grade 3|Mathematics": grade3Mathematics,
-  "Grade 4|CRE": grade4CRE,
-  "Grade 5|CRE": grade5CRE,
-  "Grade 6|CRE": grade6CRE,
-  "Grade 4|Creative Arts": grade4CreativeArts,
-  "Grade 5|Creative Arts": grade5CreativeArts,
-  "Grade 6|Creative Arts": grade6CreativeArts,
-  "Grade 4|English": grade4English,
-  "Grade 4|Indigenous Language": grade4IndigenousLanguage,
-  "Grade 4|Social Studies": grade4SocialStudies,
-  "Grade 5|Social Studies": grade5SocialStudies,
-  "Grade 5|English": grade5English,
-  "Grade 5|Indigenous Language": grade5IndigenousLanguage,
-  "Grade 6|Indigenous Language": grade6IndigenousLanguage,
-  "Grade 6|English": grade6English,
-  "Grade 4|Agriculture": grade4Agriculture,
-  "Grade 5|Agriculture": grade5Agriculture,
-  "Grade 6|Agriculture": grade6Agriculture,
-  "Grade 4|Mathematics": grade4Mathematics,
-  "Grade 4|Science & Technology": grade4ScienceTechnology,
-  "Grade 5|Science & Technology": grade5ScienceTechnology,
-  "Grade 6|Science & Technology": grade6ScienceTechnology,
-  "Grade 4|Kiswahili": grade4Kiswahili,
-  "Grade 5|Kiswahili": grade5Kiswahili,
-  "Grade 6|Kiswahili": grade6Kiswahili,
-  "Grade 5|Mathematics": grade5Mathematics,
-  "Grade 6|Mathematics": grade6Mathematics,
-  "Grade 6|Social Studies": grade6SocialStudies,
-  // ── Junior Secondary ─────────────────────────────────────────────────────
-  "Grade 7|Mathematics": grade7Mathematics,
-  "Grade 8|Mathematics": grade8Mathematics,
-  "Grade 9|Mathematics": grade9Mathematics,
-  "Grade 7|English": grade7English,
-  "Grade 8|English": grade8English,
-  "Grade 9|English": grade9English,
-  "Grade 7|Integrated Science": grade7IntegratedScience,
-  "Grade 8|Integrated Science": grade8IntegratedScience,
-  "Grade 9|Integrated Science": grade9IntegratedScience,
-  "Grade 7|Social Studies": grade7SocialStudies,
-  "Grade 8|Social Studies": grade8SocialStudies,
-  "Grade 9|Social Studies": grade9SocialStudies,
-};
-
-/**
- * Get hardcoded strands for a grade+subject combo.
- * Returns null if not yet hardcoded (will fall back to AI).
- */
-export function getHardcodedStrands(grade: string, subject: string): StrandInfo[] | null {
-  return hardcodedStrands[`${normalizeGrade(grade)}|${subject}`] || null;
+  // Junior School (Grade 7-9) - placeholder for future
+  return [];
 }
 
 /**
- * Get sub-strands for a specific strand within a grade+subject.
+ * Get hardcoded strands for a grade-subject combination
+ * This is a simplified version - full data will be ported from scheme-scribe-ai
  */
-export function getSubStrandsForStrand(grade: string, subject: string, strandName: string): import("./types").SubStrandInfo[] | null {
+export function getHardcodedStrands(grade: GradeLevel, subject: string): StrandInfo[] {
+  const key = `${grade}-${subject}`;
+  
+  // Mathematics strands (simplified example)
+  if (subject === 'Mathematics' || subject === 'Mathematical Activities') {
+    return [
+      {
+        name: 'Numbers',
+        description: 'Number concepts and operations',
+        subStrands: [
+          { name: 'Whole Numbers', learningOutcomes: ['Count and write numbers', 'Add and subtract'] },
+          { name: 'Fractions', learningOutcomes: ['Identify fractions', 'Compare fractions'] },
+          { name: 'Decimals', learningOutcomes: ['Read decimals', 'Add decimals'] },
+        ],
+      },
+      {
+        name: 'Measurement',
+        description: 'Measuring length, mass, capacity, time',
+        subStrands: [
+          { name: 'Length', learningOutcomes: ['Measure length', 'Convert units'] },
+          { name: 'Mass', learningOutcomes: ['Measure mass', 'Compare masses'] },
+          { name: 'Time', learningOutcomes: ['Tell time', 'Calculate duration'] },
+        ],
+      },
+      {
+        name: 'Geometry',
+        description: 'Shapes, space, and position',
+        subStrands: [
+          { name: '2D Shapes', learningOutcomes: ['Identify shapes', 'Draw shapes'] },
+          { name: '3D Shapes', learningOutcomes: ['Identify solids', 'Build models'] },
+        ],
+      },
+    ];
+  }
+  
+  // English/English Language Activities strands
+  if (subject === 'English' || subject === 'English Language Activities') {
+    return [
+      {
+        name: 'Listening and Speaking',
+        description: 'Oral communication skills',
+        subStrands: [
+          { name: 'Listening Comprehension', learningOutcomes: ['Listen attentively', 'Follow instructions'] },
+          { name: 'Speaking', learningOutcomes: ['Express ideas clearly', 'Participate in discussions'] },
+        ],
+      },
+      {
+        name: 'Reading',
+        description: 'Reading skills and comprehension',
+        subStrands: [
+          { name: 'Reading Aloud', learningOutcomes: ['Read fluently', 'Use expression'] },
+          { name: 'Reading Comprehension', learningOutcomes: ['Understand texts', 'Answer questions'] },
+        ],
+      },
+      {
+        name: 'Writing',
+        description: 'Writing skills',
+        subStrands: [
+          { name: 'Handwriting', learningOutcomes: ['Write legibly', 'Form letters correctly'] },
+          { name: 'Composition', learningOutcomes: ['Write sentences', 'Write paragraphs'] },
+        ],
+      },
+    ];
+  }
+  
+  // Default empty strands with warning
+  console.warn(`[Curriculum] No strands defined for ${key}`);
+  return [];
+}
+
+/**
+ * Get sub-strands for a specific strand
+ */
+export function getSubStrandsForStrand(
+  grade: GradeLevel,
+  subject: string,
+  strand: string
+): SubStrandInfo[] {
   const strands = getHardcodedStrands(grade, subject);
-  if (!strands) return null;
-  const found = strands.find(s => s.name === strandName);
-  return found?.subStrands || null;
+  const foundStrand = strands.find(s => s.name === strand);
+  
+  if (!foundStrand) {
+    console.warn(`[Curriculum] Strand "${strand}" not found for ${grade} ${subject}`);
+    return [];
+  }
+  
+  return foundStrand.subStrands;
 }
 
-// ─── Shared constants and utility functions ───
-
-export const columnHeaders = {
-  en: [
-    "WK", "LSN", "Strand", "Sub-Strand",
-    "Lesson Learning Outcomes", "Lesson Learning Experiences",
-    "Key Inquiry Question", "Learning Resources",
-    "Assessment", "Refl",
-  ],
-  sw: [
-    "WIKI", "SOMO", "MADA", "MADA NDOGO",
-    "MATOKEO MAALUM YANAYOTARAJIWA", "MAPENDEKEZO YA SHUGHULI ZA UJIFUNZAJI",
-    "SWALI DADISI", "MAREJELEO",
-    "TATHMINI", "MAONI",
-  ],
-};
-
-export const kiswahiliSubjects = ["Kiswahili"];
-
-// Official KICD lesson allocation per week by grade level
-const prePrimaryLessons: Record<string, number> = {
-  "Language Activities": 6,
-  "Mathematical Activities": 5,
-  "Environmental Activities": 4,
-  "Creative Activities": 7,
-  "CRE": 3, "HRE": 3, "IRE": 3,
-};
-
-const lowerPrimaryLessons: Record<string, number> = {
-  "Indigenous Language": 2,
-  "Kiswahili": 4,
-  "English Activities": 5,
-  "Mathematics": 5,
-  "CRE": 3, "HRE": 3, "IRE": 3,
-  "Environmental Activities": 4,
-  "Creative Activities": 7,
-};
-
-const upperPrimaryLessons: Record<string, number> = {
-  "English": 5,
-  "Kiswahili": 4,
-  "Mathematics": 5,
-  "Science & Technology": 4,
-  "Social Studies": 3,
-  "Agriculture": 4,
-  "Creative Arts": 6,
-  "CRE": 3, "HRE": 3, "IRE": 3,
-  "Arabic": 2, "French": 2, "German": 2, "Mandarin": 2,
-  "Indigenous Language": 2,
-};
-
-const juniorSecondaryLessons: Record<string, number> = {
-  "English": 5,
-  "Kiswahili": 4,
-  "Mathematics": 5,
-  "Integrated Science": 4,
-  "Social Studies": 3,
-  "Agriculture": 2,
-  "Creative Arts": 3,
-  "Pre-Technical Studies": 3,
-  "CRE": 3, "HRE": 3, "IRE": 3,
-  "Arabic": 2, "French": 2, "German": 2, "Mandarin": 2,
-  "Indigenous Language": 2,
-};
-
-export function getLessonsPerWeek(grade: string, subject: string): number {
-  const normalized = normalizeGrade(grade);
-  if (normalized === 'PP1' || normalized === 'PP2') return prePrimaryLessons[subject] || 5;
-  const num = parseInt(normalized.replace("Grade ", ""));
-  let map: Record<string, number>;
-  if (num >= 1 && num <= 3) map = lowerPrimaryLessons;
-  else if (num >= 4 && num <= 6) map = upperPrimaryLessons;
-  else map = juniorSecondaryLessons;
-  return map[subject] || 5;
+/**
+ * Get lessons per week for a subject
+ */
+export function getLessonsPerWeek(subject: string): number {
+  // Language subjects typically have more lessons
+  if (subject.toLowerCase().includes('english') || 
+      subject.toLowerCase().includes('kiswahili') ||
+      subject.toLowerCase().includes('indigenous')) {
+    return 5;
+  }
+  
+  // Mathematics
+  if (subject.toLowerCase().includes('math')) {
+    return 5;
+  }
+  
+  // Other subjects
+  return 3;
 }
 
-export const grades: GradeLevel[] = [
-  "PP1", "PP2",
-  "Grade 1", "Grade 2", "Grade 3",
-  "Grade 4", "Grade 5", "Grade 6",
-  "Grade 7", "Grade 8", "Grade 9",
-];
-
-const prePrimarySubjects = [
-  "Creative Activities",
-  "CRE",
-  "Environmental Activities",
-  "HRE",
-  "IRE",
-  "Language Activities",
-  "Mathematical Activities",
-];
-
-const lowerPrimarySubjects = [
-  "Creative Activities",
-  "CRE",
-  "English Activities",
-  "Environmental Activities",
-  "HRE",
-  "IRE",
-  "Kiswahili",
-  "Mathematics",
-];
-
-const upperPrimarySubjects = [
-  "Agriculture",
-  "Arabic",
-  "Creative Arts",
-  "CRE",
-  "English",
-  "French",
-  "German",
-  "HRE",
-  "Indigenous Language",
-  "IRE",
-  "Kiswahili",
-  "Mandarin",
-  "Mathematics",
-  "Science & Technology",
-  "Social Studies",
-];
-
-const juniorSecondarySubjects = [
-  "Agriculture",
-  "Arabic",
-  "Creative Arts",
-  "CRE",
-  "English",
-  "French",
-  "German",
-  "HRE",
-  "Indigenous Language",
-  "Integrated Science",
-  "IRE",
-  "Kiswahili",
-  "Mandarin",
-  "Mathematics",
-  "Pre-Technical Studies",
-  "Social Studies",
-];
-
-export function getSubjectsForGrade(grade: string): string[] {
-  const normalized = normalizeGrade(grade);
-  if (normalized === 'PP1' || normalized === 'PP2') return prePrimarySubjects;
-  const num = parseInt(normalized.replace("Grade ", ""));
-  if (num >= 1 && num <= 3) return lowerPrimarySubjects;
-  if (num >= 4 && num <= 6) return upperPrimarySubjects;
-  if (num >= 7 && num <= 9) return juniorSecondarySubjects;
-  return upperPrimarySubjects;
+/**
+ * Get term allocation for non-language subjects
+ * Distributes strands across the three CBC terms with proper error handling
+ */
+export function getTermAllocation(
+  grade: GradeLevel,
+  subject: string,
+  term: Term
+): TermAllocation | null {
+  try {
+    const strands = getHardcodedStrands(grade, subject);
+    
+    if (strands.length === 0) {
+      console.warn(`[Curriculum] No strands available for ${grade} ${subject} - graceful degradation`);
+      return null;
+    }
+    
+    // Calculate weeks per term (13 weeks standard CBC term)
+    const weeksPerTerm = 13;
+    const totalWeeks = weeksPerTerm * 3; // 39 weeks total
+    
+    // Distribute strands evenly across terms
+    const strandsPerTerm = Math.ceil(strands.length / 3);
+    const termIndex = term === 'Term1' ? 0 : term === 'Term2' ? 1 : 2;
+    const startIndex = termIndex * strandsPerTerm;
+    const endIndex = Math.min(startIndex + strandsPerTerm, strands.length);
+    
+    const termStrands = strands.slice(startIndex, endIndex);
+    
+    // Calculate weeks per strand for this term
+    const weeksForTermStrands = Math.floor(weeksPerTerm / termStrands.length);
+    const remainingWeeks = weeksPerTerm % termStrands.length;
+    
+    return {
+      term,
+      strands: termStrands.map((strand, index) => ({
+        strand: strand.name,
+        subStrands: strand.subStrands.map(ss => ss.name),
+        // Distribute remaining weeks to first strands
+        weeks: weeksForTermStrands + (index < remainingWeeks ? 1 : 0),
+      })),
+    };
+  } catch (error) {
+    console.error(`[Curriculum] Error getting term allocation for ${grade} ${subject} ${term}:`, error);
+    // Graceful degradation: return null
+    return null;
+  }
 }
 
-export function getAllGrades(): GradeLevel[] {
-  return grades;
+/**
+ * Get weekly distribution for language subjects
+ * Distributes strands and sub-strands across 13-week term with proper error handling
+ */
+export function getWeeklyDistribution(
+  grade: GradeLevel,
+  subject: string,
+  term: Term
+): WeeklyDistribution[] {
+  try {
+    const strands = getHardcodedStrands(grade, subject);
+    
+    if (strands.length === 0) {
+      console.warn(`[Curriculum] No strands available for ${grade} ${subject} - returning empty distribution`);
+      return [];
+    }
+    
+    const lessonsPerWeek = getLessonsPerWeek(subject);
+    const weeksPerTerm = 13; // Standard CBC term length
+    
+    const distributions: WeeklyDistribution[] = [];
+    
+    // Calculate total sub-strands
+    const totalSubStrands = strands.reduce((sum, strand) => sum + strand.subStrands.length, 0);
+    
+    if (totalSubStrands === 0) {
+      console.warn(`[Curriculum] No sub-strands available for ${grade} ${subject}`);
+      return [];
+    }
+    
+    // Calculate weeks per sub-strand
+    const weeksPerSubStrand = Math.max(1, Math.floor(weeksPerTerm / totalSubStrands));
+    
+    let currentWeek = 1;
+    
+    // Distribute strands and sub-strands across weeks
+    for (const strand of strands) {
+      for (const subStrand of strand.subStrands) {
+        if (currentWeek > weeksPerTerm) {
+          console.warn(`[Curriculum] Exceeded ${weeksPerTerm} weeks for ${grade} ${subject} ${term}`);
+          break;
+        }
+        
+        // Allocate weeks for this sub-strand
+        for (let w = 0; w < weeksPerSubStrand && currentWeek <= weeksPerTerm; w++) {
+          distributions.push({
+            week: currentWeek,
+            strand: strand.name,
+            subStrand: subStrand.name,
+            lessonsPerWeek,
+          });
+          
+          currentWeek++;
+        }
+      }
+      
+      if (currentWeek > weeksPerTerm) break;
+    }
+    
+    // Fill remaining weeks if any
+    if (currentWeek <= weeksPerTerm && distributions.length > 0) {
+      const lastDistribution = distributions[distributions.length - 1];
+      for (let w = currentWeek; w <= weeksPerTerm; w++) {
+        distributions.push({
+          week: w,
+          strand: lastDistribution.strand,
+          subStrand: lastDistribution.subStrand,
+          lessonsPerWeek,
+        });
+      }
+    }
+    
+    return distributions;
+  } catch (error) {
+    console.error(`[Curriculum] Error getting weekly distribution for ${grade} ${subject} ${term}:`, error);
+    // Graceful degradation: return empty array
+    return [];
+  }
 }
 
-export function getCurriculumData(grade: string, subject: string): StrandInfo[] | null {
-  return getHardcodedStrands(grade, subject);
-}
-
-export function getWeeklyDistribution(grade: string, subject: string): { weeks: number; lessonsPerWeek: number } {
-  return {
-    weeks: 13, // Standard term length
-    lessonsPerWeek: getLessonsPerWeek(grade, subject)
+/**
+ * Get complete curriculum data for a grade-subject combination
+ */
+export function getCurriculumData(
+  grade: GradeLevel,
+  subject: string
+): CurriculumData | null {
+  const subjects = getSubjectsForGrade(grade);
+  const subjectInfo = subjects.find(s => s.name === subject);
+  
+  if (!subjectInfo) {
+    console.warn(`[Curriculum] Subject "${subject}" not found for grade ${grade}`);
+    return null;
+  }
+  
+  const strands = getHardcodedStrands(grade, subject);
+  
+  if (strands.length === 0) {
+    console.warn(`[Curriculum] No curriculum data for ${grade} ${subject}`);
+    return null;
+  }
+  
+  const data: CurriculumData = {
+    grade,
+    subject,
+    category: subjectInfo.category,
+    strands,
   };
+  
+  // Add term allocations for non-language subjects
+  if (subjectInfo.category === 'non-language') {
+    data.termAllocations = [
+      getTermAllocation(grade, subject, 'Term1'),
+      getTermAllocation(grade, subject, 'Term2'),
+      getTermAllocation(grade, subject, 'Term3'),
+    ].filter((t): t is TermAllocation => t !== null);
+  }
+  
+  // Add weekly distributions for language subjects
+  if (subjectInfo.category === 'language') {
+    data.weeklyDistributions = getWeeklyDistribution(grade, subject, 'Term1');
+  }
+  
+  return data;
 }
 
-// Re-export term allocation functions
-export { getTermAllocation, getTermLessonCount, isLowerPrimaryKiswahili } from './term-mappings';
+/**
+ * Validate that curriculum data exists for a grade-subject combination
+ */
+export function validateCurriculumExists(
+  grade: GradeLevel,
+  subject: string
+): boolean {
+  const data = getCurriculumData(grade, subject);
+  return data !== null && data.strands.length > 0;
+}
+
+/**
+ * Get all available grades
+ */
+export function getAllGrades(): GradeLevel[] {
+  return [
+    'PP1', 'PP2',
+    'Grade1', 'Grade2', 'Grade3',
+    'Grade4', 'Grade5', 'Grade6',
+    'Grade10', 'Grade11', 'Grade12',
+  ];
+}
+
+/**
+ * Export column headers for scheme of work
+ */
+export { SCHEME_COLUMN_HEADERS } from '@/types/curriculum';

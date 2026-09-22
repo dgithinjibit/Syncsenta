@@ -126,7 +126,7 @@ class TestLangGraphOrchestrator:
         orch = LangGraphOrchestrator()
         
         # Create initial state
-        from langchain_core.messages import HumanMessage
+        from langchain.schema import HumanMessage
         state = {
             "messages": [HumanMessage(content=sample_request.message)],
             "current_agent": "",
@@ -200,7 +200,7 @@ class TestLangGraphOrchestrator:
         """Test error handling in workflow."""
         orch = LangGraphOrchestrator()
         
-        from langchain_core.messages import HumanMessage
+        from langchain.schema import HumanMessage
         state = {
             "messages": [HumanMessage(content="test")],
             "current_agent": "",
@@ -234,7 +234,7 @@ class TestLangGraphOrchestrator:
             )
             orch.register_agent(agent_name, mock_agent)
         
-        from langchain_core.messages import HumanMessage
+        from langchain.schema import HumanMessage
         state = {
             "messages": [HumanMessage(content="Complex multi-agent request")],
             "current_agent": "",
@@ -259,7 +259,7 @@ class TestLangGraphOrchestrator:
         """Test response synthesis with single agent."""
         orch = LangGraphOrchestrator()
         
-        from langchain_core.messages import HumanMessage
+        from langchain.schema import HumanMessage
         state = {
             "messages": [HumanMessage(content="test")],
             "current_agent": "socratic_tutor",
@@ -286,7 +286,7 @@ class TestLangGraphOrchestrator:
         """Test response synthesis with multiple agents."""
         orch = LangGraphOrchestrator()
         
-        from langchain_core.messages import HumanMessage
+        from langchain.schema import HumanMessage
         state = {
             "messages": [HumanMessage(content="test")],
             "current_agent": "multi_agent",
@@ -376,7 +376,7 @@ class TestPerformanceRequirements:
         start_time = datetime.now().timestamp()
         
         # Just test the analysis phase
-        from langchain_core.messages import HumanMessage
+        from langchain.schema import HumanMessage
         state = {
             "messages": [HumanMessage(content=sample_request.message)],
             "current_agent": "",

@@ -10,7 +10,7 @@ const products = [
     {
         for: "Students",
         icon: BrainCircuit,
-        title: "syncsenta Tutor",
+        title: "Mwalimu AI Tutor",
         description: "A thinking partner that guides learning through questions, not just answers, fostering deep understanding and critical thinking.",
     },
     {

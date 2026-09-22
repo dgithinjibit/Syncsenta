@@ -15,16 +15,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { StudentHeader } from '@/components/layout/student-header';
-import { useAuth } from '@/hooks/use-auth';
 
 export default function LessonPlayerPage() {
   const params = useParams();
   const router = useRouter();
   const lessonId = params.lessonId as string;
-  const { user } = useAuth();
-  
-  // Use authenticated user ID, fallback to 'anonymous' for unauthenticated sessions
-  const studentId = user?.id || 'anonymous-student';
 
   const [lessonScript, setLessonScript] = useState<LessonScript | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,7 +129,7 @@ export default function LessonPlayerPage() {
       <main className="flex-1 p-6">
         <LessonRenderer
           lessonScript={lessonScript}
-          studentId={studentId}
+          studentId="user1" // TODO: Get from auth
           onComplete={handleComplete}
         />
       </main>

@@ -18,14 +18,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Sparkles, Download, FileDown, Layers } from 'lucide-react';
+import { Loader2, Sparkles, Download, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { SchemeRow } from '@/types/curriculum';
-import { API_ENDPOINTS, buildApiUrl } from '@/lib/api-config';
-import {
-  DifferentiationRenderer,
-  type Differentiation,
-} from '@/components/teacher/differentiation-renderer';
 
 interface LessonPlanDialogProps {
   open: boolean;
@@ -34,8 +29,6 @@ interface LessonPlanDialogProps {
   grade: string;
   subject: string;
   term?: string;
-  teacherId?: string;
-  schemeId?: string;
 }
 
 interface LessonPlan {
@@ -78,59 +71,44 @@ export default function LessonPlanDialog({
   grade,
   subject,
   term,
-  teacherId,
-  schemeId,
 }: LessonPlanDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<LessonPlan | null>(null);
-  const [planId, setPlanId] = useState<string | null>(null);
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [step, setStep] = useState<'input' | 'preview'>('input');
-  // Tier 2 differentiation — generated lazily on demand from the open plan.
-  // We keep it as a sibling state rather than nested in `plan` so a
-  // regenerate of the plan doesn't accidentally retain stale tiers.
-  const [differentiation, setDifferentiation] = useState<Differentiation | null>(null);
-  const [diffLoading, setDiffLoading] = useState(false);
   const isSw = isKiswahiliSubject(subject);
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      // Repointed from the legacy Rust route to the Python ai-agents endpoint
-      // ported from scheme-scribe-ai. Returns the LessonPlan camelCase shape
-      // this component already renders against.
-      const response = await fetch(
-        '/api/generate/lesson-plan',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            teacher_id: teacherId ?? 'unknown',
-            scheme_id: schemeId,
-            week: row.week ?? 1,
-            lesson: row.lesson ?? 1,
-            row,
-            grade,
-            subject,
-            term,
-            language: isSw ? 'kiswahili' : 'english',
-            additional_notes: additionalNotes || undefined,
-          }),
-        }
-      );
+      // Call SyncSenta Rust backend for lesson plan generation
+      const response = await fetch('/api/v1/lesson-plans/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          grade,
+          subject,
+          term,
+          strand: row.strand,
+          subStrand: row.subStrand,
+          specificLearningOutcome: row.specificLearningOutcome,
+          learningExperiences: row.learningExperiences,
+          keyInquiryQuestion: row.keyInquiryQuestion,
+          learningResources: row.learningResources,
+          additionalNotes,
+        }),
+      });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || error.error || 'Failed to generate lesson plan');
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate lesson plan');
       }
 
       const data = await response.json();
-      // Python endpoint returns { success, lesson_plan, lesson_plan_id, source }.
-      setPlan(data.lesson_plan ?? data.plan);
-      setPlanId(data.lesson_plan_id ?? null);
-      // Clear any previous tiers — they were generated against the old plan.
-      setDifferentiation(null);
+      setPlan(data.plan);
       setStep('preview');
 
       toast({ title: 'Lesson Plan Generated!' });
@@ -147,88 +125,53 @@ export default function LessonPlanDialog({
     }
   };
 
-  const handleDifferentiate = async () => {
-    if (!plan) return;
-    setDiffLoading(true);
-    try {
-      const response = await fetch(
-        buildApiUrl(API_ENDPOINTS.LESSON_ARCHITECT_GENERATE_DIFFERENTIATION),
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            teacher_id: teacherId ?? 'unknown',
-            // Pass the camelCase plan straight through — the backend's
-            // _required_lesson_plan_keys guard reads grade/subject/strand/
-            // subStrand/objectives from the same shape this component
-            // already holds.
-            lesson_plan: plan,
-            lesson_plan_id: planId ?? undefined,
-            language: isSw ? 'kiswahili' : 'english',
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(
-          error.detail || error.error || 'Failed to generate differentiation'
-        );
-      }
-
-      const data = await response.json();
-      setDifferentiation(data.differentiation ?? null);
-
-      toast({
-        title: isSw ? 'Tofautisha Tayari!' : 'Differentiation Ready!',
-        description: isSw
-          ? 'Mikakati ya tabaka tatu imezalishwa'
-          : 'Three-tier strategies generated against this lesson',
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to generate differentiation.';
-      toast({
-        title: 'Generation Failed',
-        description: message,
-        variant: 'destructive',
-      });
-    } finally {
-      setDiffLoading(false);
-    }
-  };
-
   const handlePrint = () => {
     if (!plan) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({ title: 'Print preview blocked', description: 'Allow pop-ups for SyncSenta, then try Print / PDF again.', variant: 'destructive' });
-      return;
-    }
-    const esc = (value: unknown) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
-    const list = (items: string[]) => items.map((item) => `<li>${esc(item)}</li>`).join('');
-    const sourceRows = [
-      ['Week', row.week], ['Lesson', row.lesson], ['Strand', row.strand], ['Sub-Strand', row.subStrand],
-      ['Specific Learning Outcome', row.specificLearningOutcome], ['Learning Experiences', row.learningExperiences],
-      ['Key Inquiry Question', row.keyInquiryQuestion], ['Learning Resources', row.learningResources],
-      ['Assessment Methods', row.assessmentMethods], ['Reflection', row.reflection || ''],
-    ];
-    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(plan.title)}</title><style>
-      @page{size:landscape;margin:10mm}*{box-sizing:border-box}body{margin:0;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:8.5pt}.sheet{width:100%}h1{font-size:16pt;margin:0 0 3px}.muted{color:#555}.header{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:7px}.meta,.source,.plan{width:100%;border-collapse:collapse;table-layout:fixed}.meta{margin:6px 0}.meta td,.source th,.source td,.plan th,.plan td{border:1px solid #555;padding:3px 4px;vertical-align:top;overflow-wrap:anywhere}.meta .label,.source th,.plan th{background:#ededed;font-weight:700}.meta .label{width:11%}.meta .value{width:22%}.source{font-size:7pt;margin-bottom:8px}.source th:nth-child(1){width:6%}.source th:nth-child(2){width:10%}.source th:nth-child(3){width:12%}.source th:nth-child(4){width:12%}.source th:nth-child(5){width:20%}.source th:nth-child(6){width:20%}.source th:nth-child(7){width:20%}.plan{font-size:7.5pt}.plan th{width:16.66%}.plan td{height:42px}.plan ul{margin:0;padding-left:14px}.reflection{min-height:48px;border:1px dashed #555;padding:5px}.footer{margin-top:7px;display:flex;justify-content:space-between;font-size:7pt;color:#555}@media print{.sheet{break-inside:avoid}}
-    </style></head><body><main class="sheet"><header class="header"><div><h1>${esc(plan.title)}</h1><div class="muted">${esc(grade)} · ${esc(subject)} · ${esc(term || '')} · ${esc(plan.duration)}</div><div class="muted">${isSw ? 'Mpango wa Somo — CBC Kenya' : 'Lesson Plan — Kenyan CBC'}</div></div><div class="muted">Generated ${esc(new Date().toLocaleDateString('en-KE'))}</div></header>
-      <table class="meta"><tr><td class="label">Grade</td><td class="value">${esc(grade)}</td><td class="label">Subject</td><td class="value">${esc(subject)}</td><td class="label">Term</td><td class="value">${esc(term || '')}</td></tr><tr><td class="label">Week</td><td class="value">${esc(row.week)}</td><td class="label">Lesson</td><td class="value">${esc(row.lesson)}</td><td class="label">Scheme ID</td><td class="value">${esc(schemeId || 'Generated row')}</td></tr></table>
-      <table class="source"><thead><tr>${sourceRows.map(([label]) => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody><tr>${sourceRows.map(([, value]) => `<td>${esc(value)}</td>`).join('')}</tr></tbody></table>
-      <table class="plan"><thead><tr><th>Objectives</th><th>Introduction</th><th>Development</th><th>Conclusion</th><th>Assessment</th><th>Differentiation & Resources</th></tr></thead><tbody><tr><td><ul>${list(plan.objectives)}</ul></td><td><strong>${esc(plan.introduction.duration)}</strong><ul>${list(plan.introduction.activities)}</ul></td><td><strong>${esc(plan.development.duration)}</strong><ul>${list(plan.development.activities)}</ul></td><td><strong>${esc(plan.conclusion.duration)}</strong><ul>${list(plan.conclusion.activities)}</ul></td><td><ul>${list(plan.assessment)}</ul><p><strong>KIQ:</strong> ${esc(plan.keyInquiryQuestion)}</p></td><td><strong>Advanced:</strong> ${esc(plan.differentiation.advanced)}<br><strong>Support:</strong> ${esc(plan.differentiation.struggling)}<br><strong>Resources:</strong> ${esc(plan.resources.join(', '))}</td></tr></tbody></table>
-      <div class="reflection"><strong>Teacher reflection:</strong> ${esc(plan.teacherReflection)}<br><br><br></div><footer class="footer"><span>Teacher signature: __________________________</span><span>Head of school: __________________________</span><span>Landscape CBC lesson-plan print</span></footer></main></body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    window.setTimeout(() => { printWindow.print(); }, 350);
+    const printArea = document.getElementById('lesson-plan-print');
+    if (!printArea) return;
+
+    printArea.innerHTML = `
+      <div style="font-family: serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h1 style="text-align:center; font-size:18pt; margin-bottom:4px;">${plan.title}</h1>
+        <p style="text-align:center; color:#666; font-size:10pt; margin-bottom:16px;">${grade} — ${subject} — ${plan.duration}</p>
+        
+        <table style="width:100%; border-collapse:collapse; font-size:10pt; margin-bottom:16px;">
+          <tr><td style="border:1px solid #ccc; padding:6px; font-weight:bold; width:30%;">Strand</td><td style="border:1px solid #ccc; padding:6px;">${plan.strand}</td></tr>
+          <tr><td style="border:1px solid #ccc; padding:6px; font-weight:bold;">Sub-Strand</td><td style="border:1px solid #ccc; padding:6px;">${plan.subStrand}</td></tr>
+          <tr><td style="border:1px solid #ccc; padding:6px; font-weight:bold;">Key Inquiry Question</td><td style="border:1px solid #ccc; padding:6px;">${plan.keyInquiryQuestion}</td></tr>
+        </table>
+
+        <h3 style="font-size:12pt; margin:12px 0 6px;">Learning Objectives</h3>
+        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.objectives.map((o) => `<li>${o}</li>`).join('')}</ul>
+
+        <h3 style="font-size:12pt; margin:12px 0 6px;">Introduction (${plan.introduction.duration})</h3>
+        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.introduction.activities.map((a) => `<li>${a}</li>`).join('')}</ul>
+
+        <h3 style="font-size:12pt; margin:12px 0 6px;">Lesson Development (${plan.development.duration})</h3>
+        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.development.activities.map((a) => `<li>${a}</li>`).join('')}</ul>
+
+        <h3 style="font-size:12pt; margin:12px 0 6px;">Conclusion (${plan.conclusion.duration})</h3>
+        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.conclusion.activities.map((a) => `<li>${a}</li>`).join('')}</ul>
+
+        <h3 style="font-size:12pt; margin:12px 0 6px;">Assessment</h3>
+        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.assessment.map((a) => `<li>${a}</li>`).join('')}</ul>
+
+        <h3 style="font-size:12pt; margin:12px 0 6px;">Differentiation</h3>
+        <p style="font-size:10pt;"><strong>Advanced learners:</strong> ${plan.differentiation.advanced}</p>
+        <p style="font-size:10pt;"><strong>Struggling learners:</strong> ${plan.differentiation.struggling}</p>
+
+        <h3 style="font-size:12pt; margin:12px 0 6px;">Resources</h3>
+        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.resources.map((r) => `<li>${r}</li>`).join('')}</ul>
+
+        <h3 style="font-size:12pt; margin:12px 0 6px;">Teacher's Reflection</h3>
+        <p style="font-size:10pt; border:1px dashed #ccc; padding:12px; min-height:60px;">${plan.teacherReflection}</p>
+      </div>
+    `;
+    window.print();
   };
 
   const resetDialog = () => {
     setPlan(null);
-    setPlanId(null);
-    setDifferentiation(null);
     setStep('input');
     setAdditionalNotes('');
   };
@@ -436,47 +379,16 @@ export default function LessonPlanDialog({
                     variant="outline"
                     onClick={() => {
                       setPlan(null);
-                      setPlanId(null);
-                      setDifferentiation(null);
                       setStep('input');
                     }}
                     className="gap-2"
                   >
                     <Sparkles className="w-4 h-4" /> Regenerate
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDifferentiate}
-                    disabled={diffLoading}
-                    className="gap-2"
-                  >
-                    {diffLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Layers className="w-4 h-4" />
-                    )}
-                    {diffLoading
-                      ? isSw
-                        ? 'Inazalisha tabaka...'
-                        : 'Generating tiers...'
-                      : differentiation
-                      ? isSw
-                        ? 'Zalisha tena tabaka'
-                        : 'Re-differentiate'
-                      : isSw
-                      ? 'Tofautisha'
-                      : 'Differentiate'}
-                  </Button>
                   <Button onClick={handlePrint} className="gap-2 ml-auto">
                     <Download className="w-4 h-4" /> Export PDF
                   </Button>
                 </div>
-
-                {differentiation && (
-                  <div className="pt-4 border-t mt-4">
-                    <DifferentiationRenderer differentiation={differentiation} />
-                  </div>
-                )}
               </div>
             )}
           </ScrollArea>

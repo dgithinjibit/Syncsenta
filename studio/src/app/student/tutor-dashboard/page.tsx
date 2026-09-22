@@ -7,23 +7,21 @@
  * Shows available lessons and progress.
  */
 
-import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { getStudentId } from '@/lib/auth/student-id';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Clock, CheckCircle2, PlayCircle, Brain, Sparkles, X } from 'lucide-react';
+import { BookOpen, Clock, CheckCircle2, PlayCircle, Brain } from 'lucide-react';
 import { StudentHeader } from '@/components/layout/student-header';
-import { resolveSelectedGrade } from '@/lib/learning-context';
 
 // Available lessons (hardcoded for MVP)
 const availableLessons = [
   {
-    id: 'fractions-intro',
+    id: 'grade4-fractions-intro',
     title: 'Introduction to Fractions',
     subject: 'Mathematics',
+    grade: 'Grade 4',
     strand: 'Numbers',
     subStrand: 'Fractions',
     estimatedTime: 15,
@@ -37,58 +35,13 @@ const availableLessons = [
   },
 ];
 
-// Maps competency IDs (from the dashboard's CompetencyMap) to the lesson that
-// currently teaches them. Competencies without a built lesson fall through to
-// a "coming soon" banner.
-const competencyToLessonId: Record<string, string> = {
-  'frac-1': 'fractions-intro',
-  'frac-2': 'fractions-intro',
-  'frac-3': 'fractions-intro',
-};
-
-const competencyLabels: Record<string, string> = {
-  'frac-1': 'Understanding Fractions',
-  'frac-2': 'Adding Fractions',
-  'frac-3': 'Multiplying Fractions',
-  'dec-1': 'Understanding Decimals',
-  'dec-2': 'Adding Decimals',
-  'read-1': 'Main Idea',
-  'read-2': 'Inference',
-  'write-1': 'Essay Structure',
-  'write-2': 'Grammar',
-  'bio-1': 'Plant Parts',
-  'bio-2': 'Photosynthesis',
-};
-
-function TutorDashboardContent() {
+export default function TutorDashboardPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const subjectFilter = searchParams.get('subject') ?? undefined;
-  const competencyId = searchParams.get('competency') ?? undefined;
-  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
-
-  useEffect(() => {
-    setSelectedGrade(resolveSelectedGrade());
-  }, []);
-
-  const matchedLessonId = competencyId ? competencyToLessonId[competencyId] : undefined;
-  const competencyLabel = competencyId
-    ? competencyLabels[competencyId] ?? competencyId
-    : undefined;
-
-  const filteredLessons = subjectFilter
-    ? availableLessons.filter(
-        (l) => l.subject.toLowerCase() === subjectFilter.toLowerCase(),
-      )
-    : availableLessons;
-
-  const clearFilters = () => router.push('/student/tutor-dashboard');
 
   // Load progress from localStorage
   const getProgress = (lessonId: string) => {
-    if (typeof window === 'undefined') return null;
     try {
-      const studentId = getStudentId();
+      const studentId = 'user1'; // TODO: Get from auth
       const saved = localStorage.getItem(`lesson-progress-${studentId}-${lessonId}`);
       if (saved) {
         return JSON.parse(saved);
@@ -138,88 +91,27 @@ function TutorDashboardContent() {
             </CardContent>
           </Card>
 
-          {/* Focus banner: subject or competency selected from the dashboard */}
-          {(subjectFilter || competencyId) && (
-            <Card className="border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-950/30">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
-                    <Sparkles className="h-6 w-6 text-amber-700 dark:text-amber-300" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">
-                      {competencyLabel
-                        ? `Focused on: ${competencyLabel}`
-                        : `Showing ${subjectFilter} lessons`}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {competencyId && !matchedLessonId
-                        ? "We're still building an interactive lesson for this skill. In the meantime, try one of the lessons below."
-                        : competencyId
-                          ? 'Pick the highlighted lesson to practice this skill, or browse the others.'
-                          : 'Browse lessons available for this subject.'}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={clearFilters}>
-                    <X className="h-4 w-4 mr-1" />
-                    Clear
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Lessons Grid */}
-          {filteredLessons.length === 0 && (
-            <Card className="border-dashed">
-              <CardContent className="pt-6 text-center">
-                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-semibold mb-1">No lessons yet for {subjectFilter}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  We're still building interactive lessons for this subject. Check back soon!
-                </p>
-                <Button variant="outline" onClick={clearFilters}>
-                  Show all lessons
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredLessons.map((lesson) => {
+            {availableLessons.map((lesson) => {
               const progress = getProgress(lesson.id);
               const isCompleted = progress?.status === 'completed';
               const isInProgress = progress?.status === 'in_progress';
 
-              const isMatched = matchedLessonId === lesson.id;
-
               return (
-                <Card
-                  key={lesson.id}
-                  className={
-                    isMatched
-                      ? 'ring-2 ring-amber-400 shadow-lg transition-shadow'
-                      : 'hover:shadow-lg transition-shadow'
-                  }
-                >
+                <Card key={lesson.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <CardTitle className="text-lg">{lesson.title}</CardTitle>
                         <CardDescription className="mt-1">
-                          {selectedGrade ?? 'Choose your grade'} • {lesson.subject}
+                          {lesson.grade} • {lesson.subject}
                         </CardDescription>
                       </div>
                       {isCompleted && (
                         <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
                       )}
                     </div>
-
-                    {isMatched && (
-                      <Badge className="mt-2 bg-amber-500 hover:bg-amber-500 text-white w-fit">
-                        Recommended for {competencyLabel}
-                      </Badge>
-                    )}
 
                     <div className="flex flex-wrap gap-2 mt-3">
                       <Badge variant="outline" className="text-xs">
@@ -299,27 +191,17 @@ function TutorDashboardContent() {
           </div>
 
           {/* Coming Soon */}
-          {filteredLessons.length > 0 && (
-            <Card className="border-dashed">
-              <CardContent className="pt-6 text-center">
-                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-semibold mb-1">More Lessons Coming Soon!</h3>
-                <p className="text-sm text-muted-foreground">
-                  We're creating more interactive lessons for all CBC subjects and grades.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          <Card className="border-dashed">
+            <CardContent className="pt-6 text-center">
+              <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <h3 className="font-semibold mb-1">More Lessons Coming Soon!</h3>
+              <p className="text-sm text-muted-foreground">
+                We're creating more interactive lessons for all CBC subjects and grades.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
-  );
-}
-
-export default function TutorDashboardPage() {
-  return (
-    <Suspense fallback={<div className="flex flex-col min-h-screen bg-background" />}>
-      <TutorDashboardContent />
-    </Suspense>
   );
 }

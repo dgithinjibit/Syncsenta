@@ -51,10 +51,6 @@ class AgentRequest(BaseModel):
     message: str
     context: Dict[str, Any] = Field(default_factory=dict)
     user_id: str
-    # The teacher who owns this student, used to route AI decisions to the
-    # right teacher dashboard. Distinct from user_id (the student). Optional
-    # because not every request has a resolvable teacher (e.g. anonymous demo).
-    teacher_id: Optional[str] = None
     session_id: Optional[str] = None
     grade: Optional[str] = None
     subject: Optional[str] = None

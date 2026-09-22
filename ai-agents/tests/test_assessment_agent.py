@@ -206,7 +206,7 @@ async def test_grading_handles_blank_short_answer_without_llm_call():
 
 
 @pytest.mark.asyncio
-async def test_execute_task_dispatches_actions_via_context(stub_agent):
+async def test_execute_ta<REDACTED_SECRET>(stub_agent):
     agent, _ = stub_agent
 
     gen = await agent.execute_task(

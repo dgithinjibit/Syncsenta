@@ -67,7 +67,7 @@ dist
 
 # Gatsby files
 .cache/
-/public
+public
 
 # Storybook build outputs
 .out
@@ -93,14 +93,6 @@ pids
 *.swp
 *.swo
 *~
-
-# AI Development Tools (Kiro, Claude, etc.)
-.kiro/
-.claude/
-.idx/
-.cursor/
-.aider/
-.continue/
 
 # OS
 .DS_Store
@@ -152,22 +144,4 @@ ai-training/logs/
 *.old
 
 # Test files
-test_*.htmlChatDev/
-
-# Development and build artifacts
-*.tsbuildinfo
-.vercel/
-.turbo/
-.swc/
-
-# Editor and workspace files
-*.code-workspace
-.history/
-
-# Temporary and cache files
-.cache/
-.temp/
-*.tmp
-
-# Inventory and reference code (not part of main codebase)
-_inventory/
+test_*.html

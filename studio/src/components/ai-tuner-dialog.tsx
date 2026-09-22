@@ -45,7 +45,9 @@ export function AITunerDialog({ open, onOpenChange, onResourceSaved }: AITunerDi
       title: "AI Tutor Custom Context",
       content: context,
       createdAt: new Date().toISOString(),
-      type: 'AI Tutor Context'
+      type: 'AI Tutor Context',
+      joinCode: `syncsenta-${resourceId}`,
+      creatorId: 'teacher_demo',
     };
 
     const existingResources: TeacherResource[] = JSON.parse(localStorage.getItem("teacherResources") || "[]");

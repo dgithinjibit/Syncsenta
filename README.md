@@ -1,105 +1,85 @@
-# SyncSenta
+# SyncSenta Education OS
 
-<p align="center">
-  <a href="https://sentastudio.vercel.app">
-    <img src="studio/public/syncsenta-logo.svg" width="380" alt="SyncSenta logo" />
-  </a>
-</p>
+A Web4-first education platform for Kenya's CBC curriculum — decentralized, AI-powered, and built for 100,000+ concurrent users.
 
-## Adaptive education for Kenya's Competency-Based Curriculum
+## Stack
 
-**[SyncSenta](https://sentastudio.vercel.app) is an AI-powered education platform
-built for Kenyan students (PP1–Grade 9) and their teachers.** Students get a
-Socratic tutor that adapts in real time to their mastery level. Teachers get
-live analytics, misconception detection, and CBC-aligned content generators —
-scheme-of-work, lesson plans, and assessments — without leaving the browser.
+| Layer | Technology |
+|-------|-----------|
+| Backend | Rust + Axum + PostgreSQL + Redis |
+| Frontend | React + TypeScript + Vite + Tailwind + Shadcn/UI |
+| Blockchain | Polygon (Solidity smart contracts) |
+| Storage | IPFS (decentralized content) |
+| Auth | W3C DID + Verifiable Credentials |
+| AI | Mwalimu AI (LLM orchestration + offline WASM inference) |
 
-The platform is live at **[sentastudio.vercel.app](https://sentastudio.vercel.app)**.
-
-## How it works
-
-At the heart of SyncSenta is the **Omega tutoring decision engine**. Before
-every chat response, Omega reads the student's mastery data and computes a
-scaffolding level — *Independent*, *Guided*, or *Intensive* — then builds a
-dynamic system prompt that instructs the LLM exactly how to respond. A student
-who has just started gets gentle guided questions. One who is frustrated gets
-the concept broken into the smallest possible step, with concrete Kenyan
-examples. One who has mastered the material gets open-ended challenges. Teachers
-can see each student's live scaffolding level in the dashboard.
-
-Student learning uses two explicit layouts. Core CBC subjects (Mathematics,
-English, Kiswahili, Environmental Activities, Social Studies, Creative Arts,
-CRE, and Indigenous Language) open a grade-specific sandbox overview. Activities
-are labelled as canvas-ready, worksheet-ready, or guided fallback; only
-activities with a supported manipulative use the draggable canvas. Extended
-courses (Blockchain, Financial Literacy, and AI Literacy) remain chat-first and
-open into the full Omega-aware Socratic tutor.
-
-See the [student content readiness matrix](docs/CONTENT_READINESS.md) for the
-current Grade 4 coverage, route model, fallback boundaries, and expansion plan.
-
-## Monorepo structure
-
-The repository is a monorepo of related components. Most active development
-happens in `studio/`.
+## Project Structure
 
 ```
-studio/          Next.js 16 — the primary web application (students + teachers)
-ai-agents/       FastAPI — LangGraph orchestrator, CBC content generators
-rust-core/       Rust — adaptive tutoring decision engine (source of truth)
-rust-service/    Rust HTTP wrapper around rust-core (built, not yet wired to prod)
-scheme-scribe/   Vite/React standalone — separate Supabase project
-supabase/        Database migrations
-docs/            Architecture, development, and reference documentation
+sync/
+├── backend/                    # Rust workspace
+│   ├── syncsenta-backend/      # Axum API server
+│   ├── syncsenta-common/       # Shared types and models
+│   ├── syncsenta-blockchain/   # Smart contract integration
+│   └── syncsenta-wasm/         # Offline ML inference (candle)
+├── frontend/                   # React + TypeScript app
+├── studio/                     # UI component library (source of truth)
+├── docs/
+│   ├── infrastructure/         # Azure + AMD deployment guides
+│   ├── setup/                  # Bonsai + orchestration guides
+│   └── archive/                # Historical planning docs
+├── scripts/                    # Build and setup scripts
+└── repos/                      # External repositories (Web4 ecosystem)
+    ├── candle/                 # Rust ML framework (AI inference)
+    ├── thrml/                  # Probabilistic models (adaptive learning)
+    ├── ChatDev/                # Multi-agent platform (content generation)
+    ├── LughaBridge/            # Voice translation (Kikuyu ↔ English)
+    ├── WisdomEdu/              # Live LMS foundation (founding member)
+    ├── scheme-genie/           # CBC curriculum generator
+    ├── scheme-scribe-ai/       # AI educational content writer
+    ├── aditicha/               # Critical thinking activities
+    ├── igbo-bilingual-chat/    # Multilingual AI model template
+    ├── hexstrike-ai/           # Cybersecurity testing platform
+    ├── best-of-ml-rust/        # Curated Rust ML libraries
+    ├── africaAIPolicyResources/# African AI policy research
+    ├── Syncsenta_local/        # Local development utilities
+    └── powers/                 # Kiro power extensions
 ```
 
-## Documentation
+## Getting Started
 
-The [Architecture guide](docs/ARCHITECTURE.md) covers the full component map,
-Omega decision flow, subject session routing, and deployment topology.
+### Backend
+```bash
+cd backend
+cargo check -p syncsenta-backend   # verify it compiles
+cargo test --all                    # run tests
+```
 
-The [Development guide](docs/DEVELOPMENT.md) covers local setup, environment
-variables, test commands, database migrations, and known traps.
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-The [Socratic Mentor Spec](studio/docs/SOCRATIC_MENTOR_SPEC.md) is the source
-of truth for the Omega-aware chat system prompt — scaffolding instructions,
-request shape, SSE wire format, and test gaps.
+### With Bonsai (autonomous build)
+```bash
+bonsai start --dangerously-skip-permissions
+# Paste prompt from docs/setup/BONSAI_MASTER_PROMPT.md
+```
 
-The [domain context](docs/CONTEXT.md) explains the CBC model, Kenyan
-education terminology, and key architectural decisions. Read it before making
-any code change.
+## Build Status
 
-The [Hyperon dependent-project review](docs/HYPERON_DEPENDENT_PROJECTS.md)
-records patterns from representative MeTTa projects and the guardrails required
-before expanding Omega beyond its current policy and tutoring boundaries.
+- ✅ Task 1: Project foundation
+- ✅ Tasks 3-9: Auth, blockchain, IPFS, DB, Mwalimu AI, schemes, translation (partial)
+- 🔧 Build: Clean (0 errors, warnings only)
+- 🚧 Tasks 11+: In progress (Bonsai building)
 
-[Coding standards](docs/CODING_STANDARDS.md) covers Studio coding conventions —
-TypeScript patterns, component structure, Supabase client selection, test seams,
-and the safe-change workflow.
+## Infrastructure
 
-The deployed architecture is split across **Vercel** and **Render**:
+- **Azure:** $5,000 credits (Red Bull Basement) — see `docs/infrastructure/`
+- **AMD Developer Cloud:** $100 credits (MI300X GPU) — for Mwalimu AI training
 
-- **Vercel** hosts the Next.js SyncSenta web application and its `/api/*` routes.
-- **Render** hosts the Python FastAPI AI service from `ai-agents/`, including the
-  Hyperon policy adapter, agent workflows, telemetry, and `/healthz` readiness
-  endpoint. The deployment is defined in [`render.yaml`](render.yaml).
-- **Supabase** provides authentication, PostgreSQL, RLS, and storage.
-- **Upstash Redis** provides rate limits and short-lived learning-session state.
+## Spec
 
-The [architecture guide](docs/ARCHITECTURE.md) documents the request flows,
-service boundaries, Render deployment, MeTTa/Omega student path, and known gaps.
-
-## Contributing
-
-This is a solo-developed project. The [Development guide](docs/DEVELOPMENT.md)
-is the place to start. Run `npx vitest run` and `npm run build` from `studio/`
-before committing any change to the Next.js app. [P.M](https://dgithinji331s-team-company.monday.com/boards/5102970375)
-
-The [TDD analysis](docs/TDD_ANALYSIS.md) documents current test coverage gaps and
-the implementation plan for closing them, prioritised by production risk.
-
-The [Omega/MeTTa status](docs/OMEGA_METTA_STATUS.md) tracks the implementation
-status of the Omega decision engine and the broader MeTTa neuro-symbolic system.
-
-Historical reports and superseded summaries are retained under
-[`docs/archive/`](docs/archive/) and are not authoritative for current behavior.
+Full implementation plan: `.kiro/specs/syncsenta-education-os/`

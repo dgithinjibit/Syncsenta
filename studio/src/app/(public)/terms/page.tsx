@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 export default function TermsAndConditionsPage() {
@@ -13,11 +14,11 @@ export default function TermsAndConditionsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-3xl">Terms and Conditions for SyncSenta</CardTitle>
-                    <CardDescription>Last updated: July 31, 2024</CardDescription>
+                    <CardDescription>Last updated: September 21, 2026</CardDescription>
                 </CardHeader>
                 <CardContent className="prose prose-sm max-w-none text-muted-foreground">
                     <p>
-                        <strong>Disclaimer:</strong> This document is for informational purposes only and does not constitute legal advice. You must consult with a qualified legal professional to ensure these terms are appropriate for your specific business model and comply with all applicable laws and regulations.
+                        <strong>Important:</strong> SyncSenta is currently an experiment using demo accounts. Use fictional information only. This document is a product draft and must receive legal review before live school or child data is accepted.
                     </p>
 
                     <h2>1. Introduction and Acceptance of Terms</h2>
@@ -25,7 +26,7 @@ export default function TermsAndConditionsPage() {
                         Welcome to SyncSenta ("the Application," "the Service," "we," "us," or "our"). The Service is an application owned and operated by the project creators ("the Company").
                     </p>
                     <p>
-                        By creating an account, accessing, or using the Service in any manner, you, the user ("you," "your"), acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions ("Terms"), our Privacy Policy, and any other policies or guidelines referenced herein. If you do not agree to these Terms in their entirety, you are expressly prohibited from using the Service and must discontinue use immediately.
+                        By creating an account, accessing, or using the Service in any manner, you, the user ("you," "your"), acknowledge that you have read, understood, and agree to be bound by these Terms, our <Link href="/privacy" className="underline">Privacy Policy</Link>, <Link href="/child-safety" className="underline">Child Safety Policy</Link>, and other policies referenced herein. If you do not agree, discontinue use immediately.
                     </p>
 
                     <h2>2. Intellectual Property Rights</h2>
@@ -39,7 +40,7 @@ export default function TermsAndConditionsPage() {
 
                     <h2>3. User Accounts and Responsibilities</h2>
                     <p>
-                        <strong>Account Creation:</strong> When you create an account, you represent and warrant that all information you provide is truthful, accurate, complete, and current. You are solely responsible for all activities that occur under your account, whether or not you authorized the activity.
+                        <strong>Account Creation:</strong> When you create an account, you represent and warrant that all information you provide is truthful, accurate, complete, and current. Demo accounts must use fictional information. A parent, guardian, teacher, or school must not create or enable a child account without the required authority and consent.
                     </p>
                     <p>
                         <strong>Account Security:</strong> You are responsible for safeguarding the password that you use to access the Service and for any activities or actions under your password. You agree not to disclose your password to any third party. You must notify us immediately upon becoming aware of any breach of security or unauthorized use of your account. We will not be liable for any loss or damage arising from your failure to comply with this security obligation.
@@ -62,7 +63,7 @@ export default function TermsAndConditionsPage() {
                         <strong>Content License:</strong> By posting Content, you grant the Company a non-exclusive, royalty-free, perpetual, worldwide, and sublicensable license to use, reproduce, modify, adapt, publish, translate, create derivative works from, distribute, and display such Content in any media. This license is necessary for us to operate and improve the Service.
                     </p>
                      <p>
-                        <strong>Content Disclaimer:</strong> We do not pre-screen or monitor user Content. We are not responsible for the accuracy, completeness, or legality of any Content posted by users. We reserve the right to remove or modify any Content at our sole discretion, without prior notice.
+                        <strong>Content and AI Disclaimer:</strong> Generated content and user content may be inaccurate, incomplete, biased, or unsuitable. Teachers and authorised adults must review educational content before use. We are progressively implementing moderation and safeguarding controls; do not submit harmful, confidential, or sensitive child information during the experiment.
                     </p>
                     
                     <h2>5. Termination of Service</h2>

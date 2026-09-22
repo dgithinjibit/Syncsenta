@@ -1,0 +1,25 @@
+[package]
+name = "syncsenta-wasm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+syncsenta-common = { path = "../syncsenta-common" }
+
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["Window", "Storage", "IdbFactory"] }
+gloo-storage = "0.3"
+gloo-timers = "0.3"
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-wasm-bindgen = "0.6"
+uuid = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+proptest = { workspace = true }

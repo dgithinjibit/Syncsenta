@@ -38,7 +38,7 @@ const ExamGeneratorDialog = () => {
   const [cached, setCached] = useState(false);
   const { toast } = useToast();
 
-  const availableSubjects = grade ? getSubjectsForGrade(grade as any) : [];
+  const availableSubjects = grade ? getSubjectsForGrade(grade as any).map(s => s.name) : [];
 
   const reset = () => {
     setPupilName("");

@@ -1,0 +1,90 @@
+[workspace]
+resolver = "2"
+members = [
+    "syncsenta-backend",
+    "syncsenta-wasm",
+    "syncsenta-common",
+    "syncsenta-blockchain",
+]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Web framework
+axum = { version = "0.7", features = ["multipart", "ws"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "compression-gzip"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Auth (Web4 - DID/VC)
+# TODO: Re-enable when ssi crate dependency issues are resolved
+# did-key = "0.2"
+# did-web = "0.2"
+# ssi = "0.7"
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1"
+thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "multipart", "stream"] }
+
+# Config
+config = "0.14"
+dotenv = "0.15"
+
+# Validation
+validator = { version = "0.18", features = ["derive"] }
+
+# Email
+lettre = { version = "0.11", features = ["tokio1-native-tls", "builder"] }
+
+# Crypto
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+
+# Web3/Blockchain
+ethers = { version = "2.0", features = ["abigen", "ws"] }
+
+# IPFS/Decentralized Storage
+# TODO: Re-enable when dependency issues are resolved (Task 5)
+# ipfs-api = { version = "0.17", default-features = false, features = ["with-hyper-rustls"] }
+# cid = "0.11"
+# multihash = "0.19"
+
+# P2P Networking (future)
+libp2p = { version = "0.53", features = ["tcp", "noise", "mplex", "yamux"] }
+
+# TOTP / MFA (deprecated - replaced by hardware wallet)
+# Still needed for backward compatibility with old auth service
+totp-rs = { version = "5", features = ["gen_secret", "qr"] }
+argon2 = "0.5"
+jsonwebtoken = "9"
+
+# PDF + Excel
+printpdf = "0.7"
+rust_xlsxwriter = "0.68"
+
+# Testing
+proptest = "1"
+
+# MeTTa symbolic AI runtime (Task 2.1)
+# Hyperon is the Rust implementation of the MeTTa language. It is not yet
+# published to crates.io, so we pin to the upstream repo. The dependency is
+# optional and gated behind the `metta` feature so that environments without
+# the native build toolchain can still `cargo check` the workspace using the
+# in-process symbolic fallback engine.
+hyperon = { git = "https://github.com/trueagi-io/hyperon-experimental", branch = "main", default-features = false }

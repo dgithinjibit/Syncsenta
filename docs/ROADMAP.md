@@ -1,439 +1,289 @@
-# Syncsenta MVP Roadmap
-
-**Project**: Syncsenta - AI-Powered Education Platform for Kenya
-**Target**: 100% MVP Launch Readiness  
-**Last Updated**: 2026-09-21
-
-**Omega/Hyperon review update**: 2026-09-08 — representative Hyperon
-dependents reviewed; adapter input validation and fallback telemetry contract
-hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJECTS.md).
-
----
-
-## Current Status: 78% MVP web product / 70% overall evidence-weighted estimate
-
-The earlier 95% figure was an internal MVP estimate. The current assessment
-separates the deployed MVP web product from the full Phase 2/3 roadmap. Studio
-is a real deployed application with working routes, authentication
-foundations, curriculum activities, AI decision code, PWA assets, and
-automated tests, but the Render AI readiness path, production RAG proof,
-durable offline reconciliation, observability, and several role workflows
-remain incomplete.
-
-### Recent Progress
-- ✅ Task 5: MeTTa/Hyperon telemetry integration (COMPLETE)
-- ✅ Comprehensive code completion analysis (82-88%)
-- ✅ Security audit completed (85/100 rating)
-- ✅ Rate limiting & CSRF protection implemented
-- ✅ Grade 2 student workflow designed (95% complete)
-- ✅ Grade selection now shows an explicit personalization/loading state before dashboard navigation
-- ✅ LMS domain contracts and authenticated organisation/programme/cohort/enrollment API foundation added
-- ✅ Grade 4 core subjects now share the unified subject catalog and grade-specific sandbox overview contract
-- ✅ Generated guided-foundation activities now resolve through the activity player
-- ✅ Added `docs/CONTENT_READINESS.md` to keep canvas, worksheet, chat, and fallback claims explicit
-
-### 2026-09-21 — Grade 4 unified subject-overview slice ✅
-
-- ✅ Made `/student/learn_by_making` the unified subject catalog entry point.
-- ✅ Routed core subjects to `/student/sandbox/{grade}/{subject}` overviews.
-- ✅ Preserved AI Literacy, Blockchain Literacy, and Financial Literacy as chat-first courses.
-- ✅ Added Social Studies to the core subject contract and Grade 4 catalog.
-- ✅ Fixed generated guided-foundation activity resolution so catalog activities open in the player instead of returning `Activity Not Found`.
-- ✅ Preserved the legacy Grade 4 English plural fallback identifier for existing links and tests.
-- ✅ Added the Grade 4 content-readiness matrix covering canvas-ready, worksheet-ready, chat-ready, guided fallback, and catalog-only states.
-- ✅ Added regression coverage for Grade 4 Mathematics fallback resolution and core/extended subject routing.
-- ✅ Verified with focused tests, TypeScript, lint, production build, and `git diff --check`.
-
-### 2026-09-21 — Chat reliability and Grade 4 sandbox coverage ✅
-
-- ✅ Kept the student chat page renderable when optional chat-session creation or history reads fail.
-- ✅ Moved API chat-session creation to the authenticated request-scoped Supabase client.
-- ✅ Preserved model streaming when persistence is temporarily unavailable; persistence failures remain logged rather than blocking the learner.
-- ✅ Added curriculum-backed Grade 4 activity generation for Mathematics, English, Kiswahili, Environmental Activities, Social Studies, Creative Arts, CRE, and Indigenous Language.
-- ✅ Added deterministic Grade 4 activity IDs, prerequisite sequencing, term assignment, subject icons, and activity-player resolution.
-- ✅ Kept the legacy guided-foundation IDs resolvable for existing bookmarks and compatibility tests.
-- ✅ Added regression coverage for all eight Grade 4 core subject catalogues.
-- ✅ Verified the chatbot/sandbox changes with 19 focused tests, TypeScript, lint, and production build.
-
-### 2026-09-21 — All available curriculum data wired into sandboxes ✅
-
-- ✅ Generalized the deterministic sandbox activity generator from Grade 4 to Grades 1–9.
-- ✅ Consumed all available repository curriculum strands for lower primary, upper primary, and junior secondary core subjects.
-- ✅ Added subject-key normalization for English Activities, Creative Activities, Science & Technology, Integrated Science, CRE, Social Studies, Kiswahili, Mathematics, and Indigenous Language.
-- ✅ Added stable all-grade activity IDs, term assignment, prerequisite sequencing, subject icons, and activity-player resolution.
-- ✅ Preserved authored activities and the Grade 2 curriculum mapper without replacing existing routes or progress behavior.
-- ✅ Retained safe guided fallbacks for grade/subject combinations where the repository has no curriculum source.
-- ✅ Added all-grade regression coverage for every curriculum combination represented in the repository.
-
-The full multi-phase roadmap is not 78% complete: mobile, collaboration,
-NEMIS, multi-tenancy, full indigenous-language support, voice, and advanced
-analytics remain future scope.
-
-### Completed ✅
-- [x] **Core Architecture** (100%)
-  - Next.js 14 App Router frontend
-  - Python FastAPI backend with multi-agent system
-  - Supabase PostgreSQL database with RLS
-  - Hyperon MeTTa reasoning engine integration
-  
-- [x] **Authentication & Authorization** (100%)
-  - Supabase Auth implementation
-  - JWT session management
-  - Role-based access control (Teacher, Student, Parent, Admin)
-  - Fixed cookie-based auth issues (replaced with proper Supabase session)
-
-- [x] **AI Agent System** (100%)
-  - ✅ LessonArchitect agent (lesson planning)
-  - ✅ AssessmentAgent (test generation)
-  - ✅ WorksheetAgent (worksheet creation)
-  - ✅ ExamAgent (exam generation)
-  - ✅ DifferentiationAgent (personalized content)
-  - ✅ Multi-provider LLM client (OpenAI, Anthropic, Google)
-  - ✅ MeTTa policy integration with Hyperon runtime + fallback
-  - ✅ Telemetry pipeline with policy evaluation (Task 5 COMPLETE)
-
-- [x] **Database & RAG** (90%)
-  - ✅ Supabase schema design
-  - ✅ Row Level Security (RLS) policies
-  - ✅ Curriculum knowledge base
-  - ✅ Vector search with pgvector
-  - ⚠️ Indigenous language support (partial)
-
-- [x] **Frontend Dashboard** (95%)
-  - ✅ Teacher dashboard
-  - ✅ Student dashboard (Grade 2 workflow researched & documented)
-  - ✅ Parent dashboard (Grade 2 reporting included)
-  - ✅ School admin dashboard (demo data with disclaimer)
-  - ✅ National admin dashboard (demo data with disclaimer)
-  - ✅ Fixed dead navigation links
-  - ✅ Removed hardcoded mock data
-  - ✅ Dark mode support
-  - ✅ **Grade 2: 70+ activities implemented across 7 subjects**
-  - ⚠️ Grade 2: Onboarding wizard needed (final 5%)
-
-- [x] **Deployment Infrastructure** (100%)
-  - ✅ Vercel deployment (frontend) - sentastudio
-  - ✅ Render deployment (backend Python service)
-  - ✅ CI/CD pipelines via GitHub Actions
-  - ✅ Environment variable management
-
-- [x] **Dependency security audit**
-  - ✅ Studio `npm audit` reports zero vulnerabilities
-  - ✅ Scheme Scribe `npm audit` reports zero vulnerabilities
-  - ✅ Python `pip-audit` reports no known vulnerabilities
-
----
-
-## In Progress 🚧
-
-### Architecture Refactoring (Current - 10%)
-**Priority**: HIGH  
-**Based on 2025/2026 best practices research**
-
-**Status**: 
-- ✅ Created AGENTS.md for AI-assisted development
-- ✅ Created ROADMAP.md for tracking progress
-- ✅ Researched 2025/2026 best practices
-- 🚧 Need to reorganize code structure
-
-**Next Steps**:
-1. Reorganize Python agents by domain
-2. Add comprehensive docstrings
-3. Frontend component reorganization
-4. Improve test coverage to 80%
-
-#### Omega / Hyperon boundary hardening
-- [x] Review representative Hyperon dependent projects and record reusable patterns
-- [x] Keep raw policy-atom construction inside the Python Hyperon adapter
-- [x] Reject malformed dynamic policy symbols with a fail-closed verdict
-- [x] Stabilize the fallback evaluator label used by telemetry consumers
-- [x] Route every student chat turn through the request-scoped MeTTa boundary before Omega policy selection
-- [x] Normalize all subject labels before MeTTa parsing and test the subject-agnostic contract
-- [x] Keep every sandbox subject playable with a guided-foundations fallback while authored content expands
-- [ ] Add explicit Hyperon runtime/version contract and readiness checks
-- [ ] Restore and validate the deployed AI backend used by student chat
-- [ ] Author equivalent curriculum activities for every listed CBC subject and grade (fallback currently verified)
-- [ ] Add durable, versioned Omega knowledge/session persistence with restart tests
-- [ ] Add timeout, cancellation, resource limits, and bounded concurrency around Hyperon calls
-- [ ] Add policy decision audit fields: correlation ID, policy version, evaluator, reason, latency
-- [ ] Make adapter, persistence, replay, and end-to-end policy tests required CI gates
-
----
-
-## Remaining Work (15%) 📋
-
-### 1. Architecture Refactoring (10% of remaining)
-**Priority**: HIGH  
-**Based on 2025/2026 best practices research**
-
-#### Current Issues:
-- Monorepo structure not optimized for AI tools
-- Missing standardized context management
-- Inconsistent file organization patterns
-
-#### Planned Improvements:
-- [ ] Reorganize `ai-agents/src/syncsenta_agents/` for better discoverability
-  - Group by domain (pedagogy, assessment, monitoring) not by type
-- [ ] Add comprehensive docstrings to all Python modules (Google style)
-- [ ] Implement context management strategy:
-  - Add detailed type definitions
-  - Create architecture diagrams
-  - Document inter-agent dependencies
-- [ ] Frontend component reorganization:
-  - Group by feature domain (assessment, lessons, monitoring)
-  - Extract shared business logic to `lib/`
-- [ ] Add missing test coverage to reach 80% target
-
-**References Applied**:
-- [PropelCode 2025 Guide](https://www.propelcode.ai/blog/structuring-codebases-for-ai-tools-2025-guide)
-- [FastAPI LLM Production Template](https://activewizards.com/blog/fastapi-for-llm-systems-production-langchain-template)
-- [Monorepo Best Practices](https://graphite.com/guides/monorepo-frontend-backend-best-practices)
-
-### 1. Security Hardening (3% of remaining) -> IN PROGRESS ✨
-**Priority**: CRITICAL
-
-- [x] Security audit completed (85/100 rating)
-- [x] Rate limiting middleware created (`middleware-rate-limit.ts`)
-- [x] CSRF protection implemented (`csrf-protection.ts`)
-- [x] CSRF token API endpoint (`/api/csrf-token`)
-- [ ] Enable rate limiting in production (configure Upstash Redis)
-- [ ] Apply CSRF protection to state-changing endpoints
-- [ ] Run npm audit and pip-audit
-- [ ] Integrate Sentry for error monitoring
-- [ ] Add security headers validation
-- [ ] Privacy policy and terms of service pages
-
-### 3. Performance Optimization (2% of remaining)
-**Priority**: MEDIUM
-
-- [ ] Implement LLM response streaming
-- [ ] Add caching layer for frequent queries
-- [ ] Optimize Supabase queries (add indexes)
-- [ ] Lazy load dashboard components
-- [ ] Image optimization audit
-- [ ] Add Suspense boundaries to async components
-- [ ] Database connection pooling
-
-### 4. Documentation & Developer Experience
-**Priority**: MEDIUM
-
-- [x] Create AGENTS.md for AI-assisted development
-- [x] Add API documentation (FastAPI exposes OpenAPI/Swagger at `/docs` and `/openapi.json`)
-- [x] Create deployment runbook (`docs/DEPLOYMENT_RUNBOOK.md`)
-- [x] Add troubleshooting guide (`docs/TROUBLESHOOTING.md`)
-- [ ] Document environment variable requirements
-- [ ] Create video walkthrough for developers
-
----
-
-## Post-MVP Features (Future)
-
-### Phase 2: Enhanced Features
-- [ ] Real-time collaboration (WebSockets)
-- [ ] Advanced analytics dashboard with real data
-- [ ] Mobile app (React Native)
-- [ ] Offline mode support
-- [ ] Parent-teacher messaging
-- [ ] Automated report card generation
-- [ ] Integration with Kenya Education Management System (NEMIS)
-- [ ] Deploy and stage-test LMS organisations, programmes, cohorts, and consent-aware enrollments
-- [ ] Add teacher LMS interface for mentor assignment, learner enrollment, and cohort progress
-- [ ] Add guardian consent and enrollment lifecycle UI
-- [ ] Review and enrich generated Grade 4 question banks with subject-specific distractors, explanations, and cultural examples
-- [ ] Add Grade 4 canvas manipulatives where direct manipulation improves the learning objective
-- [ ] Add browser-level smoke tests for chatbot rendering and every core subject overview
-- [ ] Teacher-review generated all-grade curriculum activities before marking them complete
-
-### Phase 3: Scale & Localization
-- [ ] Multi-tenancy for multiple schools
-- [ ] Full indigenous language support (Swahili, Kikuyu, Luo, etc.)
-- [ ] Voice interaction support
-- [ ] Regional curriculum adaptations
-- [ ] Advanced accessibility features (WCAG AAA)
-
----
-
-## Known Issues & Technical Debt
-
-### Critical
-- None currently blocking MVP launch
-
-### High Priority
-- [ ] Telemetry pipeline not fully wired (Task 5 in progress)
-- [ ] Some dashboard components still have empty states (student monitoring)
-- [ ] Limited test coverage in frontend (needs Jest setup)
-
-### Medium Priority
-- [ ] Hyperon runtime installation not automated (graceful fallback working)
-- [x] Dependency vulnerability audits run for Studio, Scheme Scribe, and Python requirements
-- [ ] Missing API documentation for Python backend
-- [ ] Frontend bundle size not optimized
-
-### Low Priority
-- [ ] Dark mode has minor style inconsistencies
-- [ ] Some TypeScript types are `any` (need strict typing)
-- [ ] Console warnings in development mode
-- [ ] Missing PropTypes for some components
-
----
-
-## Code Quality Metrics
-
-### Current State
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| **Backend Test Coverage** | 80% | ~75% | 🟡 |
-| **Frontend Test Coverage** | 80% | ~10% | 🔴 |
-| **TypeScript Strict Mode** | 100% | 100% | ✅ |
-| **Python Type Hints** | 100% | ~90% | 🟡 |
-| **Linting Errors** | 0 | 0 | ✅ |
-| **Security Vulnerabilities** | 0 | ? | 🟡 (needs audit) |
-| **API Documentation** | 100% | 30% | 🔴 |
-
-### Code Complexity
-- **Python**: Average cyclomatic complexity < 10 ✅
-- **TypeScript**: Average component complexity < 15 ✅
-- **File Size**: No files > 500 lines ✅
-
----
-
-## Dependencies Status
-
-### Frontend (Next.js)
-- ✅ Next.js 14.x (latest stable)
-- ✅ React 18.x
-- ✅ Supabase JS client (latest)
-- ✅ Tailwind CSS 3.x
-- ✅ Shadcn/ui components (up to date)
-- ⚠️ Need to audit for security vulnerabilities
-
-### Backend (Python)
-- ✅ FastAPI 0.115.x (latest)
-- ✅ Pydantic 2.x
-- ✅ Supabase Python client
-- ✅ OpenAI, Anthropic, Google SDKs (latest)
-- ✅ Hyperon (optional, with fallback)
-- ⚠️ Need to run `pip-audit` for vulnerabilities
-
----
-
-## Deployment Checklist
-
-### Pre-Production
-- [ ] Complete Task 5 (telemetry integration)
-- [ ] Run security audit
-- [ ] Complete architecture refactoring
-- [ ] Add comprehensive error handling
-- [ ] Set up monitoring & alerting (Sentry, LogRocket, etc.)
-- [ ] Load testing with realistic data
-- [ ] Backup strategy for production database
-
-### Production Launch
-- [ ] Deploy to Vercel production (main branch)
-- [ ] Deploy Python backend to Render production
-- [ ] Configure production environment variables
-- [ ] Enable Supabase production mode
-- [ ] Confirm and set up the canonical Syncsenta custom domain
-- [ ] SSL certificate configuration
-- [ ] CDN setup for static assets
-- [ ] Database backup automation
-
-### Post-Launch
-- [ ] Monitor error rates
-- [ ] Track performance metrics
-- [ ] Gather user feedback
-- [ ] Plan iteration based on usage data
-- [ ] Scale infrastructure as needed
-
----
-
-## Team Responsibilities
-
-### Frontend Development
-- Dashboard UI/UX improvements
-- Component refactoring
-- Test coverage improvement
-- Accessibility compliance
-
-### Backend Development
-- Complete telemetry integration (Task 5)
-- Security hardening
-- API documentation
-- Performance optimization
-
-### DevOps
-- Monitoring setup
-- CI/CD optimization
-- Infrastructure scaling
-- Backup automation
-
-### QA
-- End-to-end testing
-- Security testing
-- Load testing
-- Accessibility testing
-
----
-
-## Success Metrics
-
-### Technical
-- ✅ 99.9% uptime
-- ✅ < 2s page load time
-- ✅ < 5s LLM response time (p95)
-- ✅ 80%+ test coverage
-- ✅ Zero critical security vulnerabilities
-
-### User Experience
-- Teacher can generate lesson plan in < 3 minutes
-- Assessment creation takes < 5 minutes
-- Student can complete assignment seamlessly
-- Parent can view progress without confusion
-
-### Business
-- Support 100+ concurrent teachers
-- Handle 1000+ students
-- Process 10,000+ AI requests/day
-- 95%+ user satisfaction rating
-
----
-
-## Commit Log (Recent Changes)
-
-### 2026-08-29 - Task 5 Complete: Telemetry + Policy Integration
-- ✅ Wired HyperonEvaluator into TelemetryAgent.process_events()
-- ✅ Added policy_verdict field to BehavioralProfile dataclass
-- ✅ Policy evaluation now runs on every telemetry session capture
-- ✅ Telemetry data (erasure_count, dwell_time, mastery, etc.) passed to policy
-- ✅ Policy verdict serialized in to_dict() for database storage
-- ✅ Created comprehensive test suite (test_telemetry_policy_integration.py)
-- ✅ Logging includes policy approval status and evaluator type
-- 🎯 Task 5 Status: **100% COMPLETE**
-
-### 2026-08-29 - Architecture Documentation & Cleanup
-- ✅ Created AGENTS.md for AI-assisted development context
-- ✅ Created ROADMAP.md for MVP tracking
-- ✅ Deleted `datasets/superintelligence/Jss.md` (unnecessary curriculum file)
-- ✅ Researched 2025/2026 best practices for Next.js + Python AI architecture
-- 🎯 Current focus: Refactoring to 100% MVP readiness
-
-### Previous (from context)
-- ✅ Fixed 9 critical dashboard issues (auth, dead links, hardcoded data)
-- ✅ Integrated Hyperon MeTTa runtime with Python fallback
-- ✅ Created HyperonEvaluator with comprehensive test suite
-- ✅ Updated all policy checks in metta_engine.py
-- ✅ Fixed Supabase auth in lib/auth.ts and dashboard pages
-- ✅ Removed broken blockchain section
-- ✅ Added "Demo Data" disclaimers to admin dashboards
-
----
-
-## Contact & Support
-
-**Project Lead**: [Your Name]  
-**Repository**: https://github.com/dgithinjibit/Syncsenta
-**Documentation**: See `CODE_MAP.md`, `AGENTS.md`, and `docs/`
-
----
-
-**Next Immediate Action**: Complete Task 5 (Telemetry Integration), then proceed with architecture refactoring based on 2025/2026 best practices.
+# SyncSenta Roadmap
+
+This roadmap combines the existing SyncSenta product review with the relevant interaction and engineering practices from [`dgithinjibit/i-have-adhd`](https://github.com/dgithinjibit/i-have-adhd) and [`dgithinjibit/skills`](https://github.com/dgithinjibit/skills). The goal is to make SyncSenta clearer for learners and teachers, safer for Grade 6 Omega Claw learning, and more predictable to maintain.
+
+## Roadmap principles
+
+1. **Make the next action obvious.** Every learner, teacher, and agent screen should have one primary action, clear labels, and a visible completion state.
+2. **Reduce working-memory load.** Use short instructions, numbered multi-step activities, progressive disclosure, saved progress, and concise error messages.
+3. **Keep humans in control.** AI suggestions require checking, teacher review, and clear responsibility. Omega Claw is introductory in Grade 6 and becomes deeper only in supervised Senior School Grades 10–12.
+4. **Use small, verifiable changes.** Features should be implemented in narrow slices with a test, review, and documented acceptance criteria.
+5. **Prefer accessible defaults.** Keyboard navigation, readable contrast, reduced motion, clear focus states, and mobile-friendly tap targets are part of the definition of done.
+
+## SyncSenta student interaction model
+
+The student side is an **activity-first learning experience**, not an open-ended chatbot. The child should learn by acting on a bounded challenge, seeing what changes, receiving immediate guidance, and trying again. Student-facing copy and components should use **SyncSenta** and **Omega Claw** language; do not introduce Mwalimu as the product or student-tutor name in new work.
+
+### Interaction loop
+
+```text
+Orient the learner to one concept
+        ↓
+Present one concrete challenge
+        ↓
+Child clicks, drags, groups, selects, types, or manipulates
+        ↓
+SyncSenta observes the response
+        ↓
+Give immediate visual, text, or optional spoken feedback
+        ↓
+Scaffold the misconception with a smaller step or hint
+        ↓
+Child retries and explains the idea
+        ↓
+Unlock the next bounded node or recommend revision
+```
+
+### Student-side requirements
+
+- [ ] Make interactive tasks the primary learning surface; do not make a long AI chat the default lesson experience.
+- [ ] Support clicking, dragging, grouping, visual grids, number pads, sorting, connecting, and direct manipulation as reusable activity primitives.
+- [ ] Provide immediate feedback through colour/state changes, highlighted objects, concise text, optional spoken guidance, progress indicators, trophies, and celebration states.
+- [ ] Treat mistakes as learning evidence: show a smaller step, ask one guiding question, highlight the relevant object, and allow retry before revealing a worked answer.
+- [ ] Organise lessons into short bounded rounds with a visible question count, node state, pause/resume, and a clear next action.
+- [ ] Require transfer after success: apply the idea to a new example or explain it back in the learner's own words.
+- [ ] Provide a text-first and printable equivalent for every essential activity so the experience works with limited internet.
+- [ ] Track evidence of understanding, not just completion: action, answer, hint level, misconception, retry, mastery state, and next recommendation.
+- [ ] Gate AI and blockchain activity visibility to Grade 6 introductory scope and Senior School Grades 10–12; do not expose this pathway to lower grades.
+
+## Omega Claw as the SyncSenta backbone
+
+Omega Claw is the **curriculum, activity, progression, and evidence backbone** for SyncSenta. It is not only a subject label or a chatbot prompt. Every eligible student activity, teacher-generated lesson, revision set, and progress record should be able to resolve through Omega Claw's scope and learning-state rules.
+
+Omega Claw should own the following contracts:
+
+| Backbone responsibility | Required behavior |
+|---|---|
+| Curriculum scope | Grade 6 introduces AI and blockchain conceptually; Grades 10–12 provide deeper supervised study; lower grades are excluded from this pathway. |
+| Activity registry | Store reusable challenge types, prompts, widgets, hints, answer checks, and offline equivalents. |
+| Progression | Move from orientation to challenge, scaffold, retry, mastery, and transfer rather than advancing on completion alone. |
+| Safety boundaries | Block crypto trading, investment advice, wallet custody, unsupervised attacks, public deployment, and unnecessary personal-data collection. |
+| Teacher control | Generated activities remain drafts until a teacher reviews and approves them. |
+| Evidence | Record the learner's attempt, response, hint usage, misconception category, mastery state, and recommended next action. |
+| Delivery | Support online interactive mode, low-bandwidth text mode, printable mode, and optional audio. |
+| Auditability | Keep curriculum source, grade, strand, activity version, teacher approval, and update date attached to learning content. |
+
+### Backbone implementation sequence
+
+1. Define a typed Omega Claw activity contract for challenge nodes, widgets, hints, mastery checks, and offline fallbacks.
+2. Add a registry that maps grade, subject, concept, strand, and learning outcome to approved activity nodes.
+3. Add a student activity runner that renders one node at a time and records attempts without requiring an AI call.
+4. Add a bounded guidance service that selects the next hint or question from the node's approved scaffolding rules.
+5. Add teacher review and approval states before activities can be assigned to learners.
+6. Add progress and evidence reporting for learners, teachers, and parents using minimum necessary data.
+7. Add tests proving Grade 6 accepts introductory AI/blockchain nodes, Senior School accepts deeper nodes, and lower grades reject them.
+
+## Priority 0: Make the current product trustworthy
+
+Target: immediate foundation work before adding more learning features.
+
+### Product and website
+
+- [ ] Connect a production custom domain and update canonical URLs, sitemap, robots, Open Graph metadata, and structured data.
+- [ ] Rewrite the homepage hero so a first-time visitor understands what SyncSenta does, who it serves, and the next action within five seconds.
+- [ ] Make the primary CTA visible above the fold and repeat it at meaningful decision points.
+- [ ] Verify the contact flow end to end: validation, loading, success, failure, spam protection, notification, safe storage, and privacy notice.
+- [ ] Add the minimum legal and trust surfaces: privacy policy, terms where needed, founder/team context, and at least one proof point.
+
+### Accessibility and performance
+
+- [ ] Add a skip link, logical heading order, accessible names, visible focus states, and keyboard-only navigation.
+- [ ] Respect `prefers-reduced-motion` and verify color contrast, form labels, error announcements, image alt text, and tap-target size.
+- [ ] Optimize hero media, fonts, JavaScript bundles, third-party scripts, and layout stability.
+- [ ] Add branded loading, error, and 404 states so users are never left with a blank screen.
+- [ ] Run Lighthouse on desktop and mobile; record LCP, INP, CLS, and the follow-up fixes.
+
+## Priority 1: ADHD-friendly learner and teacher experience
+
+Target: reduce friction in the student, teacher, and agent workflows. These items are adapted from the rules in [`i-have-adhd/skills/i-have-adhd/SKILL.md`](https://github.com/dgithinjibit/i-have-adhd/blob/main/skills/i-have-adhd/SKILL.md); they are product behavior guidelines, not a medical diagnosis or treatment feature.
+
+### Interaction patterns
+
+- [x] Position the install-app prompt at the bottom-left so it stays visible without covering primary lesson content or bottom navigation.
+- [ ] Put one clear **Next step** on every lesson, quiz, resource, and setup screen.
+- [ ] Convert long instructions into short numbered steps, with one action per step and a visible progress indicator.
+- [ ] Preserve learner state across navigation and sessions: current lesson, last completed step, saved draft, and next recommended action.
+- [ ] Show concrete wins immediately: completed activity, earned competency, saved resource, or teacher feedback received.
+- [ ] Use matter-of-fact error messages that state the cause and the next recovery action; do not hide failures behind generic toasts.
+
+### Focus-supportive controls
+
+- [ ] Add optional focus mode for lessons: one task at a time, reduced visual noise, pause/resume, and a clear return point.
+- [ ] Add optional short work intervals and break reminders without forcing timers on learners.
+- [ ] Keep lists and choices small by default; group secondary actions under progressive disclosure.
+- [ ] Add learner-controlled notification preferences and avoid interrupting active learning with non-essential prompts.
+- [ ] Test all focus features with teachers and learners before making them defaults.
+
+## Priority 2: Grade 6 Omega Claw learning pathway
+
+Target: provide a safe, introductory AI and blockchain pathway for Grade 6 only.
+
+- [x] Define a Grade 6-only curriculum guide covering AI concepts, blockchain as a shared record, and responsible digital citizenship.
+- [x] Block AI/blockchain Omega Claw content for PP1–Grade 5 before backend retrieval or generation.
+- [x] Keep the pathway conceptual and teacher-guided; exclude advanced coding, crypto trading, investment advice, and personal-data collection.
+- [ ] Add a learner-facing pathway page with three short strands: “What is AI?”, “What is blockchain?”, and “Responsible digital citizenship”.
+- [ ] Add teacher review controls for every generated Omega Claw activity, with an explicit Grade 6 and introductory-scope check.
+- [ ] Add age-appropriate formative checks: explain the concept in own words, identify one limitation or risk, and propose one safe human-reviewed use.
+- [ ] Add offline-friendly paper or classroom activities, including AI example sorting, a paper blockchain chain, and privacy/fairness scenarios.
+- [ ] Add automated tests for Grade 6 acceptance and Grade 1–5 rejection cases.
+
+## Priority 3: Senior School Omega Claw pathway
+
+Target: provide deeper AI and blockchain study in Grades 10–12 without weakening privacy, safety, ethics, or human accountability.
+
+- [x] Define Grade 10–12 progression from foundations and experimentation to applied systems and supervised capstone work.
+- [x] Add AI data literacy, algorithms, evaluation, bias, explainability, cybersecurity, governance, distributed systems, consensus, and smart-contract concepts.
+- [x] Add practical project requirements for evidence, reproducibility, accessibility, risk assessment, and a simpler non-blockchain alternative.
+- [x] Keep real-money trading, token sales, wallet custody, financial promotion, unsupervised attacks, and public deployment out of student work.
+- [ ] Add Senior School learner-facing modules, code or spreadsheet sandboxes, and teacher-approved datasets.
+- [ ] Add Grade 10, Grade 11, and Grade 12 diagnostic, mastery, and capstone rubrics.
+- [ ] Add automated tests for Senior School acceptance and lower-grade rejection cases.
+
+## Priority 4: Teacher-first, low-bandwidth lesson planning and revision
+
+Target: make the teacher side the next product focus. SyncSenta should help schools with limited internet create, revise, save, and reuse curriculum-aligned lessons without requiring a continuous connection or advanced technical skills.
+
+### Core teacher workflow
+
+- [x] Route Grade 6 and Senior School Omega Claw context into lesson-plan and scheme-of-work generation.
+- [x] Expose Grades 1–12 in the scheme-of-work generator.
+- [ ] Create a clear teacher onboarding path: choose school and grade, select subject, choose curriculum strand, generate a first draft, review, save offline, and share or print.
+- [ ] Add a teacher workspace with Drafts, Saved Lessons, Schemes, Revision Sets, and Review Queue.
+- [ ] Add a visible curriculum context panel showing grade, subject, strand, sub-strand, learning outcomes, source, and last updated date before generation.
+- [ ] Add teacher approval as a required state before a generated lesson can be shared with students.
+- [ ] Add revision tools: simplify language, add local examples, differentiate support, create a retrieval-practice set, translate to Kiswahili, and produce an offline printable version.
+- [ ] Preserve the original draft, every revision, teacher notes, and the final approved version.
+
+### Limited-internet requirements
+
+- [ ] Cache the last approved lesson, scheme, quiz, and revision set for offline viewing.
+- [ ] Queue generation requests locally when the connection is unavailable and show a clear Pending Sync state.
+- [ ] Make all core teacher outputs exportable to Markdown, PDF, and print-friendly HTML.
+- [ ] Keep generated lessons usable without video, external links, or live AI during classroom delivery.
+- [ ] Provide low-bandwidth mode with reduced media, compressed assets, short prompts, and resumable uploads.
+- [ ] Show connection status, last successful sync, retry action, and whether content is local, synced, or awaiting review.
+
+### Teacher-side acceptance criteria
+
+- [ ] A teacher can create a Grade 11 AI or blockchain scheme from a curriculum context and see the expected learning outcomes, practical work, ethics, and safety boundaries.
+- [ ] A teacher can revise the generated content without losing the original, then approve and export it.
+- [ ] A teacher can prepare a lesson using the output while offline after the initial sync.
+- [ ] A teacher can generate a quiz or revision set from the same approved lesson without curriculum drift.
+- [ ] The interface states when content is AI-generated, when it is teacher-approved, and which curriculum source informed it.
+
+## Priority 5: Serious-reviewer proof, trust, and school adoption
+
+Target: demonstrate that SyncSenta is a working, safe, curriculum-aligned platform rather than a list of features. Each proof item must link to a real artifact, screenshot, recording, or verified workflow.
+
+### Live product evidence
+
+- [ ] Publish a live demo with a stable URL and a seeded, non-personal demo account or guided tour.
+- [ ] Capture real screenshots of the teacher dashboard, student experience, parent dashboard, progress dashboard, lesson review, and low-bandwidth states.
+- [ ] Record a short demo video showing onboarding, lesson generation, teacher revision, approval, offline access, quiz creation, and student results.
+- [ ] Provide a sample lesson library covering Grade 6 introduction and Senior School Grades 10–12 depth.
+- [ ] Demonstrate a complete sample quiz flow from teacher creation through student attempt, marking, feedback, and revision recommendation.
+- [ ] Demonstrate the voice tutor with a controlled, age-appropriate script, transcript, consent notice, and fallback text mode.
+
+### School and family trust evidence
+
+- [ ] Build a parent dashboard showing assigned work, participation where applicable, progress, teacher comments, and next steps without exposing unnecessary learner data.
+- [ ] Generate a parent report that explains progress in plain language, includes evidence, and clearly distinguishes teacher judgement from AI assistance.
+- [ ] Add a school pricing page with transparent plan limits, onboarding/support inclusions, pilot terms, and a contact path for institutions.
+- [ ] Add terms of service, a privacy policy, a child safety policy, an acceptable-use policy, and a data-retention/deletion explanation.
+- [ ] Add a contact and support process with response expectations, escalation path, safeguarding contact, and service-status communication.
+- [ ] Collect permissioned testimonials from teachers, parents, and school leaders; label pilots, quotes, dates, and outcomes accurately.
+- [ ] Publish at least three case studies with the school context, problem, workflow, screenshots, teacher role, learner evidence, outcome, limitations, and next step.
+
+### Minor safety and data governance
+
+- [x] Add experimental frontend routes for privacy, child safety, data retention, AI limitations, parental consent, reporting, support, school controls, and student-data ownership; clearly label them as demo/prototype surfaces.
+- [x] Add guarded backend endpoints for trust requests, parental consent, student-data rights, and school-control actions; keep demo mode non-persistent by default and enable Firestore writes only with an explicit environment flag.
+- [ ] Add a privacy policy written for parents, schools, teachers, and learners, including data categories, purposes, processors, transfers, rights, and contact details.
+- [ ] Add a parental consent flow for child accounts, school-managed accounts, voice features, communications, and any optional data collection; record consent version and withdrawal.
+- [ ] Publish a data-retention and deletion policy with retention periods by record type, school controls, parent requests, learner-account closure, backups, and deletion verification.
+- [ ] Add content moderation and safeguarding controls for learner prompts, generated content, uploads, voice interactions, reporting, escalation, audit logs, and human review.
+- [ ] Add a prominent AI limitation disclaimer: generated content may be wrong, biased, incomplete, or unsuitable; teachers remain responsible for review and decisions.
+- [ ] Replace demo role cookies with secure authenticated sessions for any real school or learner data; enforce server-side authorization on every school, parent, teacher, and student resource.
+- [ ] Add school-admin controls for staff invitations, role assignment, class membership, curriculum permissions, consent status, exports, deletion requests, audit logs, and account suspension.
+- [ ] Document student progress data ownership, access rights, correction/export/deletion procedures, school responsibilities, and what happens when a learner changes school.
+- [ ] Conduct a child-safety, privacy, and security review before using live minor data or making public claims about learner outcomes.
+
+### Curriculum and outcomes evidence
+
+- [ ] Publish curriculum mapping details for each supported grade and subject: source, strand, sub-strand, learning outcomes, activities, competencies, values, assessment evidence, and update date.
+- [ ] Show the Grade 6 AI/blockchain boundary and the Senior School Grade 10–12 progression in the product and documentation.
+- [ ] Publish anonymised student-result examples with baseline, intervention, assessment method, sample size, time period, and limitations.
+- [ ] Add a curriculum-alignment evidence view to generated teacher resources so reviewers can inspect why a lesson is aligned.
+- [ ] Establish a teacher review panel or pilot protocol before making learning-outcome claims publicly.
+
+### Onboarding proof
+
+- [ ] Design a five-step onboarding flow: school profile, teacher role, curriculum level, first lesson, and review/export.
+- [ ] Include a sample mode so a reviewer can experience the product without creating real student records.
+- [ ] Provide an explicit next action on every onboarding screen and a visible completion state.
+- [ ] Add a 90-second guided tour and a one-page teacher quick-start guide.
+
+## Priority 6: Agent operating model and shared project language
+
+Target: make Omega Claw and future agents consistent, explainable, and easier to maintain.
+
+The selected practices come from the reusable engineering and productivity skills in [`dgithinjibit/skills`](https://github.com/dgithinjibit/skills), especially `grill-with-docs`, `domain-modeling`, `to-spec`, `to-tickets`, `implement`, `tdd`, `diagnosing-bugs`, `code-review`, `research`, `writing-for-agents`, and `handoff`.
+
+### Context and alignment
+
+- [ ] Create a concise `CONTEXT.md` for SyncSenta covering CBC terminology, learner roles, teacher roles, Omega Claw scope, and safety boundaries.
+- [ ] Add an agent-facing pointer from the relevant instructions to the curriculum guide, with explicit triggers for Grade 6 AI/blockchain requests.
+- [ ] Use a short discovery or “grill with docs” pass for ambiguous product changes before implementation.
+- [ ] Record durable product and architecture decisions as ADRs instead of leaving them only in chat or issue comments.
+
+### Spec-to-implementation workflow
+
+- [ ] Convert each roadmap item into a small acceptance-tested ticket with dependencies and a named validation command.
+- [ ] Implement one vertical slice at a time: UI, data contract, agent behavior, test, and user-visible state.
+- [ ] Use red-green-refactor for new guardrails and regression-sensitive behavior, beginning with Grade 6 and lower-grade rejection tests.
+- [ ] Run a two-part review before merge: standards/code quality and fidelity to the agreed specification.
+- [ ] Use disciplined diagnosis for named bugs and regressions: reproduce, minimise, hypothesise, instrument, fix, and add a regression test.
+
+### Research and handoff
+
+- [ ] Store research findings as cited Markdown in `docs/` when a decision depends on external curriculum, accessibility, or platform guidance.
+- [ ] Redact credentials, cookies, personal data, and learner information before any log or artifact is shared with an agent or issue tracker.
+- [ ] Keep a compact handoff document for unfinished work: current state, decisions, failing checks, and one next action.
+- [ ] Use a plain-language re-explanation path when a learner or teacher indicates that an instruction was not understood.
+
+## Priority 7: Conversion, trust, and operational readiness
+
+Target: turn the public site into a credible studio and product entry point after the foundation is stable.
+
+- [ ] Turn at least three portfolio items into case studies with problem, role, process, solution, outcome, visuals, and a related CTA.
+- [ ] Improve service descriptions so each explains audience, problem, outcome, process, and deliverables.
+- [ ] Add an about/process section, testimonials or proof points, social links, and a reliable booking or inquiry path.
+- [ ] Add privacy-aware analytics for pageviews, CTA clicks, form submissions, portfolio clicks, performance, and errors.
+- [ ] Add an insights or documentation section only when there is a sustainable publishing plan.
+
+## Definition of done
+
+A roadmap item is complete when:
+
+- The user-facing behavior is implemented and understandable without extra explanation.
+- The relevant accessibility and mobile behavior has been checked.
+- Acceptance criteria and regression tests exist for important logic.
+- Errors and recovery actions are visible.
+- Documentation or agent guidance is updated when the behavior changes.
+- The validation result and any unrelated baseline failures are recorded.
+
+## Source mapping
+
+| Source | Relevant material used | SyncSenta application |
+|---|---|---|
+| [`i-have-adhd`](https://github.com/dgithinjibit/i-have-adhd) | Action-first output, numbered steps, state restatement, visible progress, concrete next action, concise errors, reduced tangents | Learner and teacher lesson flows, agent responses, onboarding, and focus-supportive UI |
+| [`skills`](https://github.com/dgithinjibit/skills) | Shared project language, discovery before implementation, specs and tickets, TDD, diagnosis, code review, research, handoff | Omega Claw agent reliability, engineering workflow, documentation, and regression prevention |
+| Attached SyncSenta review provided with the task | Domain, messaging, portfolio, contact, SEO, accessibility, performance, trust, analytics, and QA priorities | Public website readiness and conversion roadmap |
+
+## Suggested first implementation slice
+
+1. Add `CONTEXT.md` with the Omega Claw scope and core CBC terms.
+2. Add Grade 6 and Grade 1–5 automated tests for the existing curriculum guardrail.
+3. Build the three-strand Grade 6 learner pathway with one activity per strand.
+4. Run the accessibility checklist and Lighthouse against that pathway.
+5. Record the result in a short handoff document with the next action.

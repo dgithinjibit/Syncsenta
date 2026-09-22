@@ -10,10 +10,9 @@ import { useSchemeWizardStore } from '@/stores/scheme-wizard-store';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Sparkles, HelpCircle, FileUp } from 'lucide-react';
+import { AlertCircle, Sparkles, HelpCircle } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -49,18 +48,6 @@ export function TeacherInputsStep() {
     setError(null);
     setTeacherInputs(localInputs);
     nextStep();
-  };
-
-  const handleSourceFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = (await file.text()).slice(0, 30000);
-      handleInputChange('sourceMaterial', text);
-      setError(null);
-    } catch {
-      setError('Could not read this file. Upload a text-based document or paste its text below.');
-    }
   };
 
   return (
@@ -240,31 +227,11 @@ export function TeacherInputsStep() {
             />
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Source material for RAG <span className="font-normal text-muted-foreground">(optional)</span></CardTitle>
-            <CardDescription>Paste notes or extracted document text. SyncSenta retrieves the relevant excerpts before creating the scheme.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-3 rounded-lg border border-dashed p-3">
-              <Label className="flex items-center gap-2 text-sm"><FileUp className="h-4 w-4" /> Upload text-based material</Label>
-              <Input className="mt-2" type="file" accept=".txt,.md,.csv,.json,.rtf" onChange={handleSourceFile} />
-            </div>
-            <Textarea
-              placeholder="Paste curriculum notes, textbook extracts, lesson resources, or document text..."
-              value={localInputs.sourceMaterial || ''}
-              onChange={(e) => handleInputChange('sourceMaterial', e.target.value.slice(0, 30000))}
-              rows={6}
-              className="resize-none"
-            />
-          </CardContent>
-        </Card>
       </div>
 
       <div className="flex justify-between items-center pt-4 border-t">
         <div className="text-sm text-muted-foreground">
-          {Object.values(localInputs).filter(v => v && v.trim()).length} of 6 fields completed
+          {Object.values(localInputs).filter(v => v && v.trim()).length} of 5 fields completed
         </div>
         
         <Button

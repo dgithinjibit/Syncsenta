@@ -5,7 +5,7 @@
  * Inspired by Synthesis Tutor's state machine approach.
  */
 
-import { setup, assign, fromPromise, ActorRefFrom } from 'xstate';
+import { setup, assign, createActor } from 'xstate';
 import type { LessonScript, LessonNode, LessonState, InteractionLog } from '../types/lesson-script';
 import { widgetAgentMachine, type WidgetAgentActor } from './widget-agent';
 
@@ -66,10 +66,11 @@ export const lessonMachine = setup({
   types: {
     context: {} as LessonContext,
     events: {} as LessonEvent,
+    input: {} as Partial<LessonContext>,
   },
   actions: {
     // Spawn widget agent for current node
-    spawnWidgetAgent: assign((({ context, spawn }: { context: LessonContext; spawn: any }) => {
+    spawnWidgetAgent: assign(({ context }) => {
       const node = getCurrentNode(context);
       
       // Only spawn widget for micro-eval nodes with widgets
@@ -81,7 +82,7 @@ export const lessonMachine = setup({
       const widgetId = `${context.currentNodeId}-widget`;
 
       // Spawn widget agent as child actor with student and node context
-      const widgetActor = spawn(widgetAgentMachine as any, {
+      const widgetActor = createActor(widgetAgentMachine, {
         id: widgetId,
         input: {
           widgetId,
@@ -90,7 +91,7 @@ export const lessonMachine = setup({
           studentId: context.studentId,
           nodeId: context.currentNodeId,
         },
-      });
+      }).start();
 
       return {
         activeWidgets: {
@@ -98,7 +99,7 @@ export const lessonMachine = setup({
           [widgetId]: widgetActor,
         },
       };
-    }) as any),
+    }),
 
     // Cleanup widget agents when leaving a node
     cleanupWidgets: assign(({ context }) => {
@@ -232,20 +233,17 @@ export const lessonMachine = setup({
 }).createMachine({
   id: 'lesson',
   initial: 'idle',
-  context: ((args: any): LessonContext => {
-    const input = (args.input || {}) as Partial<LessonContext>;
-    return {
-      studentId: input.studentId || '',
-      lessonScript: (input.lessonScript as LessonScript) || ({} as LessonScript),
-      currentNodeId: input.lessonScript?.initialNode || '',
-      completedNodes: input.completedNodes || [],
-      attempts: input.attempts || {},
-      hintsUsed: input.hintsUsed || {},
-      startTime: input.startTime || Date.now(),
-      interactions: input.interactions || [],
-      activeWidgets: {} as Record<string, WidgetAgentActor>,
-    };
-  }) as any,
+  context: ({ input }) => ({
+    studentId: input.studentId || '',
+    lessonScript: input.lessonScript!,
+    currentNodeId: input.lessonScript?.initialNode || '',
+    completedNodes: input.completedNodes || [],
+    attempts: input.attempts || {},
+    hintsUsed: input.hintsUsed || {},
+    startTime: input.startTime || Date.now(),
+    interactions: input.interactions || [],
+    activeWidgets: {},
+  }),
   states: {
     idle: {
       on: {
@@ -360,10 +358,7 @@ export const lessonMachine = setup({
               ],
             },
             REQUEST_HINT: {
-              guard: ({ context }) => {
-                const hintsUsed = context.hintsUsed[context.currentNodeId] || 0;
-                return hintsUsed < 3;
-              },
+              guard: ({ context }) => (context.hintsUsed[context.currentNodeId] || 0) < 3,
               actions: [{ type: 'recordHintRequest' }, { type: 'persistState' }],
             },
           },

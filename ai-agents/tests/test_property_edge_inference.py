@@ -543,9 +543,9 @@ class EdgeInferenceStateMachine(RuleBasedStateMachine):
             avg_time = sum(self.response_times) / len(self.response_times)
             max_time = max(self.response_times)
             
-            # The generator permits 0.1–1.8s samples; allow that bounded range.
+            # Maximum response time shouldn't be more than 3x the average
             consistency_ratio = max_time / avg_time if avg_time > 0 else 1
-            assert consistency_ratio <= 20.0, (
+            assert consistency_ratio < 4.0, (
                 f"Performance inconsistency too high: {consistency_ratio:.2f}x. "
                 f"Average: {avg_time:.3f}s, Max: {max_time:.3f}s"
             )

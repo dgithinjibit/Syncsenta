@@ -15,9 +15,9 @@ export default function SchemeWizardPage() {
   const router = useRouter();
 
   return (
-    <main className="education-shell">
-      <header className="border-b border-border/80 bg-card/70 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-5 py-4 sm:px-8">
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
@@ -26,8 +26,7 @@ export default function SchemeWizardPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <p className="education-kicker mb-1">Educator studio</p>
-            <h1 className="font-headline text-2xl font-bold">CBC Scheme Generator</h1>
+            <h1 className="text-2xl font-bold">CBC Scheme Generator</h1>
             <p className="text-sm text-muted-foreground">
               Create professional, KICD-compliant schemes of work in minutes
             </p>
@@ -35,10 +34,10 @@ export default function SchemeWizardPage() {
         </div>
       </header>
 
-      <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
+      <main className="container mx-auto py-8">
         <SchemeWizard />
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
 

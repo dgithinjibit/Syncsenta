@@ -2,32 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
-  BookOpen, MessageCircle, Brain, Zap, ArrowRight,
-  TrendingUp, Target, Trophy, Map, Sparkles,
-  ChevronRight, Flame, CalendarDays, Video, PlayCircle,
+  BookOpen,
+  MessageCircle,
+  Calendar,
+  Clock,
+  Users,
+  Brain,
+  Zap,
+  ArrowRight,
+  Star,
+  TrendingUp,
+  Heart,
+  Target,
 } from 'lucide-react';
 import { StudentHeader } from '@/components/layout/student-header';
-import { GamificationOverview } from '@/components/gamification/gamification-overview';
-import { LeaderboardPanel } from '@/components/gamification/leaderboard-panel';
-import { tutorTaglineFor } from '@/lib/curriculum/grade-greetings';
-import type { GamificationMode } from '@/components/student/gamification-panel';
-import { loadGamificationMode } from '@/components/student/gamification-mode-switcher';
-import { supabase } from '@/lib/supabase/client';
-import { CompetencyMap } from '@/components/student/competency-map';
-import { FloatingConceptChat } from '@/components/student/floating-concept-chat';
-import { useAgeTheme } from '@/lib/theme/age-theme-context';
-import { ErrorState, classifyError } from '@/components/student/error-boundary';
-import { StatCardSkeleton, SubjectCardSkeleton } from '@/components/ui/skeleton';
-import { perfMonitor, measureAsync } from '@/lib/telemetry/performance-monitor';
-import { liveClassesForGrade, timetableForGrade } from '@/lib/learning-plan';
-import { cacheSandboxPreparation, prepareSandboxForSubject } from '@/lib/sandbox-preparation';
-import { getStudentId } from '@/lib/auth/student-id';
-import { resolveSelectedGrade } from '@/lib/learning-context';
+import { InteractiveChallengePath } from '@/components/student/interactive-challenge-path';
 
 interface StudentProfile {
   id: string;
@@ -38,7 +38,10 @@ interface StudentProfile {
   interests: string[];
   strengths: string[];
   challenges: string[];
-  culturalContext: { region: string; culturalReferences: string[] };
+  culturalContext: {
+    region: string;
+    culturalReferences: string[];
+  };
 }
 
 interface LearningProgress {
@@ -49,455 +52,371 @@ interface LearningProgress {
   averageSessionTime: number;
 }
 
-type Tab = 'overview' | 'gamification' | 'competency';
+const assignments = [
+  {
+    id: 1,
+    title: 'Mathematics — Algebra Practice',
+    due: 'Tomorrow, 11:59 PM',
+    status: { label: 'Urgent', variant: 'destructive' as const },
+  },
+  {
+    id: 2,
+    title: 'English — Essay Writing',
+    due: 'Friday, 11:59 PM',
+    status: { label: 'In Progress', variant: 'secondary' as const },
+  },
+  {
+    id: 3,
+    title: 'Science — Lab Report',
+    due: 'Next Monday, 11:59 PM',
+    status: { label: 'Not Started', variant: 'outline' as const },
+  },
+];
 
-const COMPETENCY_DATA = [
-  { id: 'math', name: 'Mathematics', icon: 'calculator', overallMastery: 78, topics: [{ id: 'fractions', name: 'Fractions', overallMastery: 85, competencies: [{ id: 'frac-1', name: 'Understanding Fractions', mastery: 95, status: 'mastered' as const, gamesRecommended: false, lastPracticed: new Date(Date.now() - 2 * 86400000).toISOString(), totalPractices: 12 }, { id: 'frac-2', name: 'Adding Fractions', mastery: 80, status: 'in-progress' as const, gamesRecommended: false, lastPracticed: new Date(Date.now() - 86400000).toISOString(), totalPractices: 8 }] }, { id: 'decimals', name: 'Decimals', overallMastery: 70, competencies: [{ id: 'dec-1', name: 'Understanding Decimals', mastery: 75, status: 'in-progress' as const, gamesRecommended: false, lastPracticed: new Date(Date.now() - 86400000).toISOString(), totalPractices: 6 }] }] },
-  { id: 'english', name: 'English', icon: 'book', overallMastery: 82, topics: [{ id: 'reading', name: 'Reading Comprehension', overallMastery: 88, competencies: [{ id: 'read-1', name: 'Main Idea', mastery: 92, status: 'mastered' as const, gamesRecommended: false, lastPracticed: new Date(Date.now() - 86400000).toISOString(), totalPractices: 10 }, { id: 'read-2', name: 'Inference', mastery: 84, status: 'in-progress' as const, gamesRecommended: false, lastPracticed: new Date(Date.now() - 2 * 86400000).toISOString(), totalPractices: 7 }] }] },
-  { id: 'science', name: 'Science', icon: 'flask', overallMastery: 68, topics: [{ id: 'biology', name: 'Biology', overallMastery: 72, competencies: [{ id: 'bio-1', name: 'Plant Parts', mastery: 80, status: 'in-progress' as const, gamesRecommended: false, lastPracticed: new Date(Date.now() - 2 * 86400000).toISOString(), totalPractices: 6 }, { id: 'bio-2', name: 'Photosynthesis', mastery: 64, status: 'in-progress' as const, gamesRecommended: true, lastPracticed: new Date(Date.now() - 4 * 86400000).toISOString(), totalPractices: 3 }] }] },
+const learningPath = [
+  { subject: 'Mathematics', progress: 85, current: 'Fractions', next: 'Ratios' },
+  { subject: 'English', progress: 72, current: 'Essay Writing', next: 'Comprehension' },
+  { subject: 'Science', progress: 68, current: 'Lab Methods', next: 'Observation' },
+];
+
+const todaysClasses = [
+  { subject: 'Mathematics', time: '2:00 PM — 3:00 PM' },
+  { subject: 'English Literature', time: '3:30 PM — 4:30 PM' },
 ];
 
 export default function StudentDashboardPage() {
   const router = useRouter();
-  const { theme, ageTheme, setGrade: setThemeGrade } = useAgeTheme();
   const [studentName, setStudentName] = useState('Student');
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [learningProgress, setLearningProgress] = useState<LearningProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [gamificationMode, setGamificationMode] = useState<GamificationMode>('balanced');
 
   useEffect(() => {
-    const demoQuery = new URLSearchParams(window.location.search);
-    if (demoQuery.get('demo') === '1') {
-      sessionStorage.removeItem('learningJourney.grade');
-      localStorage.removeItem('learningJourney.grade');
-      sessionStorage.removeItem('learningJourney.level');
-      localStorage.removeItem('learningJourney.level');
-      sessionStorage.removeItem('learningJourney.subject');
-      localStorage.removeItem('learningJourney.subject');
-      sessionStorage.removeItem('learningJourney.sandboxPreparation');
-      window.history.replaceState({}, '', '/student');
-      router.push('/student/journey');
-      return;
-    }
     const stored = localStorage.getItem('userName') || localStorage.getItem('studentName');
     if (stored) setStudentName(stored.split(' ')[0]);
-    setGamificationMode(loadGamificationMode());
-
-    const savedGrade = sessionStorage.getItem('learningJourney.grade') || localStorage.getItem('learningJourney.grade');
-    const savedLevel = sessionStorage.getItem('learningJourney.level') || localStorage.getItem('learningJourney.level');
-    if (savedGrade && !sessionStorage.getItem('learningJourney.grade')) sessionStorage.setItem('learningJourney.grade', savedGrade);
-    if (savedLevel && !sessionStorage.getItem('learningJourney.level')) sessionStorage.setItem('learningJourney.level', savedLevel);
-    if (!savedGrade) { router.push('/student/journey'); return; }
-    if (savedGrade) setThemeGrade(savedGrade);
-
-    loadPersonalizedLearningData();
-  }, [router]);
-
-  useEffect(() => {
-    const selectedGrade = resolveSelectedGrade(profile?.grade);
-    if (!selectedGrade) return;
-    ['Mathematics', 'English', 'AGI', 'Blockchain', 'Financial Literacy'].forEach((subject) => {
-      cacheSandboxPreparation(prepareSandboxForSubject(selectedGrade, subject));
-    });
-  }, [profile?.grade]);
-
-  const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, ms = 8000) => {
-    const ctrl = new AbortController();
-    const t = window.setTimeout(() => ctrl.abort(), ms);
-    try { return await fetch(input, { ...init, signal: ctrl.signal }); }
-    finally { window.clearTimeout(t); }
-  };
-
-  const loadPersonalizedLearningData = async () => {
-    perfMonitor.start('dashboard.load');
     
+    // Load personalized learning data
+    loadPersonalizedData();
+  }, []);
+
+  const loadPersonalizedData = async () => {
     try {
       setIsLoading(true);
-      setLoadError(null);
       
-      // Get authenticated user ID
-      perfMonitor.start('dashboard.auth');
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || 'anonymous';
-      perfMonitor.end('dashboard.auth');
+      // Get student profile
+      const profileResponse = await fetch('/api/test-personalization?action=profile&userId=user1');
+      const profileData = await profileResponse.json();
       
-      // Load profile
-      const profileData = await measureAsync('dashboard.profile', async () => {
-        const profileRes = await fetchWithTimeout(`/api/test-personalization?action=profile&userId=${userId}`);
-        if (!profileRes.ok) {
-          throw new Error(`HTTP ${profileRes.status}: Failed to load profile`);
-        }
-        const data = await profileRes.json();
-        if (!data.success || !data.profile) {
-          throw new Error('Profile data unavailable');
-        }
-        return data;
-      });
-      
-      const selectedGrade = resolveSelectedGrade(profileData.profile.grade);
-      setProfile(selectedGrade ? { ...profileData.profile, grade: selectedGrade } : profileData.profile);
-      setStudentName(profileData.profile.name);
-      if (selectedGrade) setThemeGrade(selectedGrade);
+      if (profileData.success) {
+        setProfile(profileData.profile);
+        setStudentName(profileData.profile.name);
+      }
 
-      // Load progress for all subjects in parallel
+      // Get learning progress for main subjects
       const subjects = ['Mathematics', 'English', 'Science'];
-      const results = await measureAsync('dashboard.progress.all', async () => {
-        return Promise.all(subjects.map(async (subject) => {
-          try {
-            const res = await fetchWithTimeout(`/api/test-personalization?action=progress&userId=${userId}&subject=${subject}`);
-            if (!res.ok) return null;
-            const d = await res.json();
-            return d.success && d.progress ? { subject, ...d.progress } : null;
-          } catch (err) {
-            console.warn(`Failed to load ${subject} progress:`, err);
-            return null;
-          }
-        }));
+      const progressPromises = subjects.map(async (subject) => {
+        const response = await fetch(`/api/test-personalization?action=progress&userId=user1&subject=${subject}`);
+        const data = await response.json();
+        return data.success ? { subject, ...data.progress } : null;
       });
-      
-      setLearningProgress(results.filter(Boolean) as LearningProgress[]);
-      
-      perfMonitor.end('dashboard.load');
-      const summary = perfMonitor.getSummary();
-      console.log('📊 Dashboard load metrics:', {
-        totalTime: `${summary.totalTime.toFixed(0)}ms`,
-        avgTime: `${summary.avgTime.toFixed(0)}ms`,
-        p50: `${summary.p50.toFixed(0)}ms`,
-        p95: `${summary.p95.toFixed(0)}ms`,
-      });
+
+      const progressResults = await Promise.all(progressPromises);
+      setLearningProgress(progressResults.filter(Boolean) as LearningProgress[]);
       
     } catch (error) {
-      console.error('[StudentDashboard] loadPersonalizedLearningData error:', error);
-      const classified = classifyError(error);
-      setLoadError(classified.action || classified.message);
-      perfMonitor.end('dashboard.load');
+      console.error('Failed to load personalized data:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const openSubjectLearningArea = (subject: string) => {
-    const savedGrade = resolveSelectedGrade(profile?.grade);
-    if (!savedGrade) { router.push('/student/journey'); return; }
-    sessionStorage.setItem('learningJourney.subject', subject);
-    localStorage.setItem('learningJourney.subject', subject);
-    cacheSandboxPreparation(prepareSandboxForSubject(savedGrade, subject));
-    router.push(`/student/learn_by_making?grade=${encodeURIComponent(savedGrade)}&subject=${encodeURIComponent(subject)}`);
+  const goToTutor = (subject?: string) => {
+    if (subject) {
+      router.push(`/student/chat/${encodeURIComponent(subject)}`);
+    } else {
+      router.push('/student/journey');
+    }
   };
 
-  const greeting = profile
-    ? (profile.preferredLanguage === 'kiswahili' ? `Karibu tena, ${profile.name}!` : `Welcome back, ${profile.name}!`)
-    : `Karibu, ${studentName}`;
+  const getPersonalizedGreeting = () => {
+    if (!profile) return `Karibu, ${studentName}`;
+    
+    const greetings = {
+      english: `Welcome back, ${profile.name}!`,
+      kiswahili: `Karibu tena, ${profile.name}!`,
+      mixed: `Karibu, ${profile.name}!`
+    };
+    
+    return greetings[profile.preferredLanguage] || greetings.mixed;
+  };
 
-  const totalSessions = learningProgress.reduce((s, p) => s + p.totalSessions, 0);
-  const maxStreak = Math.max(...learningProgress.map(p => p.streakDays), 0);
-  const avgProgress = Math.round(learningProgress.reduce((s, p) => s + p.overallProgress, 0) / Math.max(learningProgress.length, 1));
-  const selectedGrade = resolveSelectedGrade(profile?.grade);
-  const timetable = timetableForGrade(selectedGrade);
-  const liveClasses = liveClassesForGrade(selectedGrade);
-
-  const isYoung = ageTheme === 'pre-primary' || ageTheme === 'lower-primary';
+  const getPersonalizedMotivation = () => {
+    if (!profile) return "Ready to learn with SyncSenta today?";
+    
+    const totalSessions = learningProgress.reduce((sum, p) => sum + p.totalSessions, 0);
+    const maxStreak = Math.max(...learningProgress.map(p => p.streakDays), 0);
+    
+    if (maxStreak > 7) {
+      return `Amazing ${maxStreak}-day streak! You're on fire! 🔥`;
+    } else if (totalSessions > 10) {
+      return `${totalSessions} learning sessions completed! Keep growing! 🌱`;
+    } else if (profile.interests.length > 0) {
+      return `Ready to explore ${profile.interests[0]} and more today?`;
+    }
+    
+    return "Let's discover something amazing together today!";
+  };
 
   if (isLoading) {
     return (
-      <div className={`flex min-h-screen flex-col ${theme.pageBg}`}>
+      <div className="flex flex-col min-h-screen bg-background">
         <StudentHeader showBackButton={false} onBack={() => router.back()} />
-        <main className="flex-1 px-4 py-5 md:px-6 md:py-6">
-          <div className="max-w-6xl mx-auto space-y-5">
-            {/* Greeting skeleton */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="space-y-2">
-                <div className="h-8 w-64 bg-slate-200 rounded animate-pulse" />
-                <div className="h-4 w-48 bg-slate-200 rounded animate-pulse" />
-              </div>
-              <div className="flex gap-2">
-                <div className="h-9 w-32 bg-slate-200 rounded animate-pulse" />
-                <div className="h-9 w-24 bg-slate-200 rounded animate-pulse" />
-              </div>
-            </div>
-
-            {/* Stats skeleton */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-            </div>
-
-            {/* Tab bar skeleton */}
-            <div className="flex border-b border-border gap-4">
-              <div className="h-10 w-24 bg-slate-200 rounded-t animate-pulse" />
-              <div className="h-10 w-28 bg-slate-200 rounded-t animate-pulse" />
-              <div className="h-10 w-32 bg-slate-200 rounded-t animate-pulse" />
-            </div>
-
-            {/* Content skeleton */}
-            <div className="grid gap-5 lg:grid-cols-3">
-              <div className="lg:col-span-2 space-y-3">
-                <SubjectCardSkeleton />
-                <SubjectCardSkeleton />
-                <SubjectCardSkeleton />
-              </div>
-              <div className="space-y-3">
-                <div className="h-48 bg-slate-200 rounded-lg animate-pulse" />
-                <div className="h-64 bg-slate-200 rounded-lg animate-pulse" />
-              </div>
-            </div>
+        <main className="flex-1 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <Brain className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading your personalized dashboard...</p>
           </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className={`flex min-h-screen flex-col ${theme.pageBg}`}>
-        <StudentHeader showBackButton={false} onBack={() => router.back()} />
-        <main className="flex flex-1 items-center justify-center p-6">
-          <ErrorState
-            error={{
-              type: 'network',
-              message: 'Learning path unavailable',
-              action: loadError,
-              canRetry: true,
-              showSupport: true,
-            }}
-            onRetry={() => void loadPersonalizedLearningData()}
-            onGoBack={() => router.push('/student/journey')}
-            onGoHome={() => router.push('/student')}
-            size="md"
-          />
         </main>
       </div>
     );
   }
 
   return (
-    <div className={`flex min-h-screen flex-col ${theme.pageBg} text-slate-900`}>
-      <StudentHeader showBackButton={false} onBack={() => router.back()} variant="catalog" />
+    <div className="flex flex-col min-h-screen bg-background">
+      <StudentHeader showBackButton={false} onBack={() => router.back()} />
 
-      <main className="flex-1 px-4 py-5 md:px-6 md:py-6">
-        <div className="max-w-6xl mx-auto space-y-5">
-
-          {/* ── Greeting + actions ── */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <main className="flex-1 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <h1 className={`font-bold font-headline ${theme.headingSize}`}>
-                {greeting}{isYoung ? ' 🌟' : ''}
+              <h1 className="text-2xl md:text-3xl font-bold font-headline">
+                {getPersonalizedGreeting()}
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {maxStreak > 7 ? `🔥 ${maxStreak}-day streak — you're on fire!`
-                  : totalSessions > 10 ? `${totalSessions} sessions done. Keep going!`
-                  : tutorTaglineFor(profile?.grade)}
+              <p className="text-muted-foreground">
+                {getPersonalizedMotivation()}
               </p>
+              {profile && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge variant="secondary" className="gap-1">
+                    <Heart className="h-3 w-3" />
+                    {profile.learningStyle} learner
+                  </Badge>
+                  <Badge variant="outline" className="gap-1">
+                    <Target className="h-3 w-3" />
+                    {profile.grade}
+                  </Badge>
+                  {profile.interests.slice(0, 2).map((interest) => (
+                    <Badge key={interest} variant="outline" className="gap-1">
+                      <Star className="h-3 w-3" />
+                      {interest}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex gap-2 shrink-0">
-              <button
-                onClick={() => openSubjectLearningArea(learningProgress[0]?.subject || 'Mathematics')}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm ${theme.ctaClass}`}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {isYoung ? '🚀 Start Learning!' : 'Start Learning'}
-              </button>
-              <Button size="sm" variant="outline" onClick={() => setActiveTab('competency')} className={`gap-1.5 ${theme.radiusClass}`}>
-                <Map className="h-3.5 w-3.5" />
-                {isYoung ? '🗺️ Map' : 'Learning Map'}
-              </Button>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1">
+                <Brain className="h-3 w-3" />
+                SyncSenta Active
+              </Badge>
+              <Badge variant="outline" className="gap-1">
+                <Clock className="h-3 w-3" />
+                Personalized
+              </Badge>
             </div>
           </div>
 
-          {/* ── Stats ── */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard theme={theme} label={isYoung ? '🎯 Sessions' : 'Sessions'} value={totalSessions || '—'} sub={totalSessions ? `Avg ${Math.round(learningProgress.reduce((s, p) => s + p.averageSessionTime, 0) / Math.max(learningProgress.length, 1))} min` : 'Start your first!'} icon={<MessageCircle className="h-4 w-4 text-teal-600" />} />
-            <StatCard theme={theme} label={isYoung ? '🔥 Streak' : 'Streak'} value={maxStreak > 0 ? `${maxStreak}d` : '—'} sub={maxStreak > 0 ? 'days in a row! 🔥' : 'Start today!'} icon={<Flame className="h-4 w-4 text-orange-500" />} />
-            <StatCard theme={theme} label={isYoung ? '📈 Progress' : 'Progress'} value={learningProgress.length ? `${avgProgress}%` : '—'} sub="Across subjects" icon={<TrendingUp className="h-4 w-4 text-blue-500" />} />
-            <StatCard theme={theme} label={isYoung ? '⭐ Grade' : 'Grade'} value={profile?.grade ?? (sessionStorage.getItem('learningJourney.grade') ?? '—')} sub={profile?.learningStyle ? `${profile.learningStyle} learner` : 'CBC curriculum'} icon={<Target className="h-4 w-4 text-violet-500" />} />
-          </div>
-
-          {/* ── LMS schedule and live classes ── */}
-          <div className="grid gap-5 lg:grid-cols-2">
-            <Card className={`${theme.cardClass} bg-white`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CalendarDays className="h-4 w-4 text-teal-600" />
-                  This week&apos;s timetable
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">Your grade-aligned lessons, quizzes, and practice blocks.</p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Learning Sessions</CardTitle>
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent className="space-y-2">
-                {timetable.map((item) => (
-                  <button key={item.id} onClick={() => openSubjectLearningArea(item.subject)} className="flex w-full items-center gap-3 rounded-lg border p-3 text-left transition hover:border-teal-300 hover:bg-teal-50">
-                    <div className="min-w-20 text-xs font-medium text-muted-foreground">{item.day}<br />{item.time}</div>
-                    <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.subject}</p><p className="truncate text-xs text-muted-foreground">{item.activity}</p></div>
-                    <Badge variant="outline" className="capitalize">{item.mode}</Badge>
-                  </button>
-                ))}
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {learningProgress.reduce((sum, p) => sum + p.totalSessions, 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Avg {Math.round(learningProgress.reduce((sum, p) => sum + p.averageSessionTime, 0) / Math.max(learningProgress.length, 1))} min/session
+                </p>
               </CardContent>
             </Card>
 
-            <Card className={`${theme.cardClass} bg-white`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Video className="h-4 w-4 text-rose-600" />
-                  Live classes
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">Join scheduled teacher-led support from your dashboard.</p>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Learning Streak</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent className="space-y-3">
-                {liveClasses.map((liveClass) => (
-                  <div key={liveClass.id} className="flex items-start gap-3 rounded-lg border p-3">
-                    <PlayCircle className={`mt-0.5 h-4 w-4 shrink-0 ${liveClass.status === 'live' ? 'text-rose-600' : 'text-slate-400'}`} />
-                    <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{liveClass.title}</p><p className="text-xs text-muted-foreground">{liveClass.subject} · {liveClass.grade} · {liveClass.teacher}</p><p className="mt-1 text-xs text-muted-foreground">{liveClass.time}</p></div>
-                    <Badge variant={liveClass.status === 'live' ? 'destructive' : 'secondary'}>{liveClass.status === 'live' ? 'Live now' : 'Upcoming'}</Badge>
-                  </div>
-                ))}
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {Math.max(...learningProgress.map(p => p.streakDays), 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {Math.max(...learningProgress.map(p => p.streakDays), 0) > 0 ? 'days in a row!' : 'Start your streak today!'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overall Progress</CardTitle>
+                <Brain className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {Math.round(learningProgress.reduce((sum, p) => sum + p.overallProgress, 0) / Math.max(learningProgress.length, 1))}%
+                </div>
+                <p className="text-xs text-muted-foreground">Across all subjects</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Assignments</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">3</div>
+                <p className="text-xs text-muted-foreground">2 due this week</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* ── Tab bar ── */}
-          <div className="flex border-b border-border">
-            {([
-              { id: 'overview' as Tab, label: isYoung ? '📚 Overview' : 'Overview', icon: <BookOpen className="h-3.5 w-3.5" /> },
-              { id: 'gamification' as Tab, label: isYoung ? '🏆 Badges' : 'Achievements', icon: <Trophy className="h-3.5 w-3.5" /> },
-              { id: 'competency' as Tab, label: isYoung ? '🗺️ Map' : 'Learning Map', icon: <Map className="h-3.5 w-3.5" /> },
-            ]).map(({ id, label, icon }) => (
-              <button key={id} onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === id ? 'border-teal-600 text-teal-700' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-              >
-                {icon}{label}
-              </button>
-            ))}
-          </div>
+          <InteractiveChallengePath
+            grade={profile?.grade || 'Grade 6'}
+          />
 
-          {/* ── Overview ── */}
-          {activeTab === 'overview' && (
-            <div className="grid gap-5 lg:grid-cols-3">
-              <div className="lg:col-span-2 space-y-3">
-                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  {isYoung ? '📖 Your Subjects' : 'Your subjects'}
-                </h2>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Personalized Learning Path</CardTitle>
+                <CardDescription>AI-adapted curriculum based on your progress and interests</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 {learningProgress.length > 0 ? (
-                  learningProgress.map((p, i) => (
-                    <button key={p.subject} onClick={() => openSubjectLearningArea(p.subject)}
-                      className={`w-full text-left ${theme.cardClass} border p-4 hover:shadow-md transition-all ${theme.subjectColours[i % theme.subjectColours.length]}`}
+                  learningProgress.map((progress) => (
+                    <button
+                      key={progress.subject}
+                      onClick={() => goToTutor(progress.subject)}
+                      className="w-full text-left rounded-lg p-4 border hover:bg-muted transition-colors"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-sm">{isYoung ? ['📐', '📝', '🔬'][i] ?? '📚' : ''} {p.subject}</span>
-                        <span className="flex items-center gap-1 text-xs font-medium">{p.overallProgress}% <ChevronRight className="h-3 w-3 opacity-50" /></span>
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-medium">{progress.subject}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {progress.totalSessions} sessions • {progress.streakDays} day streak
+                          </p>
+                        </div>
+                        <Badge variant={progress.overallProgress > 70 ? 'default' : 'secondary'}>
+                          {progress.overallProgress}%
+                        </Badge>
                       </div>
-                      <Progress value={p.overallProgress} className="h-1.5 mb-1.5" />
-                      <div className="flex justify-between text-xs opacity-70">
-                        <span>{p.totalSessions} sessions · {p.streakDays}d streak</span>
-                        <span>{p.overallProgress < 30 ? 'Building foundations' : p.overallProgress < 70 ? 'Good progress' : 'Mastering it'}</span>
+                      <Progress value={progress.overallProgress} className="mb-2" />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>
+                          {progress.overallProgress < 30 ? 'Building foundations' :
+                           progress.overallProgress < 70 ? 'Making good progress' :
+                           'Mastering concepts'}
+                        </span>
+                        <ArrowRight className="h-3 w-3" />
                       </div>
                     </button>
                   ))
                 ) : (
-                  <div className={`${theme.cardClass} border border-dashed border-teal-200 bg-teal-50/50 p-6 text-center`}>
-                    <Brain className="h-8 w-8 mx-auto text-teal-400 mb-2" />
-                    <p className="text-sm font-medium text-teal-700">{isYoung ? '✨ No sessions yet — let\'s start!' : 'No sessions yet'}</p>
-                    <p className="text-xs text-teal-600 mt-1">Start learning to see your progress here</p>
-                    <button onClick={() => openSubjectLearningArea('Mathematics')} className={`mt-3 px-4 py-2 text-sm ${theme.ctaClass}`}>
-                      {isYoung ? '🚀 Begin!' : 'Start first session'}
-                    </button>
-                  </div>
+                  assignments.map((a) => (
+                    <div
+                      key={a.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div>
+                        <h4 className="font-medium">{a.title}</h4>
+                        <p className="text-sm text-muted-foreground">Due: {a.due}</p>
+                      </div>
+                      <Badge variant={a.status.variant}>{a.status.label}</Badge>
+                    </div>
+                  ))
                 )}
-              </div>
+              </CardContent>
+            </Card>
 
-              {/* Right quick-access */}
-              <div className="space-y-3">
-                <Card className={`${theme.cardClass} bg-white`}>
-                  <CardHeader className="pb-2 pt-4 px-4">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-teal-600" />
-                      {isYoung ? '🤖 SyncSenta' : 'SyncSenta Tutor'}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">{tutorTaglineFor(profile?.grade)}</p>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4">
-                <button className={`w-full flex items-center justify-center gap-1.5 py-2 text-sm ${theme.ctaClass}`}
-                      onClick={() => { const s = localStorage.getItem('learningJourney.subject') || sessionStorage.getItem('learningJourney.subject'); s ? openSubjectLearningArea(s) : router.push('/student/journey'); }}>
-                      <MessageCircle className="h-3.5 w-3.5" />
-                      {isYoung ? '💬 Learn by Making!' : 'Learn by Making'}
-                      <ArrowRight className="h-3.5 w-3.5 ml-auto" />
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5" />
+                    Learning Path
+                  </CardTitle>
+                  <CardDescription>AI-personalized curriculum</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {learningPath.map((p) => (
+                    <button
+                      key={p.subject}
+                      onClick={() => goToTutor(p.subject)}
+                      className="w-full text-left rounded-lg p-2 -mx-2 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="font-medium">{p.subject}</span>
+                        <span>{p.progress}%</span>
+                      </div>
+                      <Progress value={p.progress} />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Current: {p.current} → Next: {p.next}
+                      </p>
                     </button>
-                  </CardContent>
-                </Card>
+                  ))}
+                </CardContent>
+              </Card>
 
-                <Card className={`${theme.cardClass} bg-amber-50/50`} style={{ borderColor: 'rgb(253 230 138)' }}>
-                  <CardHeader className="pb-2 pt-4 px-4">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Trophy className="h-4 w-4 text-amber-600" />
-                      {isYoung ? '🏅 My Badges' : 'Achievements'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4">
-                    <button onClick={() => setActiveTab('gamification')} className={`w-full flex items-center justify-between text-sm text-amber-700 font-medium hover:underline ${theme.radiusClass}`}>
-                      {isYoung ? 'See my stickers! ⭐' : 'View badges & leaderboard'}
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </CardContent>
-                </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5" />
+                    Omega Claw Guided Tutor
+                  </CardTitle>
+                  <CardDescription>
+                    Live Socratic tutor grounded in CBC curriculum
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button
+                    className="w-full"
+                    onClick={() => router.push('/student/chat')}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Start Chat Session
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => router.push('/student/journey?step=subject')}
+                  >
+                    Learning Journey
+                  </Button>
+                </CardContent>
+              </Card>
 
-                <Card className={`${theme.cardClass} bg-violet-50/50`} style={{ borderColor: 'rgb(221 214 254)' }}>
-                  <CardHeader className="pb-2 pt-4 px-4">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Map className="h-4 w-4 text-violet-600" />
-                      {isYoung ? '🗺️ My Map' : 'Competency Map'}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">{isYoung ? 'See what you know!' : 'See what you\'ve mastered'}</p>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4">
-                    <button onClick={() => setActiveTab('competency')} className={`w-full flex items-center justify-between text-sm text-violet-700 font-medium hover:underline ${theme.radiusClass}`}>
-                      {isYoung ? 'Open map 🗺️' : 'Open learning map'}
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </CardContent>
-                </Card>
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Today&apos;s Classes</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {todaysClasses.map((c) => (
+                    <div key={c.subject} className="flex items-center gap-3">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{c.subject}</p>
+                        <p className="text-sm text-muted-foreground">{c.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
-          )}
-
-          {activeTab === 'gamification' && (
-            <div className="space-y-5">
-              <GamificationOverview userId={getStudentId()} userName={studentName} />
-              <div className="grid gap-5 lg:grid-cols-2">
-                <LeaderboardPanel userId={getStudentId()} scope="class" />
-                <LeaderboardPanel userId={getStudentId()} scope="school" />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'competency' && (
-            <CompetencyMap subjects={COMPETENCY_DATA}
-              onStartPractice={(id) => router.push(`/student/tutor-dashboard?competency=${id}`)} />
-          )}
-
+          </div>
         </div>
       </main>
-
-      <FloatingConceptChat studentName={studentName} grade={profile?.grade} language={profile?.preferredLanguage ?? 'mixed'} />
     </div>
-  );
-}
-
-function StatCard({ theme, label, value, sub, icon }: {
-  theme: any; label: string; value: string | number; sub: string; icon: React.ReactNode;
-}) {
-  return (
-    <Card className={`${theme.cardClass} bg-white`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-muted-foreground font-medium">{label}</span>
-          {icon}
-        </div>
-        <p className="text-xl font-bold leading-none">{value}</p>
-        <p className="text-xs text-muted-foreground mt-1 leading-tight">{sub}</p>
-      </CardContent>
-    </Card>
   );
 }

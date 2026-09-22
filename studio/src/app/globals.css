@@ -4,75 +4,108 @@
 
 @layer base {
   :root {
-    /* Learning Atelier: calm paper, botanical teal, and clay highlights. */
-    --background: 42 54% 96%;
-    --foreground: 174 30% 16%;
-    --card: 0 0% 100%;
-    --card-foreground: 174 30% 16%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 174 30% 16%;
-    --primary: 174 62% 29%;
-    --primary-foreground: 45 100% 98%;
-    --secondary: 43 54% 91%;
-    --secondary-foreground: 174 32% 24%;
-    --muted: 42 32% 91%;
-    --muted-foreground: 174 10% 38%;
-    --accent: 20 68% 52%;
-    --accent-foreground: 45 100% 98%;
-    --destructive: 0 65% 48%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 42 25% 84%;
-    --input: 42 35% 94%;
-    --ring: 174 62% 29%;
-    --radius: 1rem;
-    --chart-1: 174 62% 29%;
-    --chart-2: 20 68% 52%;
-    --chart-3: 43 72% 48%;
-    --chart-4: 145 43% 38%;
-    --chart-5: 207 47% 42%;
-    --sidebar-background: 174 42% 17%;
-    --sidebar-foreground: 42 54% 96%;
-    --sidebar-primary: 20 68% 52%;
-    --sidebar-primary-foreground: 45 100% 98%;
-    --sidebar-accent: 174 28% 24%;
-    --sidebar-accent-foreground: 42 54% 96%;
-    --sidebar-border: 174 23% 28%;
-    --sidebar-ring: 43 72% 48%;
+    /* Vibrant, child-friendly color palette inspired by Kenyan CBC */
+    /* Primary: Bright Teal - Calming yet energetic */
+    --background: 180 70% 45%; /* #2BA89F - Vibrant Teal */
+    --foreground: 0 0% 100%; /* White text */
+    
+    /* Card: Soft Cream - Warm and inviting */
+    --card: 45 100% 96%; /* #FFFAF0 - Soft Cream */
+    --card-foreground: 180 70% 35%; /* Dark Teal text */
+    
+    /* Popover: Light Yellow - Cheerful and friendly */
+    --popover: 48 100% 88%; /* #FFEB99 - Light Yellow */
+    --popover-foreground: 180 70% 35%; /* Dark Teal text */
+    
+    /* Primary Action: Bright Orange - Energy and enthusiasm */
+    --primary: 30 100% 50%; /* #FF9900 - Bright Orange */
+    --primary-foreground: 0 0% 100%; /* White text */
+    
+    /* Secondary: Vibrant Green - Growth and learning */
+    --secondary: 120 70% 45%; /* #2ECC71 - Vibrant Green */
+    --secondary-foreground: 0 0% 100%; /* White text */
+    
+    /* Muted: Soft Gray - Neutral background */
+    --muted: 0 0% 92%; /* #EBEBEB - Light Gray */
+    --muted-foreground: 180 70% 35%; /* Dark Teal text */
+    
+    /* Accent: Hot Pink - Playful and engaging */
+    --accent: 330 100% 55%; /* #FF1493 - Hot Pink */
+    --accent-foreground: 0 0% 100%; /* White text */
+    
+    /* Destructive: Warm Red - Alert and attention */
+    --destructive: 0 84% 60%; /* #FF6B6B - Warm Red */
+    --destructive-foreground: 0 0% 100%; /* White text */
+    
+    /* Border and Input: Soft Teal */
+    --border: 180 50% 85%; /* #B8E6E0 - Soft Teal */
+    --input: 180 50% 90%; /* #D4F1ED - Very Light Teal */
+    --ring: 30 100% 50%; /* Orange ring for focus */
+    
+    --radius: 0.75rem; /* Slightly more rounded for friendliness */
+    
+    /* Chart colors: Vibrant and distinct */
+    --chart-1: 30 100% 50%; /* Orange */
+    --chart-2: 120 70% 45%; /* Green */
+    --chart-3: 330 100% 55%; /* Hot Pink */
+    --chart-4: 48 100% 50%; /* Golden Yellow */
+    --chart-5: 200 100% 50%; /* Bright Blue */
+    
+    /* Sidebar: Dark Teal with bright accents */
+    --sidebar-background: 180 70% 25%; /* Dark Teal */
+    --sidebar-foreground: 0 0% 100%; /* White text */
+    --sidebar-primary: 30 100% 50%; /* Orange */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text */
+    --sidebar-accent: 120 70% 45%; /* Green */
+    --sidebar-accent-foreground: 0 0% 100%; /* White text */
+    --sidebar-border: 180 70% 35%; /* Medium Teal */
+    --sidebar-ring: 30 100% 50%; /* Orange ring */
   }
 
   .dark {
-    --background: 174 35% 11%;
-    --foreground: 42 54% 96%;
-    --card: 174 27% 16%;
-    --card-foreground: 42 54% 96%;
-    --popover: 174 27% 16%;
-    --popover-foreground: 42 54% 96%;
-    --primary: 172 57% 52%;
-    --primary-foreground: 174 35% 11%;
-    --secondary: 174 18% 22%;
-    --secondary-foreground: 42 54% 96%;
-    --muted: 174 18% 22%;
-    --muted-foreground: 42 22% 72%;
-    --accent: 20 74% 60%;
-    --accent-foreground: 174 35% 11%;
-    --destructive: 0 73% 58%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 174 18% 28%;
-    --input: 174 18% 22%;
-    --ring: 172 57% 52%;
-    --chart-1: 172 57% 52%;
-    --chart-2: 20 74% 60%;
-    --chart-3: 43 72% 56%;
-    --chart-4: 145 48% 54%;
-    --chart-5: 207 55% 62%;
-    --sidebar-background: 174 42% 8%;
-    --sidebar-foreground: 42 54% 96%;
-    --sidebar-primary: 20 74% 60%;
-    --sidebar-primary-foreground: 174 35% 11%;
-    --sidebar-accent: 174 27% 19%;
-    --sidebar-accent-foreground: 42 54% 96%;
-    --sidebar-border: 174 18% 24%;
-    --sidebar-ring: 172 57% 52%;
+    /* Dark mode: Deep black background inspired by mp3juice.sc */
+    --background: 0 0% 7%; /* #121212 - Deep Black */
+    --foreground: 0 0% 95%; /* #F2F2F2 - Off White */
+    
+    --card: 0 0% 10%; /* #1A1A1A - Dark Gray */
+    --card-foreground: 0 0% 95%; /* Off White text */
+    
+    --popover: 0 0% 10%; /* Dark Gray */
+    --popover-foreground: 0 0% 95%; /* Off White text */
+    
+    --primary: 142 76% 36%; /* #16A34A - Vibrant Green (like mp3juice) */
+    --primary-foreground: 0 0% 100%; /* White text */
+    
+    --secondary: 0 0% 15%; /* #262626 - Slightly lighter gray */
+    --secondary-foreground: 0 0% 95%; /* Off White text */
+    
+    --muted: 0 0% 15%; /* #262626 - Muted gray */
+    --muted-foreground: 0 0% 65%; /* #A6A6A6 - Muted text */
+    
+    --accent: 142 76% 36%; /* Vibrant Green accent */
+    --accent-foreground: 0 0% 100%; /* White text */
+    
+    --destructive: 0 84% 60%; /* #FF6B6B - Warm Red */
+    --destructive-foreground: 0 0% 100%; /* White text */
+    
+    --border: 0 0% 20%; /* #333333 - Dark border */
+    --input: 0 0% 15%; /* #262626 - Dark input */
+    --ring: 142 76% 36%; /* Green ring for focus */
+    
+    --chart-1: 142 76% 36%; /* Vibrant Green */
+    --chart-2: 217 91% 60%; /* Bright Blue */
+    --chart-3: 330 100% 55%; /* Hot Pink */
+    --chart-4: 48 100% 50%; /* Golden Yellow */
+    --chart-5: 30 100% 50%; /* Orange */
+    
+    --sidebar-background: 0 0% 5%; /* #0D0D0D - Almost Black */
+    --sidebar-foreground: 0 0% 95%; /* Off White text */
+    --sidebar-primary: 142 76% 36%; /* Vibrant Green */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text */
+    --sidebar-accent: 0 0% 15%; /* Dark Gray */
+    --sidebar-accent-foreground: 0 0% 95%; /* Off White text */
+    --sidebar-border: 0 0% 20%; /* Dark border */
+    --sidebar-ring: 142 76% 36%; /* Green ring */
   }
 }
 
@@ -81,259 +114,21 @@
     @apply border-border;
   }
   body {
-    @apply bg-background font-body text-foreground antialiased;
-    background-image: radial-gradient(circle at top right, hsl(var(--secondary) / 0.7), transparent 30rem);
-  }
-
-  ::selection {
-    background: hsl(var(--primary) / 0.18);
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground;
   }
 }
 
+/* Additional utility classes for child-friendly design */
 @layer components {
   .btn-child-friendly {
-    @apply rounded-xl font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0;
+    @apply rounded-lg font-semibold text-base transition-all duration-200 hover:scale-105 active:scale-95;
   }
   
   .card-child-friendly {
-    @apply rounded-2xl border-border/80 shadow-[0_12px_32px_hsl(174_30%_16%/0.08)] transition-shadow duration-200 hover:shadow-[0_16px_40px_hsl(174_30%_16%/0.12)];
+    @apply rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200;
   }
   
   .text-child-friendly {
-    @apply leading-relaxed;
-  }
-
-  .education-shell {
-    @apply min-h-screen bg-background text-foreground;
-  }
-
-  .education-surface {
-    @apply rounded-2xl border border-border/80 bg-card shadow-[0_10px_28px_hsl(174_30%_16%/0.07)];
-  }
-
-  .education-kicker {
-    @apply text-xs font-bold uppercase tracking-[0.16em] text-primary;
-  }
-}
-
-/* Always-visible scrollbar for scheme table - horizontal scroll */
-.scheme-table-scroll::-webkit-scrollbar {
-  height: 12px;
-  width: 12px;
-}
-
-.scheme-table-scroll::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-  border-radius: 6px;
-  margin: 2px;
-}
-
-.scheme-table-scroll::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary) / 0.6);
-  border-radius: 6px;
-  border: 2px solid hsl(var(--muted));
-}
-
-.scheme-table-scroll::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.8);
-}
-
-.scheme-table-scroll::-webkit-scrollbar-corner {
-  background: hsl(var(--muted));
-}
-
-.scheme-table-scroll {
-  scrollbar-width: auto;
-  scrollbar-color: hsl(var(--primary) / 0.6) hsl(var(--muted));
-}
-
-/* Mobile-specific: Always show scrollbar */
-@media (max-width: 768px) {
-  .mobile-scroll-visible::-webkit-scrollbar {
-    height: 12px; /* Larger on mobile for easier visibility */
-  }
-  
-  .mobile-scroll-visible::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-    border-radius: 6px;
-  }
-  
-  .mobile-scroll-visible::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary)); /* Use primary color for better visibility */
-    border-radius: 6px;
-  }
-  
-  .mobile-scroll-visible {
-    scrollbar-width: auto; /* Force visible scrollbar on Firefox mobile */
-    scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
-  }
-}
-
-/* ============================================
-   MOBILE IMPROVEMENTS (FREE)
-   ============================================ */
-
-/* Increase tap targets for mobile (44x44px minimum) */
-@media (max-width: 768px) {
-  button,
-  a,
-  [role="button"],
-  input[type="checkbox"],
-  input[type="radio"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  
-  /* Larger text for better readability */
-  body {
-    font-size: 16px; /* Prevents zoom on iOS */
-  }
-  
-  /* Prevent zoom on input focus (iOS) */
-  input,
-  textarea,
-  select {
-    font-size: 16px;
-  }
-  
-  /* Better spacing for touch */
-  .mobile-spacing {
-    padding: 1rem;
-    gap: 1rem;
-  }
-}
-
-/* iOS safe area support */
-body {
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Reduce motion for accessibility */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* Better focus indicators for keyboard navigation */
-*:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
-}
-
-/* Hide focus outline for mouse users */
-*:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* Touch-friendly hover states */
-@media (hover: hover) and (pointer: fine) {
-  /* Only apply hover effects on devices with precise pointers */
-  .hover-scale:hover {
-    transform: scale(1.02);
-  }
-}
-
-/* Prevent text selection on buttons */
-button,
-[role="button"] {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* Better mobile menu */
-@media (max-width: 768px) {
-  .mobile-menu {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: hsl(var(--background));
-    border-top: 1px solid hsl(var(--border));
-    padding: 0.5rem;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
-    z-index: 50;
-  }
-}
-
-/* Optimize for low-end devices */
-@media (prefers-reduced-data: reduce) {
-  /* Disable animations */
-  * {
-    animation: none !important;
-    transition: none !important;
-  }
-  
-  /* Disable background images */
-  * {
-    background-image: none !important;
-  }
-}
-
-/* Dark mode improvements for mobile */
-@media (max-width: 768px) {
-  .dark {
-    /* Slightly lighter background for better readability on small screens */
-    --background: 0 0% 10%;
-  }
-}
-
-/* Landscape mode optimizations */
-@media (max-width: 768px) and (orientation: landscape) {
-  /* Reduce header height in landscape */
-  .mobile-header {
-    height: 3rem;
-  }
-  
-  /* Optimize spacing */
-  .mobile-spacing {
-    padding: 0.5rem;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  * {
-    border-width: 2px;
-  }
-  
-  button,
-  a {
-    text-decoration: underline;
-  }
-}
-
-/* Print styles */
-@media print {
-  /* Hide non-essential elements */
-  nav,
-  aside,
-  .no-print {
-    display: none !important;
-  }
-  
-  /* Optimize for printing */
-  body {
-    background: white;
-    color: black;
-  }
-  
-  /* Prevent page breaks inside elements */
-  h1, h2, h3, h4, h5, h6,
-  p, li {
-    page-break-inside: avoid;
+    @apply text-lg leading-relaxed;
   }
 }
