@@ -27,26 +27,17 @@ export default function ProfileDialog({ open, onOpenChange }: { open: boolean, o
     const [userName, setUserName] = useState(defaultUser.fullName);
     const [userEmail, setUserEmail] = useState(defaultUser.email);
     const [userAvatar, setUserAvatar] = useState<string | null>(null);
-    const [walletAddress, setWalletAddress] = useState<string | null>(null);
-    const [isClient, setIsClient] = useState(false);
-
-    // Ensure we're on the client before accessing localStorage
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
 
     useEffect(() => {
-        if (open && isClient) {
+        if (open) {
             const storedName = localStorage.getItem('userName') || defaultUser.fullName;
             const storedEmail = localStorage.getItem('userEmail') || defaultUser.email;
             const storedAvatar = localStorage.getItem('userAvatar');
-            const storedWalletAddress = localStorage.getItem('syncsenta.wallet.address');
             setUserName(storedName);
             setUserEmail(storedEmail);
             setUserAvatar(storedAvatar);
-            setWalletAddress(storedWalletAddress);
         }
-    }, [open, isClient]);
+    }, [open]);
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -130,11 +121,6 @@ export default function ProfileDialog({ open, onOpenChange }: { open: boolean, o
                               <div className="space-y-2">
                                 <Label htmlFor="school">School</Label>
                                 <Input id="school" defaultValue={defaultUser.school} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="wallet-address">Verified wallet address</Label>
-                                <Input id="wallet-address" value={walletAddress || 'No wallet connected'} disabled readOnly className="font-mono text-xs" />
-                                <p className="text-xs text-muted-foreground">Public identity only. It does not grant access to a learner.</p>
                             </div>
                         </div>
                     </div>

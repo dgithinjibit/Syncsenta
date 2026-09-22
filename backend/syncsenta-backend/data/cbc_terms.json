@@ -1,0 +1,247 @@
+{
+  "mathematics": {
+    "en": "Mathematics",
+    "sw": "Hisabati",
+    "ki": "Mahesabu",
+    "luo": "Kwano",
+    "luy": "Ebaalo"
+  },
+  "numbers": {
+    "en": "Numbers",
+    "sw": "Nambari",
+    "ki": "Namba",
+    "luo": "Kwan",
+    "luy": "Tsimbalo"
+  },
+  "fractions": {
+    "en": "Fractions",
+    "sw": "Sehemu",
+    "ki": "Icunjĩ",
+    "luo": "Migawo",
+    "luy": "Obupande"
+  },
+  "addition": {
+    "en": "Addition",
+    "sw": "Ujumlishaji",
+    "ki": "Kuongera",
+    "luo": "Medho",
+    "luy": "Khwongera"
+  },
+  "subtraction": {
+    "en": "Subtraction",
+    "sw": "Utoa",
+    "ki": "Kurutũra",
+    "luo": "Golo",
+    "luy": "Khusokha"
+  },
+  "multiplication": {
+    "en": "Multiplication",
+    "sw": "Uzidishaji",
+    "ki": "Kũigũrũria",
+    "luo": "Medho mangeny",
+    "luy": "Khwamira"
+  },
+  "division": {
+    "en": "Division",
+    "sw": "Ugawanyaji",
+    "ki": "Kũgayania",
+    "luo": "Pogo",
+    "luy": "Khugabanya"
+  },
+  "science_technology": {
+    "en": "Science and Technology",
+    "sw": "Sayansi na Teknolojia",
+    "ki": "Ũtaũrĩ na Mĩthemba",
+    "luo": "Nonro gi Teko",
+    "luy": "Esayansi ne Tekinolojia"
+  },
+  "living_things": {
+    "en": "Living Things",
+    "sw": "Viumbe hai",
+    "ki": "Ciũmbe iria irĩ muoyo",
+    "luo": "Gik mangima",
+    "luy": "Ebindu ebikhanga"
+  },
+  "plants": {
+    "en": "Plants",
+    "sw": "Mimea",
+    "ki": "Mĩmera",
+    "luo": "Yiende",
+    "luy": "Amamera"
+  },
+  "animals": {
+    "en": "Animals",
+    "sw": "Wanyamapori",
+    "ki": "Nyamũ",
+    "luo": "Le",
+    "luy": "Enyama"
+  },
+  "english": {
+    "en": "English",
+    "sw": "Kiingereza",
+    "ki": "Gĩthungũ",
+    "luo": "Dholuo mar Bungu",
+    "luy": "Lulimi lwa Bungu"
+  },
+  "kiswahili": {
+    "en": "Kiswahili",
+    "sw": "Kiswahili",
+    "ki": "Gĩswahĩlĩ",
+    "luo": "Kiswahili",
+    "luy": "Kiswahili"
+  },
+  "social_studies": {
+    "en": "Social Studies",
+    "sw": "Utaalamu wa Kijamii",
+    "ki": "Mĩthiĩrĩre ya Kĩũngano",
+    "luo": "Nonro mar Oganda",
+    "luy": "Amasomo ka Obulamu"
+  },
+  "creative_arts": {
+    "en": "Creative Arts",
+    "sw": "Sanaa za Ubunifu",
+    "ki": "Mĩhianano ya Ũbũni",
+    "luo": "Tich lwedo",
+    "luy": "Amasanaa ka Obuyombi"
+  },
+  "physical_education": {
+    "en": "Physical Education",
+    "sw": "Elimu ya Mwili",
+    "ki": "Thomo ya Mwĩrĩ",
+    "luo": "Puonj mar dend",
+    "luy": "Obusomo bwa Omubiri"
+  },
+  "religious_education": {
+    "en": "Religious Education",
+    "sw": "Elimu ya Kidini",
+    "ki": "Thomo ya Ndini",
+    "luo": "Puonj mar lamo",
+    "luy": "Obusomo bwa Obulami"
+  },
+  "assessment": {
+    "en": "Assessment",
+    "sw": "Tathmini",
+    "ki": "Gũthima",
+    "luo": "Pimo",
+    "luy": "Obupima"
+  },
+  "learning_objectives": {
+    "en": "Learning Objectives",
+    "sw": "Malengo ya Kujifunza",
+    "ki": "Mĩgomo ya Gũthoma",
+    "luo": "Chenro mar puonj",
+    "luy": "Amalukho ka Okhunyola"
+  },
+  "curriculum": {
+    "en": "Curriculum",
+    "sw": "Mtaala",
+    "ki": "Mũtaala",
+    "luo": "Puonj",
+    "luy": "Omutaala"
+  },
+  "competency": {
+    "en": "Competency",
+    "sw": "Uwezo",
+    "ki": "Ũhoti",
+    "luo": "Teko",
+    "luy": "Obukoni"
+  },
+  "strand": {
+    "en": "Strand",
+    "sw": "Uwanda",
+    "ki": "Mũtwe",
+    "luo": "Bap",
+    "luy": "Omutwe"
+  },
+  "sub_strand": {
+    "en": "Sub-strand",
+    "sw": "Uwanda mdogo",
+    "ki": "Mũtwe mũnini",
+    "luo": "Bap matindo",
+    "luy": "Omutwe omuto"
+  },
+  "grade_level": {
+    "en": "Grade Level",
+    "sw": "Kiwango cha Darasa",
+    "ki": "Mũkingo wa Gĩthomo",
+    "luo": "Klas",
+    "luy": "Omukingo kwa Eshule"
+  },
+  "pp1": {
+    "en": "Pre-Primary 1",
+    "sw": "Awali ya Msingi 1",
+    "ki": "Mbere ya Mũtaratara 1",
+    "luo": "Nyuol 1",
+    "luy": "Obwana 1"
+  },
+  "pp2": {
+    "en": "Pre-Primary 2",
+    "sw": "Awali ya Msingi 2",
+    "ki": "Mbere ya Mũtaratara 2",
+    "luo": "Nyuol 2",
+    "luy": "Obwana 2"
+  },
+  "grade1": {
+    "en": "Grade 1",
+    "sw": "Darasa la 1",
+    "ki": "Gĩthomo kĩa 1",
+    "luo": "Klas 1",
+    "luy": "Eshule ya 1"
+  },
+  "grade2": {
+    "en": "Grade 2",
+    "sw": "Darasa la 2",
+    "ki": "Gĩthomo kĩa 2",
+    "luo": "Klas 2",
+    "luy": "Eshule ya 2"
+  },
+  "grade3": {
+    "en": "Grade 3",
+    "sw": "Darasa la 3",
+    "ki": "Gĩthomo kĩa 3",
+    "luo": "Klas 3",
+    "luy": "Eshule ya 3"
+  },
+  "grade4": {
+    "en": "Grade 4",
+    "sw": "Darasa la 4",
+    "ki": "Gĩthomo kĩa 4",
+    "luo": "Klas 4",
+    "luy": "Eshule ya 4"
+  },
+  "grade5": {
+    "en": "Grade 5",
+    "sw": "Darasa la 5",
+    "ki": "Gĩthomo kĩa 5",
+    "luo": "Klas 5",
+    "luy": "Eshule ya 5"
+  },
+  "grade6": {
+    "en": "Grade 6",
+    "sw": "Darasa la 6",
+    "ki": "Gĩthomo kĩa 6",
+    "luo": "Klas 6",
+    "luy": "Eshule ya 6"
+  },
+  "jss1": {
+    "en": "Junior Secondary 1",
+    "sw": "Sekondari ya Chini 1",
+    "ki": "Sekondari ya Mũhuro 1",
+    "luo": "Sekondari matindo 1",
+    "luy": "Sekondari omuto 1"
+  },
+  "jss2": {
+    "en": "Junior Secondary 2",
+    "sw": "Sekondari ya Chini 2",
+    "ki": "Sekondari ya Mũhuro 2",
+    "luo": "Sekondari matindo 2",
+    "luy": "Sekondari omuto 2"
+  },
+  "jss3": {
+    "en": "Junior Secondary 3",
+    "sw": "Sekondari ya Chini 3",
+    "ki": "Sekondari ya Mũhuro 3",
+    "luo": "Sekondari matindo 3",
+    "luy": "Sekondari omuto 3"
+  }
+}

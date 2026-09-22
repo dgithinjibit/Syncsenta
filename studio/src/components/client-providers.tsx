@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeToggleButton } from '@/components/ui/theme-toggle-button';
+import { AppInstallPrompt } from '@/components/app-install-prompt';
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     const [isMounted, setIsMounted] = useState(false);
@@ -26,6 +27,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
           {children}
           <Toaster />
           <ThemeToggleButton />
+          <AppInstallPrompt />
         </ThemeProvider>
     );
 }

@@ -16,30 +16,47 @@ python = "^3.11"
 fastapi = "^0.109.0"
 uvicorn = {extras = ["standard"], version = "^0.27.0"}
 
-# Groq SDK for AI
-groq = "^0.4.0"
-langchain-groq = "^0.1.0"
-
-# LangChain core (minimal for orchestrator)
+# LangChain ecosystem
 langchain = "^0.1.0"
-langchain-core = "^0.1.0"
 langchain-community = "^0.0.29"
 langgraph = "^0.0.26"
+langsmith = "^0.0.83"
 
-# Database
-supabase = "^2.0.0"
+# CrewAI framework
+crewai = "^0.22.0"
+crewai-tools = "^0.1.0"
+
+# Ollama client
+ollama = "^0.1.7"
+
+# Stellar blockchain
+stellar-sdk = "^8.0.0"
+
+# Database and sync
+# pouchdb = "^0.1.0"  # No Python package available
+# couchdb = "^1.2"  # Will use requests for CouchDB API
+sqlalchemy = "^2.0.0"
+alembic = "^1.13.0"
+
+# Voice and multimodal
+# openai-whisper = "^20231117"  # Temporarily disabled due to build issues
+elevenlabs = "^0.2.26"
+pytesseract = "^0.3.10"
+pillow = "^10.0.0"
 
 # Async and networking
 aiohttp = "^3.9.0"
+asyncio = "^3.4.3"
 httpx = "^0.26.0"
-python-dotenv = "^1.0.0"
 
 # Data processing
 pydantic = "^2.5.0"
 numpy = "^1.24.0"
+pandas = "^2.1.0"
 
 # Monitoring and logging
 structlog = "^23.2.0"
+prometheus-client = "^0.19.0"
 
 [tool.poetry.group.dev.dependencies]
 # Testing

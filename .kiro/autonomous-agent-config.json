@@ -1,0 +1,47 @@
+{
+  "name": "SyncSenta Autonomous Build Agent",
+  "version": "1.0.0",
+  "description": "Orchestrates Bonsai with smart permission handling for autonomous development",
+  "settings": {
+    "autoApproveSafeCommands": true,
+    "permissionRequiredFor": [
+      "file writes",
+      "git commits",
+      "dependency installations",
+      "database migrations"
+    ],
+    "bonsaiIntegration": {
+      "endpoint": "http://localhost:3000/v1",
+      "autoMonitor": true,
+      "notificationOn": ["completion", "permission_required", "error"]
+    },
+    "taskQueue": [
+      {
+        "id": "2.1",
+        "name": "MeTTa Core Engine",
+        "status": "pending",
+        "priority": "high"
+      },
+      {
+        "id": "3.1",
+        "name": "DID Authentication",
+        "status": "pending",
+        "priority": "high"
+      },
+      {
+        "id": "6",
+        "name": "Database Schema",
+        "status": "pending",
+        "priority": "medium"
+      }
+    ]
+  },
+  "workflow": {
+    "readSpecs": "auto",
+    "analyzeRequirements": "auto",
+    "generateCode": "ask_bonsai",
+    "writeCode": "request_permission",
+    "runTests": "auto",
+    "commitChanges": "request_permission"
+  }
+}

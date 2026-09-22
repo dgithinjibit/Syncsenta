@@ -51,7 +51,7 @@ export default function SchemePreview({
   const lang = useKiswahili ? 'sw' : 'en';
 
   // Build column headers array
-  const headers: string[] = [
+  const headers = [
     SCHEME_COLUMN_HEADERS.week[lang],
     SCHEME_COLUMN_HEADERS.lesson[lang],
     SCHEME_COLUMN_HEADERS.strand[lang],
@@ -67,29 +67,6 @@ export default function SchemePreview({
   // Add lesson plan column if not read-only
   if (!readOnly && onGenerateLessonPlan) {
     headers.push(useKiswahili ? 'Mpango wa Somo' : 'Lesson Plan');
-  }
-
-  // Handle empty rows
-  if (!rows || rows.length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center space-y-1">
-          <h3 className="font-serif text-lg font-bold text-foreground">
-            {useKiswahili ? 'Mpango wa Kazi' : 'Scheme of Work'}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {grade} — {subject} — {term}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border p-8 text-center">
-          <p className="text-muted-foreground">
-            {useKiswahili
-              ? 'Hakuna masomo katika mpango huu wa kazi'
-              : 'No lessons found in this scheme of work'}
-          </p>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -109,7 +86,7 @@ export default function SchemePreview({
 
       {/* Table */}
       <div className="w-full rounded-lg border border-border">
-        <div className="overflow-x-auto overflow-y-auto pb-2 scheme-table-scroll mobile-scroll-visible">
+        <div className="overflow-x-auto overflow-y-hidden pb-2">
           <table className="min-w-[1400px] w-full text-sm">
             <thead>
               <tr>
@@ -130,31 +107,31 @@ export default function SchemePreview({
                   className={index % 2 === 0 ? 'bg-card' : 'bg-muted/50'}
                 >
                   <td className="px-3 py-2 text-xs align-top border-b border-border min-w-[40px] font-medium">
-                    {row.week || '—'}
+                    {row.week}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border min-w-[40px]">
-                    {row.lesson || '—'}
+                    {row.lesson}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border min-w-[120px] font-medium">
-                    {row.strand || '—'}
+                    {row.strand}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border min-w-[130px]">
-                    {row.subStrand || '—'}
+                    {row.subStrand}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border whitespace-pre-line min-w-[220px]">
-                    {row.specificLearningOutcome || '—'}
+                    {row.specificLearningOutcome}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border whitespace-pre-line min-w-[220px]">
-                    {row.learningExperiences || '—'}
+                    {row.learningExperiences}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border whitespace-pre-line min-w-[150px]">
-                    {row.keyInquiryQuestion || '—'}
+                    {row.keyInquiryQuestion}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border min-w-[150px]">
-                    {row.learningResources || '—'}
+                    {row.learningResources}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border min-w-[120px]">
-                    {row.assessmentMethods || '—'}
+                    {row.assessmentMethods}
                   </td>
                   <td className="px-3 py-2 text-xs align-top border-b border-border min-w-[60px]">
                     {row.reflection || '—'}
@@ -166,7 +143,6 @@ export default function SchemePreview({
                         size="sm"
                         onClick={() => onGenerateLessonPlan(row, index)}
                         className="h-7 gap-1"
-                        disabled={!row.strand && !row.subStrand && !row.specificLearningOutcome}
                       >
                         <BookOpen className="h-3 w-3" />
                         {useKiswahili ? 'Tengeneza' : 'Generate'}
@@ -183,8 +159,8 @@ export default function SchemePreview({
       {/* Summary */}
       <div className="text-xs text-muted-foreground text-center">
         {useKiswahili
-          ? `Jumla ya masomo: ${rows.length} | Wiki: ${rows.length > 0 ? Math.max(...rows.map((r) => r.week || 0)) : 0}`
-          : `Total lessons: ${rows.length} | Weeks: ${rows.length > 0 ? Math.max(...rows.map((r) => r.week || 0)) : 0}`}
+          ? `Jumla ya masomo: ${rows.length} | Wiki: ${Math.max(...rows.map((r) => r.week))}`
+          : `Total lessons: ${rows.length} | Weeks: ${Math.max(...rows.map((r) => r.week))}`}
       </div>
     </div>
   );

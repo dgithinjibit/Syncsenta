@@ -1,6 +1,6 @@
 /**
  * CBC Curriculum Data Types
- * Core types for Kenya's Competency-Based Curriculum (PP1-Grade 6)
+ * Core types for Kenya's Competency-Based Curriculum (PP1-Senior School)
  */
 
 /**
@@ -70,12 +70,10 @@ export interface StrandInfo {
  */
 export type GradeLevel = 
   | "PP1" | "PP2" 
-  | "Grade1" | "Grade2" | "Grade3"
+  | "Grade1" | "Grade2" | "Grade3" 
   | "Grade4" | "Grade5" | "Grade6"
   | "Grade7" | "Grade8" | "Grade9"
-  | "Grade 1" | "Grade 2" | "Grade 3"
-  | "Grade 4" | "Grade 5" | "Grade 6"
-  | "Grade 7" | "Grade 8" | "Grade 9";
+  | "Grade10" | "Grade11" | "Grade12";
 
 /**
  * CBC Terms

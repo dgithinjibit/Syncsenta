@@ -2,29 +2,11 @@
 
 from typing import Dict, Any, Optional
 from datetime import datetime
-import os
 
 from ..core.models import AgentRequest, AgentResponse
 from ..core.logging import AgentLogger
 from ..agents.assessment import AssessmentAgent
 from ..agents.tutoring import TutoringAgent
-from ..agents.specialists import (
-    CareerPathwaysAgent,
-    CurriculumAgent,
-    SchoolIntelligenceAgent,
-)
-from ..agents.future_agents import (
-    CoordinatorAgent,
-    CredentialVerificationAgent,
-    CreativityInnovationAgent,
-    CulturalLocalizationAgent,
-    EquityInclusionAgent,
-    MasteryAgent,
-    PersonaMotivationAgent,
-    RealWorldProblemSolverAgent,
-    SELAgent,
-    TeacherSupportAgent,
-)
 from .workflow import LangGraphOrchestrator
 from .failure_recovery import FailureRecoveryManager
 
@@ -51,76 +33,16 @@ class SyncSentaOrchestrator:
             # Initialize LangGraph workflow
             self.workflow_orchestrator = LangGraphOrchestrator()
 
-            # Register implemented worker agents and specialist wrappers.
-            # When no provider credential is configured, keep initialization
-            # deterministic and let workflow placeholders serve offline tests.
-            if not os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEY") == "test-key-offline":
-                self.logger.warning(
-                    "GROQ_API_KEY not configured; using workflow placeholders in offline mode"
-                )
-                self.workflow_orchestrator.register_agent("assessment", AssessmentAgent())
-                self._initialized = True
-                self.logger.info("Orchestrator initialized successfully in offline mode")
-                return
-
-            # CBC, Intelligence, and Career pathways are backed by concrete
-            # agent adapters instead of placeholder fallbacks in production.
+            # Register implemented worker agents. Other agents (Socratic, CBC,
+            # Lesson, Intelligence, Career) fall through to placeholder
+            # responses in the workflow until their migration completes.
             self.workflow_orchestrator.register_agent(
                 "assessment", AssessmentAgent()
             )
             # Tutoring_Agent — registered under "socratic_tutor" so the
             # existing workflow routing slot picks it up for student questions.
-            from ..db.supabase_client import try_get_supabase_client
-            supabase = try_get_supabase_client()
-            if not supabase:
-                self.logger.warning("Supabase not configured - agents will run without database")
-            
             self.workflow_orchestrator.register_agent(
-                "socratic_tutor", TutoringAgent(supabase_client=supabase)
-            )
-            # Lesson Architect Agent — generates CBC-compliant schemes and lesson plans
-            from ..agents.lesson_architect import LessonArchitectAgent
-            self.workflow_orchestrator.register_agent(
-                "lesson_architect", LessonArchitectAgent(supabase_client=supabase)
-            )
-            self.workflow_orchestrator.register_agent(
-                "cbc_curriculum", CurriculumAgent(supabase_client=supabase)
-            )
-            self.workflow_orchestrator.register_agent(
-                "school_intelligence", SchoolIntelligenceAgent(supabase_client=supabase)
-            )
-            self.workflow_orchestrator.register_agent(
-                "career_pathways", CareerPathwaysAgent(supabase_client=supabase)
-            )
-            self.workflow_orchestrator.register_agent(
-                "cultural_localization", CulturalLocalizationAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "equity_inclusion", EquityInclusionAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "persona_motivation", PersonaMotivationAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "mastery", MasteryAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "creativity_innovation", CreativityInnovationAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "sel", SELAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "real_world_problem_solver", RealWorldProblemSolverAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "teacher_support", TeacherSupportAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "credential_verification", CredentialVerificationAgent()
-            )
-            self.workflow_orchestrator.register_agent(
-                "coordinator", CoordinatorAgent()
+                "socratic_tutor", TutoringAgent()
             )
 
             self._initialized = True

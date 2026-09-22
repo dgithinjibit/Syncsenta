@@ -58,7 +58,7 @@ export function AddClassDialog({ open, onOpenChange, onSaveClass, initialData }:
   const handleAddStudent = (e: React.FormEvent) => {
       e.preventDefault();
       if (!newStudentName.trim()) return;
-      setStudents(prev => [...prev, {id: `new_${Date.now()}`, name: newStudentName.trim()}]);
+      setStudents(prev => [...prev, {id: `new_${Date.now()}`, name: newStudentName.trim(), chatTokens: 100}]);
       setNewStudentName('');
   }
   

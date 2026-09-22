@@ -2,7 +2,7 @@
  * Generate Curriculum Cache
  * 
  * This script extracts curriculum data from scheme-scribe-ai repo
- * and stores it in a JSON file for fast lookup by SyncSenta
+ * and stores it in a JSON file for fast lookup by Mwalimu AI
  */
 
 import { writeFileSync } from 'fs';

@@ -2,7 +2,7 @@
 
 /**
  * Grade Selection Step
- * Step 1: Select grade level (PP1-Grade 6)
+ * Step 1: Select grade level (PP1-Senior School)
  */
 
 import React from 'react';
@@ -15,6 +15,7 @@ import type { GradeLevel } from '@/types/curriculum';
 export function GradeSelectionStep() {
   const { selectedGrade, setGrade, nextStep } = useSchemeWizardStore();
   const grades = getAllGrades();
+  const formatGradeLabel = (grade: GradeLevel) => grade.replace(/^Grade(\d+)$/, 'Grade $1');
 
   const handleGradeSelect = (grade: GradeLevel) => {
     setGrade(grade);
@@ -36,7 +37,7 @@ export function GradeSelectionStep() {
             className="h-20 text-lg font-semibold relative"
             onClick={() => handleGradeSelect(grade)}
           >
-            {grade}
+            {formatGradeLabel(grade)}
             {selectedGrade === grade && (
               <CheckCircle2 className="absolute top-2 right-2 h-5 w-5" />
             )}
@@ -46,4 +47,3 @@ export function GradeSelectionStep() {
     </div>
   );
 }
-

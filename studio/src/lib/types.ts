@@ -20,7 +20,7 @@ export type User = {
 export type Student = {
     id: string;
     name: string;
-    chatTokens?: number;
+    chatTokens: number;
 };
 
 export type ClassInfo = {
@@ -84,8 +84,8 @@ export type TeacherResource = {
   url?: string;
   createdAt: string;
   type: 'Lesson Plan' | 'Scheme of Work' | 'Rubric' | 'Worksheet' | 'Differentiated Worksheet' | 'AI Tutor Context' | 'Other';
-  joinCode?: string;
-  creatorId?: string;
+  joinCode: string;
+  creatorId: string;
 };
 
 export type Communication = {

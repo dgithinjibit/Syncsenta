@@ -1,224 +1,155 @@
-import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import { personalizedLearning } from '@/lib/personalized-learning';
+import { multiAIClient } from '@/lib/multi-ai-client';
 
-/**
- * Personalization endpoint backing the student dashboard.
- *
- * Reads real data from Supabase:
- *   - `action=profile`  → profiles table (authenticated user's own row)
- *   - `action=progress` → student_sessions + behavioral_profiles aggregated per subject
- *
- * Falls back gracefully when Supabase isn't configured or the user has no data yet.
- *
- * Supported queries:
- *   GET /api/test-personalization?action=profile&userId=<id>
- *   GET /api/test-personalization?action=progress&userId=<id>&subject=<name>
- */
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-async function makeSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) return null;
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId') || 'user1';
+    const action = searchParams.get('action') || 'profile';
 
-  const cookieStore = await cookies();
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options),
-        );
-      },
-    },
-  });
+    switch (action) {
+      case 'profile':
+        const profile = await personalizedLearning.getStudentProfile(userId);
+        return NextResponse.json({
+          success: true,
+          profile,
+          message: `Profile for ${profile.name} (${profile.id})`
+        });
+
+      case 'progress':
+        const subject = searchParams.get('subject') || 'Mathematics';
+        const progress = await personalizedLearning.getLearningProgress(userId, subject);
+        return NextResponse.json({
+          success: true,
+          progress,
+          subject,
+          message: `Learning progress in ${subject}`
+        });
+
+      case 'providers':
+        const providerStatus = multiAIClient.getProviderStatus();
+        const testResults = await multiAIClient.testAllProviders();
+        return NextResponse.json({
+          success: true,
+          providerStatus,
+          testResults,
+          message: 'Provider status and test results'
+        });
+
+      default:
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid action. Use: profile, progress, or providers'
+        }, { status: 400 });
+    }
+  } catch (error) {
+    console.error('Test personalization error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
 }
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const action = searchParams.get('action');
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { action, userId = 'user1', ...data } = body;
 
-  // ------------------------------------------------------------------
-  // action=profile
-  // ------------------------------------------------------------------
-  if (action === 'profile') {
-    const supabase = await makeSupabaseClient();
+    switch (action) {
+      case 'updateProfile':
+        await personalizedLearning.updateProfile(userId, data);
+        const updatedProfile = await personalizedLearning.getStudentProfile(userId);
+        return NextResponse.json({
+          success: true,
+          profile: updatedProfile,
+          message: 'Profile updated successfully'
+        });
 
-    if (supabase) {
-      try {
-        // Identify the calling user from the session cookie.
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+      case 'startSession':
+        const { subject = 'Mathematics', topic = 'General' } = data;
+        const session = await personalizedLearning.startSession(userId, subject, topic);
+        return NextResponse.json({
+          success: true,
+          session,
+          message: 'Learning session started'
+        });
 
-        if (user) {
-          const { data: row, error } = await supabase
-            .from('profiles')
-            .select(
-              'id, full_name, role, grade, language_preference, region, subjects',
-            )
-            .eq('id', user.id)
-            .single();
+      case 'testPersonalizedPrompt':
+        const { subject: promptSubject = 'Mathematics', message: promptMessage = 'Hello, I want to learn about fractions' } = data;
+        const prompt = await personalizedLearning.generatePersonalizedPrompt(userId, promptSubject, promptMessage);
+        return NextResponse.json({
+          success: true,
+          prompt,
+          message: 'Personalized prompt generated'
+        });
 
-          if (!error && row) {
-            return NextResponse.json({
-              success: true,
-              profile: {
-                id: row.id,
-                name: row.full_name ?? user.email ?? 'Learner',
-                grade: row.grade ?? 'Grade 4',
-                preferredLanguage: (row.language_preference as
-                  | 'english'
-                  | 'kiswahili'
-                  | 'mixed') ?? 'mixed',
-                learningStyle: 'visual',
-                interests: [],
-                strengths: row.subjects ?? [],
-                challenges: [],
-                culturalContext: {
-                  region: row.region ?? 'Kenya',
-                  culturalReferences: [],
-                },
-              },
-            });
-          }
-        }
-      } catch {
-        // Fall through to empty-state response below.
-      }
+      case 'simulateConversation':
+        // Simulate a full conversation to test personalization
+        const profile = await personalizedLearning.getStudentProfile(userId);
+        const testSubject = data.subject || 'Mathematics';
+        const testMessage = data.message || 'I want to learn about fractions';
+
+        // Generate personalized prompt
+        const personalizedPrompt = await personalizedLearning.generatePersonalizedPrompt(
+          userId, 
+          testSubject, 
+          testMessage
+        );
+
+        // Get AI response
+        const messages = [
+          { role: 'system' as const, content: personalizedPrompt },
+          { role: 'user' as const, content: testMessage }
+        ];
+
+        const aiResponse = await multiAIClient.generateResponse(messages, {
+          temperature: 0.3,
+          maxTokens: 500,
+          preferredProvider: 'groq'
+        });
+
+        // Start session and record interaction
+        const newSession = await personalizedLearning.startSession(userId, testSubject, 'Fractions');
+        
+        await personalizedLearning.addInteraction(userId, newSession.id, {
+          userMessage: testMessage,
+          aiResponse: aiResponse.content,
+          messageType: 'question',
+          topicCovered: testSubject,
+          difficultyLevel: 5,
+          studentUnderstood: null,
+          responseTime: 3
+        });
+
+        return NextResponse.json({
+          success: true,
+          conversation: {
+            profile,
+            userMessage: testMessage,
+            aiResponse: aiResponse.content,
+            session: newSession,
+            provider: aiResponse.provider,
+            model: aiResponse.model
+          },
+          message: 'Conversation simulated successfully'
+        });
+
+      default:
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid action. Use: updateProfile, startSession, testPersonalizedPrompt, or simulateConversation'
+        }, { status: 400 });
     }
-
-    // Unauthenticated / DB unavailable — return an empty-state profile so the
-    // UI renders the "continue as guest" path without hard-coding fake names.
+  } catch (error) {
+    console.error('Test personalization POST error:', error);
     return NextResponse.json({
-      success: true,
-      profile: {
-        id: 'guest',
-        name: 'Learner',
-        grade: 'Grade 4',
-        preferredLanguage: 'mixed' as const,
-        learningStyle: 'visual',
-        interests: [],
-        strengths: [],
-        challenges: [],
-        culturalContext: { region: 'Kenya', culturalReferences: [] },
-      },
-    });
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
-
-  // ------------------------------------------------------------------
-  // action=progress
-  // ------------------------------------------------------------------
-  if (action === 'progress') {
-    const subject = searchParams.get('subject');
-    if (!subject) {
-      return NextResponse.json(
-        { success: false, error: 'subject parameter is required' },
-        { status: 400 },
-      );
-    }
-
-    const supabase = await makeSupabaseClient();
-
-    if (supabase) {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user) {
-          // Pull all sessions for this user + subject, newest first.
-          const { data: sessions } = await supabase
-            .from('student_sessions')
-            .select('session_id, started_at, ended_at, created_at')
-            .eq('student_id', user.id)
-            .eq('subject', subject)
-            .order('created_at', { ascending: false })
-            .limit(100);
-
-          if (sessions && sessions.length > 0) {
-            // Pull mastery scores from behavioral_profiles for these sessions.
-            const sessionIds = sessions.map((s) => s.session_id);
-            const { data: profiles } = await supabase
-              .from('behavioral_profiles')
-              .select('mastery_indicator, created_at')
-              .in('session_id', sessionIds);
-
-            const masteries = (profiles ?? [])
-              .map((p) => p.mastery_indicator as number | null)
-              .filter((m): m is number => m != null);
-
-            const overallProgress =
-              masteries.length > 0
-                ? Math.round(
-                    (masteries.reduce((a, b) => a + b, 0) / masteries.length) * 100,
-                  )
-                : 0;
-
-            // Streak: count consecutive days ending today that had a session.
-            const sessionDays = new Set(
-              sessions.map((s) =>
-                new Date(s.created_at).toISOString().slice(0, 10),
-              ),
-            );
-            let streakDays = 0;
-            const today = new Date();
-            for (let i = 0; i < 365; i++) {
-              const d = new Date(today);
-              d.setDate(today.getDate() - i);
-              const key = d.toISOString().slice(0, 10);
-              if (sessionDays.has(key)) {
-                streakDays++;
-              } else {
-                break;
-              }
-            }
-
-            const totalMinutes = sessions.reduce((acc, s) => {
-              if (!s.started_at || !s.ended_at) return acc;
-              const diff =
-                (new Date(s.ended_at).getTime() -
-                  new Date(s.started_at).getTime()) /
-                60000;
-              return acc + Math.max(0, diff);
-            }, 0);
-
-            return NextResponse.json({
-              success: true,
-              progress: {
-                overallProgress,
-                streakDays,
-                totalSessions: sessions.length,
-                averageSessionTime:
-                  sessions.length > 0
-                    ? Math.round(totalMinutes / sessions.length)
-                    : 0,
-              },
-            });
-          }
-        }
-      } catch {
-        // Fall through to zero-state response.
-      }
-    }
-
-    // No data yet — return zero-state so new users see an empty dashboard
-    // rather than fabricated numbers.
-    return NextResponse.json({
-      success: true,
-      progress: {
-        overallProgress: 0,
-        streakDays: 0,
-        totalSessions: 0,
-        averageSessionTime: 0,
-      },
-    });
-  }
-
-  return NextResponse.json(
-    { success: false, error: `unknown action: ${action}` },
-    { status: 400 },
-  );
 }

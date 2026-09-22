@@ -5,7 +5,6 @@ import { Loader2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useExamAutosave } from "@/hooks/useExamAutosave";
 import { useExamTimer, formatDuration } from "@/hooks/useExamTimer";
-import { offlineQueue, useOfflineQueue } from "@/lib/offline-queue";
 import {
   useExamKeyboardNav,
   focusQuestionCard,
@@ -87,7 +86,6 @@ const ExamRunner = ({
   const elapsed = useExamTimer(!!results);
   const finalElapsedRef = useRef<number>(0);
   const { toast } = useToast();
-  const { count: queuedCount, processing: queueProcessing, online: queueOnline, processQueue } = useOfflineQueue();
 
   // Auto-save & restore
   const autosaveKey = useMemo(() => {
@@ -230,31 +228,11 @@ const ExamRunner = ({
         });
       } catch (e) {
         console.error(e);
-        try {
-          await offlineQueue.add("/api/v1/exams/mark", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              items: aiItems,
-              grade,
-              subject,
-            }),
-          });
-          toast({
-            title: "Offline Marking Queued",
-            description: "Your exam answers are queued and will be marked when back online.",
-          });
-        } catch (queueError) {
-          console.error("Queue failed", queueError);
-          toast({
-            title: "Marking Failed",
-            description: "AI marking failed and the request could not be queued.",
-            variant: "destructive",
-          });
-        }
-
+        toast({
+          title: "Marking Failed",
+          description: "AI marking failed — showing partial results.",
+          variant: "destructive",
+        });
         aiItems.forEach((it) => {
           if (!out[it.index])
             out[it.index] = { awarded: 0, max: it.marks, correct: false };
@@ -308,26 +286,6 @@ const ExamRunner = ({
 
   return (
     <div className="space-y-6">
-      {queuedCount > 0 && (
-        <Card className="border-border bg-muted p-4 text-sm text-foreground">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-medium">Pending sync</p>
-              <p className="text-xs text-muted-foreground">
-                {queuedCount} queued request{queuedCount === 1 ? '' : 's'} will sync when the app reconnects.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={processQueue}
-              disabled={queueProcessing || queuedCount === 0}
-            >
-              {queueProcessing ? 'Retrying…' : 'Retry now'}
-            </Button>
-          </div>
-        </Card>
-      )}
       {restored && !results && (
         <Card className="p-4 bg-yellow-50 dark:bg-yellow-950 border-yellow-500/40 flex items-center gap-3">
           <RotateCcw className="w-5 h-5 text-yellow-600 shrink-0" />

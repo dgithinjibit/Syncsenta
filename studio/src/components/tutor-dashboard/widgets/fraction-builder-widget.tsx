@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import { Mafs, Circle, Polygon, Text } from 'mafs';
+import { Mafs, Circle, Polygon, Text, vec } from 'mafs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -106,9 +106,7 @@ export function FractionBuilderWidget({
   // Render circle fraction
   const renderCircleFraction = () => {
     const radius = 2;
-    // vec.of was removed in newer mafs versions; a plain [x, y] tuple is the
-    // canonical vector representation it expects.
-    const center: [number, number] = [0, 0];
+    const center = vec.of(0, 0);
     const parts = [];
 
     for (let i = 0; i < denominator; i++) {
@@ -208,7 +206,7 @@ export function FractionBuilderWidget({
                 x: [-3, 3],
                 y: [-3, 3],
               }}
-              preserveAspectRatio="contain"
+              preserveAspectRatio
             >
               {shape === 'circle' ? renderCircleFraction() : renderRectangleFraction()}
 

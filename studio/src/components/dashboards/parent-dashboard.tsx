@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Calendar,
   DollarSign,
   MessageCircle,
   Phone,
+  TrendingUp,
   Users,
   CheckCircle,
 } from 'lucide-react';
@@ -22,19 +23,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/lib/supabase/client';
 
-const DEMO_DATA_ENABLED =
-  process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_PARENT_DASHBOARD_DEMO === 'true';
+const mockParent = {
+  id: 'parent_1',
+  name: 'Grace Wanjiku',
+  phone: '+254712345678',
+  email: 'grace.wanjiku@email.com',
+};
 
-// ---------------------------------------------------------------------------
-// Demo data — used when the parent has no linked students in Supabase yet.
-// Clearly labelled so it's easy to replace once the DB is populated.
-// ---------------------------------------------------------------------------
-const DEMO_STUDENTS = [
+const mockLinkedStudents = [
   {
     id: 'student_1',
-    name: 'Amina (demo)',
+    name: 'Amina Wanjiku',
     grade: 'Grade 6',
     class: '6A',
     school: 'Nairobi Primary School',
@@ -52,7 +52,7 @@ const DEMO_STUDENTS = [
   },
   {
     id: 'student_2',
-    name: 'James (demo)',
+    name: 'James Wanjiku',
     grade: 'Grade 4',
     class: '4B',
     school: 'Nairobi Primary School',
@@ -70,12 +70,12 @@ const DEMO_STUDENTS = [
   },
 ];
 
-const DEMO_MESSAGES = [
+const mockRecentMessages = [
   {
     id: 'msg_1',
     from: 'Mr. Kiprotich',
     subject: 'Mathematics Progress Update',
-    preview: 'Your child is showing excellent progress in fractions...',
+    preview: 'Amina is showing excellent progress in fractions...',
     timestamp: '2 hours ago',
     read: false,
   },
@@ -89,67 +89,52 @@ const DEMO_MESSAGES = [
   },
 ];
 
-const DEMO_EVENTS = [
-  { id: 'event_1', title: 'Parent-Teacher Meeting', date: '2026-05-03', time: '2:00 PM', type: 'meeting' },
-  { id: 'event_2', title: 'Science Fair', date: '2026-05-10', time: '9:00 AM', type: 'event' },
-  { id: 'event_3', title: 'Fee Payment Due', date: '2026-05-15', time: 'All Day', type: 'payment' },
+const mockUpcomingEvents = [
+  {
+    id: 'event_1',
+    title: 'Parent-Teacher Meeting',
+    date: '2026-05-03',
+    time: '2:00 PM',
+    type: 'meeting',
+  },
+  {
+    id: 'event_2',
+    title: 'Science Fair',
+    date: '2026-05-10',
+    time: '9:00 AM',
+    type: 'event',
+  },
+  {
+    id: 'event_3',
+    title: 'Fee Payment Due',
+    date: '2026-05-15',
+    time: 'All Day',
+    type: 'payment',
+  },
 ];
 
 export default function ParentDashboard() {
-  const [parentName, setParentName] = useState<string>('');
-  const [usingDemo, setUsingDemo] = useState(false);
-
-  // Resolve the real parent name from the active Supabase session.
-  useEffect(() => {
-    async function loadParent() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          const name = profile?.full_name || session.user.email?.split('@')[0] || 'Parent';
-          setParentName(name);
-          setUsingDemo(false);
-          return;
-        }
-      } catch { /* fall through */ }
-      // Do not expose synthetic learners when a real session is unavailable.
-      setParentName('Parent');
-      setUsingDemo(DEMO_DATA_ENABLED);
-    }
-    loadParent();
-  }, []);
-
-  const students = DEMO_DATA_ENABLED ? DEMO_STUDENTS : [];
-  const messages = DEMO_DATA_ENABLED ? DEMO_MESSAGES : [];
-  const events = DEMO_DATA_ENABLED ? DEMO_EVENTS : [];
-  const [selectedStudent, setSelectedStudent] = useState(DEMO_STUDENTS[0]);
+  const [selectedStudent, setSelectedStudent] = useState(mockLinkedStudents[0]);
+  const students = mockLinkedStudents;
+  const messages = mockRecentMessages;
 
   const totalFeeBalance = students.reduce((sum, s) => sum + s.feeBalance, 0);
-  const averageAttendance = students.length
-    ? Math.round(students.reduce((sum, s) => sum + s.attendanceRate, 0) / students.length)
-    : 0;
+  const averageAttendance = Math.round(
+    students.reduce((sum, s) => sum + s.attendanceRate, 0) / students.length
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground font-headline">
-            Karibu, {parentName || '…'}
+            Karibu, {mockParent.name}
           </h1>
           <p className="text-muted-foreground">
             Monitor your children&apos;s academic progress and school activities
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {usingDemo && (
-            <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
-              Demo data
-            </Badge>
-          )}
           <Button variant="outline" className="gap-2">
             <MessageCircle className="h-4 w-4" />
             Messages
@@ -214,12 +199,6 @@ export default function ParentDashboard() {
             <CardDescription>Academic performance and attendance overview</CardDescription>
           </CardHeader>
           <CardContent>
-            {students.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                No learner is linked to this parent account yet. Ask the learner to share their
-                secure connection code; SyncSenta will show verified progress here after linking.
-              </div>
-            ) : (
             <Tabs
               value={selectedStudent.id}
               onValueChange={(value) => {
@@ -303,7 +282,6 @@ export default function ParentDashboard() {
                 </TabsContent>
               ))}
             </Tabs>
-            )}
           </CardContent>
         </Card>
 
@@ -351,7 +329,7 @@ export default function ParentDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {events.map((event) => (
+                {mockUpcomingEvents.map((event) => (
                   <div
                     key={event.id}
                     className="flex items-center space-x-3 p-3 border rounded-lg"

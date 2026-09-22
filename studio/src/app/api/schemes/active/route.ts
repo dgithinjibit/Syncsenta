@@ -2,15 +2,13 @@
  * Active Scheme Context API
  * 
  * Returns the active scheme context for a student's class.
- * Used by AI agents (syncsenta, CBC Agent) to ground responses in current curriculum.
+ * Used by AI agents (Mwalimu, CBC Agent) to ground responses in current curriculum.
  * 
  * Students never see this data directly - only AI agents use it as guardrails.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getStudentSchemes } from '@/lib/teacher/scheme-v2-client';
-
-export const dynamic = 'force-dynamic'; // Mark as dynamic route
+import { getStudentSchemes } from '@/lib/scheme-v2-client';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 

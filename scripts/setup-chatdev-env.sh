@@ -64,16 +64,16 @@ fi
 
 # Update .env file
 if [ ! -z "$OPENAI_KEY" ]; then
-    sed -i "s|API_KEY=configure-in-secret-manager|API_KEY=$OPENAI_KEY|g" ChatDev/.env
+    sed -i "s|API_KEY=<REDACTED_SECRET>|API_KEY=$OPENAI_KEY|g" ChatDev/.env
     sed -i "s|BASE_URL=https://api.openai.com/v1|BASE_URL=https://api.openai.com/v1|g" ChatDev/.env
     echo -e "${GREEN}✓ Configured OpenAI${NC}"
 elif [ ! -z "$GEMINI_KEY" ]; then
-    sed -i "s|API_KEY=configure-in-secret-manager|API_KEY=$GEMINI_KEY|g" ChatDev/.env
+    sed -i "s|API_KEY=<REDACTED_SECRET>|API_KEY=$GEMINI_KEY|g" ChatDev/.env
     sed -i "s|BASE_URL=https://api.openai.com/v1|BASE_URL=https://generativelanguage.googleapis.com|g" ChatDev/.env
     echo -e "${GREEN}✓ Configured Google Gemini${NC}"
 elif [ "$USE_LOCAL" = true ] && [ ! -z "$LOCAL_URL" ]; then
     sed -i "s|BASE_URL=https://api.openai.com/v1|BASE_URL=$LOCAL_URL|g" ChatDev/.env
-    sed -i "s|API_KEY=configure-in-secret-manager|API_KEY=not-needed-for-local|g" ChatDev/.env
+    sed -i "s|API_KEY=<REDACTED_SECRET>|API_KEY=not-needed-for-local|g" ChatDev/.env
     echo -e "${GREEN}✓ Configured Local LLM${NC}"
 else
     echo -e "${RED}⚠️  No API key configured!${NC}"

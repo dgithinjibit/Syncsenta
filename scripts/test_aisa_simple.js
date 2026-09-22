@@ -23,10 +23,10 @@ function loadEnv() {
     
     return env;
   } catch (error) {
-    console.log('⚠️  .env file not found; external AISA test is disabled');
+    console.log('⚠️  .env file not found, using .env.example values');
     return {
-      AISA_API_KEY: process.env.AISA_API_KEY || '',
-      AISA_BASE_URL: process.env.AISA_BASE_URL || 'https://api.aisa.one/v1'
+      AISA_API_KEY: '<REDACTED_SECRET>',
+      AISA_BASE_URL: 'https://api.aisa.one/v1'
     };
   }
 }
@@ -39,7 +39,7 @@ async function testAISA() {
   const AISA_API_KEY = env.AISA_API_KEY;
   const AISA_BASE_URL = env.AISA_BASE_URL || 'https://api.aisa.one/v1';
   
-  console.log('🔑 API Key configured:', Boolean(AISA_API_KEY));
+  console.log('🔑 API Key:', AISA_API_KEY ? `${AISA_API_KEY.substring(0, 10)}...` : 'Not found');
   console.log('🌐 Base URL:', AISA_BASE_URL);
   
   if (!AISA_API_KEY) {
@@ -61,7 +61,7 @@ async function testAISA() {
         messages: [
           { 
             role: 'system', 
-            content: 'You are SyncSenta, an AI assistant for Kenya\'s CBC education system. Respond in a friendly, educational manner.' 
+            content: 'You are Mwalimu, an AI assistant for Kenya\'s CBC education system. Respond in a friendly, educational manner.' 
           },
           { 
             role: 'user', 
@@ -78,7 +78,7 @@ async function testAISA() {
     if (response.ok) {
       const data = await response.json();
       console.log('✅ AISA.one connection successful!');
-      console.log('\n🤖 SyncSenta Response:');
+      console.log('\n🤖 Mwalimu AI Response:');
       console.log('─'.repeat(50));
       console.log(data.choices[0].message.content);
       console.log('─'.repeat(50));
@@ -91,7 +91,7 @@ async function testAISA() {
       console.log('\n🚀 Next steps:');
       console.log('1. Start studio: npm run dev (in studio directory)');
       console.log('2. Visit: http://localhost:3000');
-      console.log('3. Test SyncSenta in the student dashboard');
+      console.log('3. Test Mwalimu AI in the student dashboard');
       
     } else {
       const errorText = await response.text();
@@ -150,7 +150,7 @@ async function testCBCScenarios() {
           messages: [
             { 
               role: 'system', 
-              content: `You are SyncSenta, specialized in Kenya's CBC curriculum for ${scenario.grade} ${scenario.subject}. Use Kenyan cultural context and examples.` 
+              content: `You are Mwalimu, specialized in Kenya's CBC curriculum for ${scenario.grade} ${scenario.subject}. Use Kenyan cultural context and examples.` 
             },
             { role: 'user', content: scenario.prompt }
           ],

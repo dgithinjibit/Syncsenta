@@ -44,38 +44,25 @@ class LLMProvider(Protocol):
 
 
 class OllamaLLMProvider:
-    """Hardcoded to use Groq (free, no local GPU needed)."""
+    """LangChain Ollama wrapper bound to the assessment model (gemma_2b by default)."""
 
     def __init__(self, model_key: str = "assessment", base_url: str | None = None) -> None:
-        import os
+        from langchain_community.llms import Ollama  # local import to keep tests light
 
-        if (os.environ.get("SYNCSENTA_OFFLINE_DEMO") == "1"
-                or not os.getenv("GROQ_API_KEY")
-                or os.getenv("GROQ_API_KEY") == "test-key-offline"):
-            from ..api.demo_stub import DemoStubLLM
-            self._llm = DemoStubLLM()
-            self._offline = True
-            return
-
-        from langchain_groq import ChatGroq
-        self._llm = ChatGroq(
-            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
-            api_key=os.getenv("GROQ_API_KEY"),
+        model_name = config.ollama_models[
+            config.agent_model_mapping.get(model_key, "gemma_2b")
+        ]
+        self._llm = Ollama(
+            model=model_name,
+            base_url=base_url or config.ollama_base_url,
             temperature=0.2,
         )
-        self._offline = False
 
     async def generate(self, prompt: str, *, system: str | None = None) -> str:
         import asyncio
 
-        messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": prompt})
-        if getattr(self, "_offline", False):
-            return await self._llm.generate(prompt, system=system)
-        response = await asyncio.to_thread(self._llm.invoke, messages)
-        return response.content if hasattr(response, 'content') else str(response)
+        full = f"[SYSTEM]\n{system}\n\n[USER]\n{prompt}" if system else prompt
+        return await asyncio.to_thread(self._llm.invoke, full)
 
 
 # ---------------------------------------------------------------------------

@@ -6,8 +6,8 @@ import { AppHeader } from "@/components/layout/app-header";
 import Link from "next/link";
 import type { UserRole } from "@/lib/types";
 
-export default async function MainLayout({ children }: { children: ReactNode }) {
-  const cookieStore = await cookies();
+export default function MainLayout({ children }: { children: ReactNode }) {
+  const cookieStore = cookies();
   const role = cookieStore.get('userRole')?.value as UserRole | undefined;
 
   if (role === 'student') {

@@ -1,5 +1,8 @@
-import { EnhancedTeacherDashboard } from '@/components/teacher/enhanced-teacher-dashboard'
+'use client';
 
-export default function TeacherPage() {
-  return <EnhancedTeacherDashboard />
+import { useEffect, useState } from 'react';
+import { TeacherDashboard } from '@/components/teacher/teacher-dashboard';
+
+export default function TeacherDashboardPage() {
+  return <TeacherDashboard />;
 }

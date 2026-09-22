@@ -14,6 +14,7 @@ __author__ = "SyncSenta Team"
 __email__ = "team@syncsenta.ke"
 
 from .core.config import AgentConfig
+from .orchestrator.main import SyncSentaOrchestrator
 from .agents.registry import AgentRegistry
 
 __all__ = [
@@ -21,17 +22,3 @@ __all__ = [
     "SyncSentaOrchestrator", 
     "AgentRegistry",
 ]
-
-
-def __getattr__(name: str):
-    """Load the optional LangGraph orchestrator only when it is requested.
-
-    The Lesson Architect API does not depend on LangGraph. Deferring this
-    import lets the teacher scheme service start in constrained local Windows
-    environments where optional binary telemetry dependencies are blocked.
-    """
-    if name == "SyncSentaOrchestrator":
-        from .orchestrator.main import SyncSentaOrchestrator
-
-        return SyncSentaOrchestrator
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

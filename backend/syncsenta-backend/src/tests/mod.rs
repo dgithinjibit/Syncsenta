@@ -1,0 +1,11 @@
+pub mod auth_tests;
+pub mod rbac_tests;
+pub mod pending_access_tests;
+pub mod approval_chain_tests;
+pub mod invalid_credentials_tests;
+pub mod auth_unit_tests;
+pub mod blockchain_tests;
+pub mod token_economy_tests;
+pub mod ipfs_tests;
+pub mod mwalimu_tests;
+pub mod scheme_tests;

@@ -88,6 +88,7 @@ export function DigitalAttendanceRegister({ open, onOpenChange, classInfo, onCla
         const newStudent: Student = {
             id: `stud_${Date.now()}`,
             name: newStudentName.trim(),
+            chatTokens: 100,
         };
 
         setStudents(prev => [...prev, newStudent]);

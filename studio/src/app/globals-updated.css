@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Vibrant, child-friendly color palette inspired by Kenyan CBC */
+    /* Primary: Bright Teal - Calming yet energetic */
+    --background: 180 70% 45%; /* #2BA89F - Vibrant Teal */
+    --foreground: 0 0% 100%; /* White text */
+    
+    /* Card: Soft Cream - Warm and inviting */
+    --card: 45 100% 96%; /* #FFFAF0 - Soft Cream */
+    --card-foreground: 180 70% 35%; /* Dark Teal text */
+    
+    /* Popover: Light Yellow - Cheerful and friendly */
+    --popover: 48 100% 88%; /* #FFEB99 - Light Yellow */
+    --popover-foreground: 180 70% 35%; /* Dark Teal text */
+    
+    /* Primary Action: Bright Orange - Energy and enthusiasm */
+    --primary: 30 100% 50%; /* #FF9900 - Bright Orange */
+    --primary-foreground: 0 0% 100%; /* White text */
+    
+    /* Secondary: Vibrant Green - Growth and learning */
+    --secondary: 120 70% 45%; /* #2ECC71 - Vibrant Green */
+    --secondary-foreground: 0 0% 100%; /* White text */
+    
+    /* Muted: Soft Gray - Neutral background */
+    --muted: 0 0% 92%; /* #EBEBEB - Light Gray */
+    --muted-foreground: 180 70% 35%; /* Dark Teal text */
+    
+    /* Accent: Hot Pink - Playful and engaging */
+    --accent: 330 100% 55%; /* #FF1493 - Hot Pink */
+    --accent-foreground: 0 0% 100%; /* White text */
+    
+    /* Destructive: Warm Red - Alert and attention */
+    --destructive: 0 84% 60%; /* #FF6B6B - Warm Red */
+    --destructive-foreground: 0 0% 100%; /* White text */
+    
+    /* Border and Input: Soft Teal */
+    --border: 180 50% 85%; /* #B8E6E0 - Soft Teal */
+    --input: 180 50% 90%; /* #D4F1ED - Very Light Teal */
+    --ring: 30 100% 50%; /* Orange ring for focus */
+    
+    --radius: 0.75rem; /* Slightly more rounded for friendliness */
+    
+    /* Chart colors: Vibrant and distinct */
+    --chart-1: 30 100% 50%; /* Orange */
+    --chart-2: 120 70% 45%; /* Green */
+    --chart-3: 330 100% 55%; /* Hot Pink */
+    --chart-4: 48 100% 50%; /* Golden Yellow */
+    --chart-5: 200 100% 50%; /* Bright Blue */
+    
+    /* Sidebar: Dark Teal with bright accents */
+    --sidebar-background: 180 70% 25%; /* Dark Teal */
+    --sidebar-foreground: 0 0% 100%; /* White text */
+    --sidebar-primary: 30 100% 50%; /* Orange */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text */
+    --sidebar-accent: 120 70% 45%; /* Green */
+    --sidebar-accent-foreground: 0 0% 100%; /* White text */
+    --sidebar-border: 180 70% 35%; /* Medium Teal */
+    --sidebar-ring: 30 100% 50%; /* Orange ring */
+  }
+
+  .dark {
+    /* Dark mode: Maintain vibrancy while being easier on eyes */
+    --background: 180 70% 20%; /* Dark Teal */
+    --foreground: 0 0% 100%; /* White text */
+    
+    --card: 180 70% 25%; /* Slightly lighter Teal */
+    --card-foreground: 48 100% 88%; /* Light Yellow text */
+    
+    --popover: 180 70% 25%; /* Teal */
+    --popover-foreground: 48 100% 88%; /* Light Yellow text */
+    
+    --primary: 30 100% 50%; /* Bright Orange */
+    --primary-foreground: 0 0% 100%; /* White text */
+    
+    --secondary: 120 70% 45%; /* Vibrant Green */
+    --secondary-foreground: 0 0% 100%; /* White text */
+    
+    --muted: 180 70% 30%; /* Medium Teal */
+    --muted-foreground: 48 100% 80%; /* Light Yellow text */
+    
+    --accent: 330 100% 55%; /* Hot Pink */
+    --accent-foreground: 0 0% 100%; /* White text */
+    
+    --destructive: 0 84% 60%; /* Warm Red */
+    --destructive-foreground: 0 0% 100%; /* White text */
+    
+    --border: 180 70% 35%; /* Medium Teal */
+    --input: 180 70% 30%; /* Teal */
+    --ring: 30 100% 50%; /* Orange ring */
+    
+    --chart-1: 30 100% 50%; /* Orange */
+    --chart-2: 120 70% 45%; /* Green */
+    --chart-3: 330 100% 55%; /* Hot Pink */
+    --chart-4: 48 100% 50%; /* Golden Yellow */
+    --chart-5: 200 100% 50%; /* Bright Blue */
+    
+    --sidebar-background: 180 70% 15%; /* Very Dark Teal */
+    --sidebar-foreground: 0 0% 100%; /* White text */
+    --sidebar-primary: 30 100% 50%; /* Orange */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text */
+    --sidebar-accent: 120 70% 45%; /* Green */
+    --sidebar-accent-foreground: 0 0% 100%; /* White text */
+    --sidebar-border: 180 70% 25%; /* Medium Teal */
+    --sidebar-ring: 30 100% 50%; /* Orange ring */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Additional utility classes for child-friendly design */
+@layer components {
+  .btn-child-friendly {
+    @apply rounded-lg font-semibold text-base transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+  
+  .card-child-friendly {
+    @apply rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200;
+  }
+  
+  .text-child-friendly {
+    @apply text-lg leading-relaxed;
+  }
+}

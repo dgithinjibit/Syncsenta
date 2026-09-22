@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { MicroEvalNode } from './types/lesson-script';
-import { NumberLineWidget, type NumberLineConfig } from './widgets/number-line-widget';
+import { NumberLineWidget } from './widgets/number-line-widget';
 import { FractionBuilderWidget } from './widgets/fraction-builder-widget';
 import { validateAnswer } from './utils/answer-validator';
 
@@ -142,12 +142,7 @@ export function MicroEvaluation({
 
     switch (node.widget.type) {
       case 'number-line':
-        return (
-          <NumberLineWidget
-            {...widgetProps}
-            config={node.widget.config as NumberLineConfig}
-          />
-        );
+        return <NumberLineWidget {...widgetProps} />;
       case 'fraction-builder':
         return <FractionBuilderWidget {...widgetProps} />;
       default:
