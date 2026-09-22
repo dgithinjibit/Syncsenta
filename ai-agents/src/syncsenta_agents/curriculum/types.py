@@ -36,6 +36,17 @@ class LiteracyCurriculumEnvelope(TypedDict):
     releaseState: Literal['draft', 'teacher_review', 'verified']
 
 
+class LiteracyScheduleAudit(TypedDict):
+    authoredLessons: int
+    lessonsPerWeek: int
+    requiredWeeks: int
+    standardAnnualWeeks: int
+    annualCapacity: int
+    consolidationWeeks: int
+    overrunWeeks: int
+    status: Literal['fits', 'requires_extension']
+
+
 class SchemeRow(TypedDict):
     week: int
     lesson: int
@@ -49,4 +60,4 @@ class SchemeRow(TypedDict):
     reflection: str
 
 
-__all__ = ["SubStrandInfo", "StrandInfo", "LiteracyCurriculumEnvelope", "SchemeRow"]
+__all__ = ["SubStrandInfo", "StrandInfo", "LiteracyCurriculumEnvelope", "LiteracyScheduleAudit", "SchemeRow"]

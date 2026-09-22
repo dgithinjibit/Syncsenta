@@ -13,6 +13,7 @@ import type {
   WeeklyDistribution,
   Term,
   LiteracyCurriculumEnvelope,
+  LiteracyScheduleAudit,
 } from '@/types/curriculum';
 import { grade6AI, grade7AI, grade8AI, grade9AI, grade10AI, grade11AI, grade12AI } from './senior-school/ai';
 import { BLOCKCHAIN_LITERACY_VERSION, blockchainStrandsByGrade } from './blockchain';
@@ -280,6 +281,32 @@ export function getLiteracyEnvelope(
   };
 }
 
+export function getLiteracyScheduleAudit(
+  grade: GradeLevel | string,
+  subject: string,
+  standardAnnualWeeks = 39,
+): LiteracyScheduleAudit | null {
+  const envelope = getLiteracyEnvelope(grade, subject);
+  if (!envelope) return null;
+  const strands = getHardcodedStrands(envelope.grade, envelope.subject);
+  const authoredLessons = strands.reduce(
+    (total, strand) => total + strand.subStrands.reduce((sum, subStrand) => sum + (subStrand.lessons ?? 0), 0),
+    0,
+  );
+  const requiredWeeks = Math.ceil(authoredLessons / envelope.lessonsPerWeek);
+  const annualCapacity = envelope.lessonsPerWeek * standardAnnualWeeks;
+  return {
+    authoredLessons,
+    lessonsPerWeek: envelope.lessonsPerWeek,
+    requiredWeeks,
+    standardAnnualWeeks,
+    annualCapacity,
+    consolidationWeeks: Math.max(0, standardAnnualWeeks - requiredWeeks),
+    overrunWeeks: Math.max(0, requiredWeeks - standardAnnualWeeks),
+    status: requiredWeeks <= standardAnnualWeeks ? 'fits' : 'requires_extension',
+  };
+}
+
 /**
  * Get term allocation for non-language subjects
  * Distributes strands across the three CBC terms with proper error handling
@@ -434,6 +461,7 @@ export function getCurriculumData(
     category,
     strands,
     envelope: getLiteracyEnvelope(grade, subject) ?? undefined,
+    scheduleAudit: getLiteracyScheduleAudit(grade, subject) ?? undefined,
   };
   
   // Add term allocations for non-language subjects

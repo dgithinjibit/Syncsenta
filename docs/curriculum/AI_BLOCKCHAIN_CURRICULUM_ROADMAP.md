@@ -92,7 +92,9 @@ The parallel-help review completed its first pass across pedagogy, architecture,
 
 The first implementation checkpoint normalized grade and subject aliases at the backend scheme boundary, exposed Grades 7–9 in the frontend selector, and added regression coverage for both behaviors. The second checkpoint is now implemented: both runtimes expose a shared versioned literacy envelope carrying teacher mediation, synthetic-data status, source/evidence requirements, prohibited operations, and teacher-review release state. Generated literacy schemes now retain that envelope in their metadata while Rust remains the policy source of truth.
 
-The next checkpoint is the cadence decision and fail-closed authored-pack lookup. The cadence work must reconcile authored totals with three CBC terms, retrieval/consolidation weeks, and the existing frontend/backend term allocation behavior. It must make any extension or compression visible to the teacher rather than silently dropping sub-strands.
+The cadence audit is now implemented without making an unapproved pedagogical decision. With the current two lessons per week, Grade 6 AI requires 33 teaching weeks and fits within a 39-week year; Grades 7–9 AI require 50 weeks and therefore show an 11-week extension; Grades 10–12 AI require 66 weeks and show a 27-week extension. Blockchain fits within 39 weeks at Grade 6 (24 weeks), Grades 7–9 (30 weeks), and Grades 10–12 (35 weeks). The backend and frontend now calculate the same authored totals and expose `status`, `requiredWeeks`, `annualCapacity`, `consolidationWeeks`, and `overrunWeeks` in the schedule audit. Generated schemes retain this audit so teachers see an extension requirement instead of silent truncation.
+
+The remaining cadence decision is now explicit: either adopt a higher weekly cadence for the AI junior and senior bands, or approve a multi-year/extended delivery plan with retrieval and consolidation weeks. Until that decision is made, the runtime preserves authored content and reports the mismatch rather than compressing it.
 
 ## References
 

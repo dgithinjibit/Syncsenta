@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getAllGrades, getHardcodedStrands, getLessonsPerWeek, getLiteracyEnvelope, getSubjectsForGrade, getTermAllocation } from './index';
+import { getAllGrades, getHardcodedStrands, getLessonsPerWeek, getLiteracyEnvelope, getLiteracyScheduleAudit, getSubjectsForGrade, getTermAllocation } from './index';
 
 describe('CBC curriculum registry', () => {
   it('resolves Grade 6 AI Literacy from the canonical local adapter', () => {
@@ -49,6 +49,22 @@ describe('CBC curriculum registry', () => {
       releaseState: 'teacher_review',
     });
     expect(envelope?.prohibitedOperations).toContain('seed_phrases');
+  });
+
+  it('makes authored lesson extensions visible instead of truncating them', () => {
+    expect(getLiteracyScheduleAudit('Grade 6', 'AI Literacy')).toMatchObject({
+      authoredLessons: 66,
+      requiredWeeks: 33,
+      annualCapacity: 78,
+      status: 'fits',
+    });
+    expect(getLiteracyScheduleAudit('Grade 7', 'AI Literacy')).toMatchObject({
+      authoredLessons: 99,
+      requiredWeeks: 50,
+      annualCapacity: 78,
+      overrunWeeks: 11,
+      status: 'requires_extension',
+    });
   });
 
   it('includes several offline paper-block interactions with no real credentials or transactions', () => {

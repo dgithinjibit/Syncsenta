@@ -7,10 +7,11 @@ upper_primary/) into a single lookup keyed by ``"Grade X|Subject"``.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Dict, List, Optional
 
-from .types import StrandInfo, SubStrandInfo, SchemeRow, LiteracyCurriculumEnvelope
+from .types import StrandInfo, SubStrandInfo, SchemeRow, LiteracyCurriculumEnvelope, LiteracyScheduleAudit
 from .ai_literacy import AI_BLOCKCHAIN_PROGRESSION, AI_LITERACY_VERSION, grade6AILiteracy
 from .ai_identifiers import grade7AIIdentifiers, grade8AIIdentifiers, grade9AIIdentifiers, grade10AIIdentifiers, grade11AIIdentifiers, grade12AIIdentifiers
 from .blockchain_literacy import (
@@ -177,6 +178,34 @@ def get_literacy_envelope(
         "externalActionsAllowed": False,
         "prohibitedOperations": list(_LITERACY_PROHIBITED_OPERATIONS),
         "releaseState": "teacher_review",
+    }
+
+
+def get_literacy_schedule_audit(
+    grade: str, subject: str, *, standard_annual_weeks: int = 39
+) -> Optional[LiteracyScheduleAudit]:
+    """Show whether authored lessons fit the standard annual teaching window."""
+    envelope = get_literacy_envelope(grade, subject)
+    if envelope is None:
+        return None
+    strands = get_hardcoded_strands(envelope["grade"], envelope["subject"]) or []
+    authored_lessons = sum(
+        int(sub_strand.get("lessons", 0))
+        for strand in strands
+        for sub_strand in strand["subStrands"]
+    )
+    lessons_per_week = envelope["lessonsPerWeek"]
+    required_weeks = math.ceil(authored_lessons / lessons_per_week)
+    annual_capacity = lessons_per_week * standard_annual_weeks
+    return {
+        "authoredLessons": authored_lessons,
+        "lessonsPerWeek": lessons_per_week,
+        "requiredWeeks": required_weeks,
+        "standardAnnualWeeks": standard_annual_weeks,
+        "annualCapacity": annual_capacity,
+        "consolidationWeeks": max(0, standard_annual_weeks - required_weeks),
+        "overrunWeeks": max(0, required_weeks - standard_annual_weeks),
+        "status": "fits" if required_weeks <= standard_annual_weeks else "requires_extension",
     }
 
 
@@ -350,9 +379,9 @@ from .validator import CurriculumValidator
 
 __all__ = [
     # Legacy registry (used by LessonArchitectAgent.generate_scheme)
-    "StrandInfo", "SubStrandInfo", "LiteracyCurriculumEnvelope", "SchemeRow",
+    "StrandInfo", "SubStrandInfo", "LiteracyCurriculumEnvelope", "LiteracyScheduleAudit", "SchemeRow",
     "get_hardcoded_strands", "get_sub_strands_for_strand",
-    "get_lessons_per_week", "get_subjects_for_grade", "get_literacy_envelope",
+    "get_lessons_per_week", "get_subjects_for_grade", "get_literacy_envelope", "get_literacy_schedule_audit",
     "COLUMN_HEADERS", "KISWAHILI_SUBJECTS", "GRADES",
     "CURRICULUM_REGISTRY", "AI_LITERACY_VERSION", "AI_BLOCKCHAIN_PROGRESSION",
     "BLOCKCHAIN_LITERACY_VERSION", "LITERACY_SCHEMA_VERSION",

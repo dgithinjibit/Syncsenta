@@ -119,6 +119,17 @@ export interface LiteracyCurriculumEnvelope {
   releaseState: LiteracyReleaseState;
 }
 
+export interface LiteracyScheduleAudit {
+  authoredLessons: number;
+  lessonsPerWeek: number;
+  requiredWeeks: number;
+  standardAnnualWeeks: number;
+  annualCapacity: number;
+  consolidationWeeks: number;
+  overrunWeeks: number;
+  status: 'fits' | 'requires_extension';
+}
+
 /**
  * Term allocation for non-language subjects
  */
@@ -150,6 +161,7 @@ export interface CurriculumData {
   category: SubjectCategory;
   strands: StrandInfo[];
   envelope?: LiteracyCurriculumEnvelope;
+  scheduleAudit?: LiteracyScheduleAudit;
   termAllocations?: TermAllocation[];
   weeklyDistributions?: WeeklyDistribution[];
 }

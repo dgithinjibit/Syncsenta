@@ -19,6 +19,7 @@ from ...curriculum import (
     get_hardcoded_strands,
     get_lessons_per_week,
     get_literacy_envelope,
+    get_literacy_schedule_audit,
     normalize_grade_label,
     normalize_subject_label,
 )
@@ -99,6 +100,7 @@ class SchemeGenerator:
             grade = normalize_grade_label(grade)
             subject = normalize_subject_label(subject)
             curriculum_envelope = get_literacy_envelope(grade, subject)
+            schedule_audit = get_literacy_schedule_audit(grade, subject)
             self.logger.info(
                 "Generating scheme",
                 grade=grade,
@@ -194,6 +196,7 @@ class SchemeGenerator:
             }
             if curriculum_envelope is not None:
                 scheme["curriculum"] = curriculum_envelope
+                scheme["scheduleAudit"] = schedule_audit
 
             self.logger.info(
                 "Scheme generated",

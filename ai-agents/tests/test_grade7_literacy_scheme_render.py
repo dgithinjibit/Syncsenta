@@ -59,6 +59,8 @@ def test_grade7_ai_scheme_renders_from_registered_strands():
     assert scheme["lessons_per_week"] == 2
     assert scheme["curriculum"]["curriculumId"] == "Grade 7|AI Literacy"
     assert scheme["curriculum"]["teacherMediationRequired"] is True
+    assert scheme["scheduleAudit"]["status"] == "requires_extension"
+    assert scheme["scheduleAudit"]["overrunWeeks"] == 11
     assert rows
     assert all(row["strand"] in {
         "1.0 Foundations of Intelligence",
@@ -76,6 +78,8 @@ def test_grade7_blockchain_scheme_renders_from_registered_strands():
     assert scheme["lessons_per_week"] == 2
     assert scheme["curriculum"]["curriculumId"] == "Grade 7|Blockchain Literacy"
     assert scheme["curriculum"]["externalActionsAllowed"] is False
+    assert scheme["scheduleAudit"]["status"] == "fits"
+    assert scheme["scheduleAudit"]["requiredWeeks"] == 30
     assert rows
     assert all(row["strand"] in {
         "1.0 Data, Records, and Trust",

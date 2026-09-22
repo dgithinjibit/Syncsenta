@@ -3,6 +3,7 @@ from syncsenta_agents.curriculum import (
     AI_LITERACY_VERSION,
     get_hardcoded_strands,
     get_literacy_envelope,
+    get_literacy_schedule_audit,
     get_lessons_per_week,
     get_subjects_for_grade,
     normalize_grade_label,
@@ -41,6 +42,19 @@ def test_literacy_envelope_is_versioned_and_teacher_reviewed():
     assert envelope["externalActionsAllowed"] is False
     assert envelope["releaseState"] == "teacher_review"
     assert "seed_phrases" in envelope["prohibitedOperations"]
+
+
+def test_literacy_schedule_audit_exposes_annual_extension():
+    grade6 = get_literacy_schedule_audit("Grade6", "AI")
+    grade7 = get_literacy_schedule_audit("Grade 7", "AI Literacy")
+
+    assert grade6 is not None and grade6["authoredLessons"] == 66
+    assert grade6["requiredWeeks"] == 33
+    assert grade6["status"] == "fits"
+    assert grade7 is not None and grade7["authoredLessons"] == 99
+    assert grade7["requiredWeeks"] == 50
+    assert grade7["overrunWeeks"] == 11
+    assert grade7["status"] == "requires_extension"
 
 
 def test_grade6_ai_pack_has_66_lessons_and_is_two_lessons_per_week():
