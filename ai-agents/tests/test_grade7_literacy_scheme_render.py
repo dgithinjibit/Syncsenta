@@ -68,6 +68,9 @@ def test_grade7_ai_scheme_renders_from_registered_strands():
     assert scheme["curriculum"]["teacherMediationRequired"] is True
     assert scheme["scheduleAudit"]["status"] == "requires_extension"
     assert scheme["scheduleAudit"]["overrunWeeks"] == 11
+    assert [entry["stage"] for entry in scheme["generationTrace"]] == [
+        "plan", "generate", "generate", "critique", "verify"
+    ]
     assert rows
     assert all(row["strand"] in {
         "1.0 Foundations of Intelligence",
@@ -100,7 +103,7 @@ def test_unregistered_literacy_grade_fails_closed_before_generic_scaffold():
     provider = OfflineSchemeProvider()
     generator = SchemeGenerator(provider)
 
-    with pytest.raises(AgentError, match="fails closed"):
+    with pytest.raises(AgentError, match="fails closed") as error:
         asyncio.run(
             generator.generate_scheme(
                 grade="Grade 13",
@@ -112,3 +115,4 @@ def test_unregistered_literacy_grade_fails_closed_before_generic_scaffold():
         )
 
     assert provider.prompts == []
+    assert [entry["stage"] for entry in error.value.generation_trace] == ["plan", "quarantine"]

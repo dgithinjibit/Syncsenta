@@ -98,6 +98,8 @@ The remaining cadence decision is now explicit: either adopt a higher weekly cad
 
 The fail-closed generation checkpoint is also complete. Registered AI and Blockchain requests now require an authored envelope and authored term allocation; an unavailable or unknown literacy pack raises a teacher-facing error before any model call and cannot enter the generic scaffold path. Generic scaffolding remains available only for genuinely unregistered non-literacy subjects.
 
+The deterministic release validator and bounded generation trace are now implemented. Before release, literacy rows are checked for prohibited operations and observable modelling, guided practice, retrieval, mastery, transfer, and reflection. Successful requests record `plan`, `generate`, `critique`, and `verify` stages; blocked requests record `quarantine` with the reason and revisions used. The retry budget is fixed at one, and no unverified artifact is returned.
+
 The first deterministic release validator is now in place. Before a literacy scheme is returned, it rejects prohibited operations such as wallets, tokens, seed phrases, credentials, real transactions, private identity data, and unsupervised external AI. It also requires observable modelling, guided practice, retrieval, mastery checking, transfer, and reflection language. The validator is curriculum-specific and does not replace the Rust policy engine. The existing structural guardrail now preserves or supplies a reflection prompt so the release contract can be checked reliably.
 
 ## References

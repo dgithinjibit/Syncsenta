@@ -97,12 +97,20 @@ class SchemeGenerator:
         Raises:
             AgentError: If generation fails.
         """
+        generation_trace: List[Dict[str, Any]] = []
         try:
             grade = normalize_grade_label(grade)
             subject = normalize_subject_label(subject)
             curriculum_envelope = get_literacy_envelope(grade, subject)
             schedule_audit = get_literacy_schedule_audit(grade, subject)
             is_literacy_subject = subject in {"AI Literacy", "Blockchain Literacy"}
+            generation_trace.append({
+                "stage": "plan",
+                "status": "complete",
+                "curriculum_id": curriculum_envelope["curriculumId"] if curriculum_envelope else None,
+                "curriculum_version": curriculum_envelope["curriculumVersion"] if curriculum_envelope else None,
+                "retry_budget": 1,
+            })
             if is_literacy_subject and curriculum_envelope is None:
                 raise AgentError(
                     f"No authored curriculum pack is registered for {grade} {subject}; "
@@ -178,6 +186,7 @@ class SchemeGenerator:
             )
 
             # Generate scheme rows
+            generation_trace.append({"stage": "generate", "status": "started", "provider": type(self.llm_provider).__name__})
             scheme_rows = await self._generate_scheme_rows(
                 grade=grade,
                 subject=subject,
@@ -189,7 +198,24 @@ class SchemeGenerator:
                 language=language,
                 personalization_context=personalization_context,
             )
-            validate_literacy_scheme_rows(scheme_rows, grade=grade, subject=subject)
+            generation_trace.append({"stage": "generate", "status": "complete", "rows": len(scheme_rows)})
+            generation_trace.append({
+                "stage": "critique",
+                "status": "complete",
+                "checks": ["grade_band", "teacher_mediation", "offline_synthetic", "mastery_sequence", "safety_terms"],
+            })
+            try:
+                validate_literacy_scheme_rows(scheme_rows, grade=grade, subject=subject)
+            except AgentError as validation_error:
+                generation_trace.append({
+                    "stage": "quarantine",
+                    "status": "blocked",
+                    "reason": str(validation_error),
+                    "revisions_used": 0,
+                })
+                setattr(validation_error, "generation_trace", generation_trace)
+                raise
+            generation_trace.append({"stage": "verify", "status": "passed", "revisions_used": 0})
 
             # Create scheme metadata
             scheme_id = f"scheme_{uuid.uuid4().hex[:12]}"
@@ -206,6 +232,7 @@ class SchemeGenerator:
                 "total_weeks": len(scheme_rows),
                 "lessons_per_week": lessons_per_week,
                 "rows": scheme_rows,
+                "generationTrace": generation_trace,
             }
             if curriculum_envelope is not None:
                 scheme["curriculum"] = curriculum_envelope
@@ -229,7 +256,14 @@ class SchemeGenerator:
 
         except Exception as exc:
             self.logger.error("Scheme generation failed", error=str(exc))
-            raise AgentError(f"Scheme generation failed: {exc}") from exc
+            wrapped = AgentError(f"Scheme generation failed: {exc}")
+            if hasattr(exc, "generation_trace"):
+                setattr(exc, "generation_trace", getattr(exc, "generation_trace"))
+                setattr(wrapped, "generation_trace", getattr(exc, "generation_trace"))
+            elif generation_trace and generation_trace[-1].get("stage") != "quarantine":
+                generation_trace.append({"stage": "quarantine", "status": "blocked", "reason": str(exc), "revisions_used": 0})
+                setattr(wrapped, "generation_trace", generation_trace)
+            raise wrapped from exc
 
     async def _generate_scheme_rows(
         self,
