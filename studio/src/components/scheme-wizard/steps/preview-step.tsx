@@ -226,6 +226,44 @@ export function PreviewStep() {
         </AlertDescription>
       </Alert>
 
+      {generatedScheme.curriculum && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="font-semibold">Curriculum review</h3>
+                <p className="text-xs text-muted-foreground">
+                  {generatedScheme.curriculum.curriculumId} · {generatedScheme.curriculum.curriculumVersion}
+                </p>
+              </div>
+              <span className="rounded-full border border-amber-500/50 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                Teacher review required
+              </span>
+            </div>
+            <div className="grid gap-2 text-sm sm:grid-cols-3">
+              <div><strong>Safety:</strong> synthetic/offline, teacher-mediated</div>
+              <div><strong>External actions:</strong> disabled</div>
+              <div>
+                <strong>Schedule:</strong>{' '}
+                {generatedScheme.scheduleAudit?.status === 'requires_extension'
+                  ? `${generatedScheme.scheduleAudit.overrunWeeks} extra weeks required`
+                  : `${generatedScheme.scheduleAudit?.consolidationWeeks ?? 0} consolidation weeks available`}
+              </div>
+            </div>
+            {Array.isArray(generatedScheme.generationTrace) && (
+              <div className="text-xs text-muted-foreground">
+                <strong>Generation trace:</strong>{' '}
+                {generatedScheme.generationTrace.map((entry: { stage: string; status: string }, index: number) => (
+                  <React.Fragment key={`${entry.stage}-${index}`}>
+                    {index > 0 ? ' → ' : ''}{entry.stage} ({entry.status})
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3">
         <Button onClick={handleSave} size="lg">

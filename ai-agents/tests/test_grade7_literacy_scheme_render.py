@@ -1,0 +1,140 @@
+"""Offline render tests for Grade 7 AI and Blockchain Literacy schemes."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from typing import Optional
+
+import pytest
+
+from syncsenta_agents.core.exceptions import AgentError
+from syncsenta_agents.agents.lesson_planning.scheme_generator import SchemeGenerator, SchemeMode
+from syncsenta_agents.agents.scheme.batched import _build_official_context
+from syncsenta_agents.curriculum import get_hardcoded_strands
+
+
+class OfflineSchemeProvider:
+    """Small deterministic provider for contract/render tests; never calls a network."""
+
+    def __init__(self) -> None:
+        self.prompts: list[tuple[str, str]] = []
+
+    async def generate(self, prompt: str, *, system: Optional[str] = None) -> str:
+        self.prompts.append((prompt, system or ""))
+        return json.dumps([
+            {
+                "week": 1,
+                "lesson": 1,
+                "specificLearningOutcome": (
+                    "By the end of the lesson, the learner should be able to:\n"
+                    "a) identify the concept in the example\n"
+                    "b) practise the concept using a guided task\n"
+                    "c) appreciate responsible use of technology"
+                ),
+                "keyInquiryQuestion": "How can we explain this idea safely?",
+                "learningExperiences": (
+                    "Listen to the teacher model, complete guided practise, "
+                    "retrieve the idea from memory, and complete an independent "
+                    "transfer task with a partner."
+                ),
+                "learningResources": "Paper cards, pencils, and a teacher-created fictional scenario.",
+                "assessmentMethods": "Observation, oral explanation, mastery check, and a short exit ticket.",
+                "reflection": "What became clearer after practice?",
+            }
+        ])
+
+
+def _render(grade: str, subject: str, term: str) -> tuple[dict, OfflineSchemeProvider]:
+    provider = OfflineSchemeProvider()
+    generator = SchemeGenerator(provider)
+    result = asyncio.run(
+        generator.generate_scheme(
+            grade=grade,
+            subject=subject,
+            term=term,
+            mode=SchemeMode.STANDARD,
+            teacher_id="offline-test-teacher",
+        )
+    )
+    return result, provider
+
+
+def test_grade7_ai_scheme_renders_from_registered_strands():
+    result, provider = _render("Grade 7", "AI Literacy", "Term 1")
+    scheme = result["scheme"]
+    rows = scheme["rows"]
+
+    assert scheme["lessons_per_week"] == 2
+    assert scheme["curriculum"]["curriculumId"] == "Grade 7|AI Literacy"
+    assert scheme["curriculum"]["teacherMediationRequired"] is True
+    assert scheme["scheduleAudit"]["status"] == "requires_extension"
+    assert scheme["scheduleAudit"]["overrunWeeks"] == 11
+    assert [entry["stage"] for entry in scheme["generationTrace"]] == [
+        "plan", "generate", "generate", "critique", "verify"
+    ]
+    assert rows
+    assert all(row["strand"] in {
+        "1.0 Foundations of Intelligence",
+        "2.0 Data and Representation",
+    } for row in rows)
+    assert any("Defining Artificial Intelligence" in row["subStrand"] for row in rows)
+    assert provider.prompts
+
+
+def test_grade6_phase2_metadata_reaches_scheme_prompt():
+    strands = get_hardcoded_strands("Grade 6", "AI Literacy")
+    assert strands
+    sub_strand = strands[0]["subStrands"][0]
+    context, has_official_data = _build_official_context(
+        sub_strand,
+        strand=strands[0]["name"],
+        grade="Grade 6",
+        subject="AI Literacy",
+        is_sw=False,
+    )
+
+    assert has_official_data is True
+    assert "TEACHER ASSESSMENT EVIDENCE" in context
+    assert "PREREQUISITES" in context
+    assert "KNOWN MISCONCEPTIONS" in context
+    assert "NON-NEGOTIABLE SAFETY NOTES" in context
+    assert "synthetic" in context.lower()
+
+
+def test_grade7_blockchain_scheme_renders_from_registered_strands():
+    result, provider = _render("Grade 7", "Blockchain Literacy", "Term 1")
+    scheme = result["scheme"]
+    rows = scheme["rows"]
+
+    assert scheme["lessons_per_week"] == 2
+    assert scheme["curriculum"]["curriculumId"] == "Grade 7|Blockchain Literacy"
+    assert scheme["curriculum"]["externalActionsAllowed"] is False
+    assert scheme["scheduleAudit"]["status"] == "fits"
+    assert scheme["scheduleAudit"]["requiredWeeks"] == 30
+    assert rows
+    assert all(row["strand"] in {
+        "1.0 Data, Records, and Trust",
+        "2.0 Blockchain Mechanics",
+    } for row in rows)
+    assert any("Data Provenance and Claims" in row["subStrand"] for row in rows)
+    assert any("fictional" in system.lower() or "blockchain" in system.lower() for _, system in provider.prompts)
+
+
+def test_unregistered_literacy_grade_fails_closed_before_generic_scaffold():
+    provider = OfflineSchemeProvider()
+    generator = SchemeGenerator(provider)
+
+    with pytest.raises(AgentError, match="fails closed") as error:
+        asyncio.run(
+            generator.generate_scheme(
+                grade="Grade 13",
+                subject="AI Literacy",
+                term="Term 1",
+                mode=SchemeMode.STANDARD,
+                teacher_id="offline-test-teacher",
+            )
+        )
+
+    assert provider.prompts == []
+    assert [entry["stage"] for entry in error.value.generation_trace] == ["plan", "quarantine"]

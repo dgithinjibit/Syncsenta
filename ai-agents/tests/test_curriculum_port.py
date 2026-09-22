@@ -184,8 +184,8 @@ def test_term_lesson_count_matches_sum():
 
 def test_grades_constant():
     assert GRADES[0] == "Grade 1"
-    assert GRADES[-1] == "Grade 9"
-    assert len(GRADES) == 9
+    assert GRADES[-1] == "Grade 12"
+    assert len(GRADES) == 12
 
 
 def test_kiswahili_subjects_constant():

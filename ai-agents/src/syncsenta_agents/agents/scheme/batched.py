@@ -137,6 +137,30 @@ def _build_official_context(
         for exp in suggested:
             parts.append(f"  - {exp}")
 
+    assessment_evidence = sub_strand.get("assessmentEvidence") or []
+    if assessment_evidence:
+        parts.append("\nTEACHER ASSESSMENT EVIDENCE — preserve these observable checks:")
+        for evidence in assessment_evidence:
+            parts.append(f"  - {evidence}")
+
+    prerequisites = sub_strand.get("prerequisites") or []
+    if prerequisites:
+        parts.append("\nPREREQUISITES — do not skip these readiness checks:")
+        for prerequisite in prerequisites:
+            parts.append(f"  - {prerequisite}")
+
+    misconceptions = sub_strand.get("misconceptions") or []
+    if misconceptions:
+        parts.append("\nKNOWN MISCONCEPTIONS — address these explicitly:")
+        for misconception in misconceptions:
+            parts.append(f"  - {misconception}")
+
+    safety_notes = sub_strand.get("safetyNotes") or []
+    if safety_notes:
+        parts.append("\nNON-NEGOTIABLE SAFETY NOTES — do not weaken or omit:")
+        for safety_note in safety_notes:
+            parts.append(f"  - {safety_note}")
+
     has_official_data = bool(parts)
     official_context = "\n".join(parts)
 

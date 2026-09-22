@@ -768,11 +768,11 @@ function guidedFoundationActivity(grade: GradeId, subject: SubjectId): Activity[
 function curriculumSubjectCandidates(grade: GradeId, subject: SubjectId): string[] {
   const numericGrade = Number(String(grade).replace(/\D/g, ''));
   switch (subject) {
-    case 'english': return numericGrade <= 3 ? ['English Activities', 'English'] : ['English'];
+    case 'english': return numericGrade <= 3 ? ['English Language Activities', 'English'] : ['English'];
     case 'creative': return numericGrade <= 3 ? ['Creative Activities', 'Creative Arts'] : ['Creative Arts'];
-    case 'environmental': return numericGrade <= 3 ? ['Environmental Activities', 'Science & Technology'] : ['Science & Technology', 'Integrated Science'];
-    case 'mathematics': return ['Mathematics'];
-    case 'kiswahili': return ['Kiswahili'];
+    case 'environmental': return numericGrade <= 3 ? ['Environmental Activities', 'Science and Technology'] : ['Science and Technology', 'Integrated Science'];
+    case 'mathematics': return numericGrade <= 3 ? ['Mathematical Activities', 'Mathematics'] : ['Mathematics'];
+    case 'kiswahili': return numericGrade <= 3 ? ['Kiswahili Language Activities', 'Kiswahili'] : ['Kiswahili'];
     case 'social-studies': return ['Social Studies'];
     case 'cre': return ['CRE'];
     case 'indigenous': return ['Indigenous Language'];
@@ -800,11 +800,11 @@ function iconForCurriculumSubject(subject: SubjectId, title: string): string {
 function curriculumActivitiesForGrade(grade: GradeId, subject: SubjectId): Activity[] {
   const gradeLabel = gradeNameToLabel(grade);
   const curriculum = curriculumSubjectCandidates(grade, subject)
-    .map(candidate => getCurriculumData(gradeLabel, candidate))
+    .map(candidate => getCurriculumData(gradeLabel as GradeId, candidate))
     .find(Boolean);
   if (!curriculum) return [];
 
-  const rows = curriculum.flatMap((strand, strandIndex) =>
+  const rows = curriculum.strands.flatMap((strand, strandIndex) =>
     strand.subStrands.map((subStrand, subStrandIndex) => ({ strand, subStrand, strandIndex, subStrandIndex })),
   );
   const lessonsPerTerm = Math.max(1, Math.ceil(rows.length / 3));
@@ -826,7 +826,7 @@ function curriculumActivitiesForGrade(grade: GradeId, subject: SubjectId): Activ
       difficulty: Math.min(4, 1 + Math.floor(index / 4)),
       prerequisites: index === 0 ? [] : [`g4-${subject}-s${rows[index - 1].strandIndex + 1}-ss${rows[index - 1].subStrandIndex + 1}`],
       learningObjectives,
-      estimatedTime: Math.max(10, Math.min(25, subStrand.lessons * 2)),
+      estimatedTime: Math.max(10, Math.min(25, (subStrand.lessons ?? 1) * 2)),
       term,
       icon: iconForCurriculumSubject(subject, subStrand.name),
       color: subject === 'mathematics' ? 'bg-indigo-500' : 'bg-teal-500',
@@ -836,7 +836,7 @@ function curriculumActivitiesForGrade(grade: GradeId, subject: SubjectId): Activ
 }
 
 function gradeNameToLabel(grade: GradeId): string {
-  const match = String(grade).match(/([1-9])$/);
+  const match = String(grade).match(/([0-9]+)$/);
   return match ? `Grade ${match[1]}` : String(grade);
 }
 

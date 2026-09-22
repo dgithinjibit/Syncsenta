@@ -1,0 +1,119 @@
+# AI and Blockchain Literacy Curriculum Roadmap
+
+**Status:** Phase 2 in progress  
+**Owner:** Syncsenta curriculum and learning-platform team  
+**Baseline:** `2026-09-22.grade6.lovable-import.v1`
+
+## Purpose
+
+This roadmap turns the current Grade 6–12 AI and Blockchain Literacy work into a controlled delivery sequence. Grade 6 remains the accessible entry point. Each later grade adds reasoning depth, evidence requirements, system complexity, and learner independence without removing teacher mediation or child-safety controls.
+
+The roadmap uses two operating ideas. **Parallel-help** means that curriculum, architecture, pedagogy, and safety are reviewed as separate lanes before their outputs are merged. **Meta-prompting** means that generated material passes through a deliberate cycle of planning, generation, critique, verification, and revision rather than being accepted after one model response.
+
+## Delivery principles
+
+The course must remain additive to Syncsenta's existing architecture. Curriculum data supplies objectives, strands, sub-strands, activities, misconceptions, and evidence prompts. It must not bypass consent, privacy, child-safety, teacher-escalation, or external-action policy.
+
+The instructional pattern combines short demonstrations, repeated practice, gradual release, and reflection. Suzuki-inspired elements are used as a progression pattern: listen, observe, imitate, practise, and explain. Kumon-inspired elements are used as a mastery pattern: small steps, visible prerequisites, independent repetition, and advancement after demonstrated readiness. These are design choices for this course, not claims that either method is a universal solution.
+
+All activities use fictional or synthetic data. Learners must not be asked for passwords, PINs, one-time codes, seed phrases, private keys, precise locations, identity records, or private financial information. Blockchain is taught as a system for records and coordination, not as an invitation to trade cryptocurrency.
+
+## Phase map
+
+| Phase | Focus | Primary result | Exit gate |
+|---|---|---|---|
+| 1 | Foundation contract | Versioned curriculum contract, meta-prompt contract, safety rubric, and test harness | A teacher can select a Grade 6–12 AI or Blockchain strand, generate a local scheme, and inspect safe activity metadata |
+| 2 | Grade 6 complete pack | Fully authored introductory AI and Blockchain sequences with offline activities and teacher notes | Every Grade 6 sub-strand has outcomes, inquiry question, experiences, assessment evidence, and safety notes |
+| 3 | Grades 7–9 hardening | Progression from recognition to explanation, evidence, comparison, and supervised design | Each grade introduces new complexity without skipping prerequisites or introducing real external actions |
+| 4 | Grades 10–12 capstone | Research, policy, architecture, security, governance, and comparative system-design projects | Capstones have source requirements, review checkpoints, privacy controls, and teacher approval gates |
+| 5 | Teacher and learner integration | Scheme wizard, activity player, tutor loop, reflection evidence, and differentiated support operate on one contract | Generated schemes and activities remain traceable to curriculum identifiers and render offline-safe fallbacks |
+| 6 | Evaluation and release | Quality dashboard, pilot feedback, regression suite, and release checklist | Curriculum, pedagogy, safety, accessibility, and technical checks pass for the release candidate |
+
+## Parallel-help operating model
+
+Each phase is reviewed through four lanes. The **curriculum lane** checks scope, sequence, outcomes, strand integrity, and assessment evidence. The **pedagogy lane** checks cognitive load, repetition, independence, differentiation, and teacher usability. The **architecture lane** checks data contracts, registry keys, scheme ingestion, activity mapping, and regression coverage. The **safety lane** checks privacy, external-action boundaries, age appropriateness, misinformation, and escalation routes.
+
+The lanes should work independently first. A short synthesis step then resolves conflicts. The synthesis must record which proposal was accepted, which was rejected, and which assumption remains open. No single generated response is sufficient evidence for a curriculum decision.
+
+## Meta-prompt operating loop
+
+Every generated scheme, lesson sequence, activity set, or assessment uses the following loop:
+
+1. **Plan.** Identify the grade, subject, strand, sub-strand, prerequisites, lesson count, teacher context, and safety boundary.
+2. **Generate.** Produce only the requested artifact fields. Use the authored curriculum context before synthetic fallback context.
+3. **Critique.** Check progression, cognitive load, K-S-A balance, repetition, ambiguity, cultural fit, and whether the activity is actually feasible with available resources.
+4. **Verify.** Check exact lesson count, strand identifiers, learning outcomes, age band, privacy constraints, no-real-transaction constraints, and traceability to the source curriculum record.
+5. **Revise.** Repair failed checks. If a safety or policy check fails, remove the risky action rather than softening its wording.
+6. **Record.** Save the curriculum version, prompt-contract version, model/provider mode, validation results, and teacher review state.
+
+The generated artifact is not releasable until the verification step is green. A teacher may still edit ordinary pedagogical wording, but edits must not remove safety boundaries or change the curriculum identifier without a new review.
+
+## Phase 1: Foundation contract
+
+Phase 1 is the current work package. It establishes the common language that later authoring and engineering work will use.
+
+### Phase 1 work items
+
+The first item is a **curriculum contract**. It defines the shared fields for grade, subject, strand, sub-strand, lessons, learning outcomes, key inquiry question, suggested experiences, resources, assessment methods, misconceptions, prerequisites, safety notes, and evidence prompts. The contract must support both the frontend teacher registry and the backend scheme generator without maintaining divergent names.
+
+The second item is a **generation contract**. It defines the meta-prompt loop, required inputs, output fields, refusal conditions, validation rules, and the difference between authored context and synthetic fallback context. It is documented in `META_PROMPT_GENERATION_CONTRACT.md`.
+
+The third item is a **progression matrix**. It records what becomes harder from Grade 6 through Grade 12. Hardening must be visible in concepts, verbs, evidence, independence, and project complexity. Adding technical vocabulary alone does not count as progression.
+
+The fourth item is a **local test harness**. It must render at least one Grade 7 AI scheme and one Grade 7 Blockchain scheme using a deterministic offline provider. It must verify strand and sub-strand traceability, exact lesson counts, offline-safe experiences, and rejection of real credentials or transactions.
+
+The fifth item is a **teacher review surface**. The scheme wizard must expose strand and sub-strand choices from the same registry used by the generator. A missing authored pack must produce a clearly labelled guided foundation rather than an empty activity screen or an invented official claim.
+
+### Phase 1 acceptance criteria
+
+Phase 1 is complete when the following statements are true:
+
+- Grade 6–12 AI and Blockchain subjects resolve through the canonical registry.
+- The teacher-facing registry and backend scheme generator use matching strand and sub-strand identifiers.
+- A deterministic local test renders Grade 7 AI and Blockchain schemes without an external API key.
+- Paper-block simulations contain multiple interactive, offline-friendly experiences and no live credential or transaction path.
+- Generated activity records contain a traceable curriculum identifier or an explicit guided-foundation label.
+- The meta-prompt contract defines plan, generate, critique, verify, revise, and record steps.
+- Frontend and relevant backend regression suites pass.
+
+## Risks and controls
+
+The main risk is **parallel drift**, in which frontend and backend packs use similar but non-identical names. The control is one identifier test that compares both registries.
+
+The second risk is **false hardening**, in which later grades merely receive harder vocabulary. The control is a progression matrix that changes evidence, reasoning, independence, and system trade-offs.
+
+The third risk is **unsafe realism**, in which a generated activity accidentally asks learners to use wallets, tokens, accounts, or personal data. The control is a hard safety validator and a synthetic-data-only activity policy.
+
+The fourth risk is **empty-content failure**, in which missing authored curriculum prevents a learner from starting. The control is a bounded guided-foundation fallback that is clearly labelled and does not claim to be an official subject sequence.
+
+## Immediate next actions
+
+The parallel-help review completed its first pass across pedagogy, architecture, and safety/meta-prompt design. It confirmed that the progression itself is directionally sound, but identified **contract drift** as the first blocker. The frontend and backend do not yet share one versioned envelope, Grade 7–9 discoverability was incomplete, compact and spaced grade labels could resolve differently, and the scheme generator could fall through to a plausible-looking generic scaffold. The review also identified a cadence conflict: some authored AI packs declare three or four lessons per week while the current literacy runtime uses two. This roadmap intentionally does not guess that annual cadence; it remains a Phase 1 decision requiring an explicit schedule test and teacher-visible consolidation weeks.
+
+The first implementation checkpoint normalized grade and subject aliases at the backend scheme boundary, exposed Grades 7–9 in the frontend selector, and added regression coverage for both behaviors. The second checkpoint is now implemented: both runtimes expose a shared versioned literacy envelope carrying teacher mediation, synthetic-data status, source/evidence requirements, prohibited operations, and teacher-review release state. Generated literacy schemes now retain that envelope in their metadata while Rust remains the policy source of truth.
+
+The cadence audit is now implemented without making an unapproved pedagogical decision. With the current two lessons per week, Grade 6 AI requires 33 teaching weeks and fits within a 39-week year; Grades 7–9 AI require 50 weeks and therefore show an 11-week extension; Grades 10–12 AI require 66 weeks and show a 27-week extension. Blockchain fits within 39 weeks at Grade 6 (24 weeks), Grades 7–9 (30 weeks), and Grades 10–12 (35 weeks). The backend and frontend now calculate the same authored totals and expose `status`, `requiredWeeks`, `annualCapacity`, `consolidationWeeks`, and `overrunWeeks` in the schedule audit. Generated schemes retain this audit so teachers see an extension requirement instead of silent truncation.
+
+The remaining cadence decision is now explicit: either adopt a higher weekly cadence for the AI junior and senior bands, or approve a multi-year/extended delivery plan with retrieval and consolidation weeks. Until that decision is made, the runtime preserves authored content and reports the mismatch rather than compressing it.
+
+The fail-closed generation checkpoint is also complete. Registered AI and Blockchain requests now require an authored envelope and authored term allocation; an unavailable or unknown literacy pack raises a teacher-facing error before any model call and cannot enter the generic scaffold path. Generic scaffolding remains available only for genuinely unregistered non-literacy subjects.
+
+The deterministic release validator and bounded generation trace are now implemented. Before release, literacy rows are checked for prohibited operations and observable modelling, guided practice, retrieval, mastery, transfer, and reflection. Successful requests record `plan`, `generate`, `critique`, and `verify` stages; blocked requests record `quarantine` with the reason and revisions used. The retry budget is fixed at one, and no unverified artifact is returned.
+
+The teacher-facing preview now surfaces the curriculum ID and version, teacher-review release state, synthetic/offline and teacher-mediation status, external-action status, schedule extension or consolidation information, and the generation trace. Teachers can therefore review the contract before exporting or saving rather than treating model output as automatically approved.
+
+The first deterministic release validator is now in place. Before a literacy scheme is returned, it rejects prohibited operations such as wallets, tokens, seed phrases, credentials, real transactions, private identity data, and unsupervised external AI. It also requires observable modelling, guided practice, retrieval, mastery checking, transfer, and reflection language. The validator is curriculum-specific and does not replace the Rust policy engine. The existing structural guardrail now preserves or supplies a reflection prompt so the release contract can be checked reliably.
+
+## Phase 2: Grade 6 complete pack
+
+Phase 2 is now active. The first checkpoint completes the authored teacher contract for every Grade 6 AI and Blockchain Literacy sub-strand. Each record now exposes learning outcomes, a key inquiry question, suggested low-resource experiences, assessment evidence, prerequisites, misconceptions, and safety notes in both the frontend registry and backend scheme-generation registry.
+
+The scheme prompt now consumes those fields as non-optional instructional context. Assessment evidence is preserved as observable checks, prerequisites are presented as readiness gates, misconceptions are presented for explicit correction, and safety notes are hard constraints. This prevents the generator from silently discarding the authored teacher guidance while retaining the Phase 1 fail-closed and release-validator behavior.
+
+The Phase 2 checkpoint is verified by a registry-wide test: all Grade 6 AI and Blockchain sub-strands have the complete metadata contract, and a prompt test confirms that the evidence and safety blocks reach scheme generation. The remaining Phase 2 work is to expose sub-strand evidence and safety notes in the teacher selection/review controls and to add a Grade 6 end-to-end offline scheme fixture for both subjects.
+
+## References
+
+[1]: https://github.com/dgithinjibit/Syncsenta "Syncsenta repository"
+[2]: https://github.com/dgithinjibit/Syncsenta/pull/13 "Syncsenta AI and Blockchain Literacy curriculum pull request"
+[3]: https://github.com/dgithinjibit/scheme-scribe-ai "Lovable curriculum source repository"

@@ -7,9 +7,27 @@ upper_primary/) into a single lookup keyed by ``"Grade X|Subject"``.
 
 from __future__ import annotations
 
+import math
+import re
 from typing import Dict, List, Optional
 
-from .types import StrandInfo, SubStrandInfo, SchemeRow
+from .types import StrandInfo, SubStrandInfo, SchemeRow, LiteracyCurriculumEnvelope, LiteracyScheduleAudit
+from .ai_literacy import AI_BLOCKCHAIN_PROGRESSION, AI_LITERACY_VERSION, grade6AILiteracy
+from .ai_identifiers import grade7AIIdentifiers, grade8AIIdentifiers, grade9AIIdentifiers, grade10AIIdentifiers, grade11AIIdentifiers, grade12AIIdentifiers
+from .blockchain_literacy import (
+    grade6BlockchainLiteracy, grade7BlockchainLiteracy, grade8BlockchainLiteracy,
+    grade9BlockchainLiteracy, grade10BlockchainLiteracy, grade11BlockchainLiteracy,
+    grade12BlockchainLiteracy,
+)
+
+LITERACY_SCHEMA_VERSION = "2026-09-22.phase1.v1"
+BLOCKCHAIN_LITERACY_VERSION = "2026-09-22.blockchain-literacy.v1"
+_LITERACY_PROVENANCE = "Syncsenta authored AI and Blockchain Literacy progression"
+_LITERACY_PROHIBITED_OPERATIONS = [
+    "credentials", "personal_identity_data", "precise_location_data",
+    "wallets", "tokens", "seed_phrases", "private_keys", "trading",
+    "real_transactions", "unsupervised_external_ai",
+]
 
 # --- Grade/subject data -------------------------------------------------
 
@@ -104,12 +122,91 @@ _HARDCODED_STRANDS: Dict[str, List[StrandInfo]] = {
     "Grade 5|Mathematics": grade5Mathematics,
     "Grade 6|Mathematics": grade6Mathematics,
     "Grade 6|Social Studies": grade6SocialStudies,
+    "Grade 6|AI": grade6AILiteracy,
+    "Grade 6|AI Literacy": grade6AILiteracy,
+    "Grade 7|AI Literacy": grade7AIIdentifiers,
+    "Grade 8|AI Literacy": grade8AIIdentifiers,
+    "Grade 9|AI Literacy": grade9AIIdentifiers,
+    "Grade 10|AI Literacy": grade10AIIdentifiers,
+    "Grade 11|AI Literacy": grade11AIIdentifiers,
+    "Grade 12|AI Literacy": grade12AIIdentifiers,
+    "Grade 6|Blockchain Literacy": grade6BlockchainLiteracy,
+    "Grade 7|Blockchain Literacy": grade7BlockchainLiteracy,
+    "Grade 8|Blockchain Literacy": grade8BlockchainLiteracy,
+    "Grade 9|Blockchain Literacy": grade9BlockchainLiteracy,
+    "Grade 10|Blockchain Literacy": grade10BlockchainLiteracy,
+    "Grade 11|Blockchain Literacy": grade11BlockchainLiteracy,
+    "Grade 12|Blockchain Literacy": grade12BlockchainLiteracy,
 }
 
 
 def get_hardcoded_strands(grade: str, subject: str) -> Optional[List[StrandInfo]]:
     """Return the official KICD strand list for a grade+subject, or None."""
     return _HARDCODED_STRANDS.get(f"{grade}|{subject}")
+
+
+def get_literacy_envelope(
+    grade: str, subject: str
+) -> Optional[LiteracyCurriculumEnvelope]:
+    """Return the canonical shared envelope for an authored literacy pack."""
+    canonical_grade = normalize_grade_label(grade)
+    canonical_subject = normalize_subject_label(subject)
+    if canonical_subject not in {"AI Literacy", "Blockchain Literacy"}:
+        return None
+    if f"{canonical_grade}|{canonical_subject}" not in CURRICULUM_REGISTRY:
+        return None
+    number = int(canonical_grade.split()[-1])
+    grade_band = (
+        "upper_primary" if number <= 6 else
+        "junior_secondary" if number <= 9 else
+        "senior_school"
+    )
+    version = AI_LITERACY_VERSION if canonical_subject == "AI Literacy" else BLOCKCHAIN_LITERACY_VERSION
+    return {
+        "curriculumId": f"{canonical_grade}|{canonical_subject}",
+        "schemaVersion": LITERACY_SCHEMA_VERSION,
+        "curriculumVersion": version,
+        "grade": canonical_grade,
+        "subject": canonical_subject,
+        "gradeBand": grade_band,
+        "lessonsPerWeek": get_lessons_per_week(canonical_grade, canonical_subject),
+        "sourceType": "authored",
+        "provenance": _LITERACY_PROVENANCE,
+        "evidenceRequired": True,
+        "teacherMediationRequired": True,
+        "syntheticDataOnly": True,
+        "externalActionsAllowed": False,
+        "prohibitedOperations": list(_LITERACY_PROHIBITED_OPERATIONS),
+        "releaseState": "teacher_review",
+    }
+
+
+def get_literacy_schedule_audit(
+    grade: str, subject: str, *, standard_annual_weeks: int = 39
+) -> Optional[LiteracyScheduleAudit]:
+    """Show whether authored lessons fit the standard annual teaching window."""
+    envelope = get_literacy_envelope(grade, subject)
+    if envelope is None:
+        return None
+    strands = get_hardcoded_strands(envelope["grade"], envelope["subject"]) or []
+    authored_lessons = sum(
+        int(sub_strand.get("lessons", 0))
+        for strand in strands
+        for sub_strand in strand["subStrands"]
+    )
+    lessons_per_week = envelope["lessonsPerWeek"]
+    required_weeks = math.ceil(authored_lessons / lessons_per_week)
+    annual_capacity = lessons_per_week * standard_annual_weeks
+    return {
+        "authoredLessons": authored_lessons,
+        "lessonsPerWeek": lessons_per_week,
+        "requiredWeeks": required_weeks,
+        "standardAnnualWeeks": standard_annual_weeks,
+        "annualCapacity": annual_capacity,
+        "consolidationWeeks": max(0, standard_annual_weeks - required_weeks),
+        "overrunWeeks": max(0, required_weeks - standard_annual_weeks),
+        "status": "fits" if required_weeks <= standard_annual_weeks else "requires_extension",
+    }
 
 
 def get_sub_strands_for_strand(
@@ -155,6 +252,9 @@ _LOWER_PRIMARY_LESSONS: Dict[str, int] = {
 }
 
 _UPPER_PRIMARY_LESSONS: Dict[str, int] = {
+    "AI": 2,
+    "AI Literacy": 2,
+    "Blockchain Literacy": 2,
     "English": 5,
     "Kiswahili": 4,
     "Mathematics": 5,
@@ -168,6 +268,8 @@ _UPPER_PRIMARY_LESSONS: Dict[str, int] = {
 }
 
 _JUNIOR_SECONDARY_LESSONS: Dict[str, int] = {
+    "AI Literacy": 2,
+    "Blockchain Literacy": 2,
     "English": 5,
     "Kiswahili": 4,
     "Mathematics": 5,
@@ -200,7 +302,21 @@ GRADES = [
     "Grade 1", "Grade 2", "Grade 3",
     "Grade 4", "Grade 5", "Grade 6",
     "Grade 7", "Grade 8", "Grade 9",
+    "Grade 10", "Grade 11", "Grade 12",
 ]
+
+
+def normalize_grade_label(grade: str) -> str:
+    """Return the canonical spaced grade label used by registry lookups."""
+    value = str(grade).strip()
+    match = re.fullmatch(r"Grade\s*(\d+)", value, flags=re.IGNORECASE)
+    return f"Grade {int(match.group(1))}" if match else value
+
+
+def normalize_subject_label(subject: str) -> str:
+    """Resolve compatibility aliases without creating a second curriculum key."""
+    value = " ".join(str(subject).strip().split())
+    return "AI Literacy" if value == "AI" else value
 
 _LOWER_PRIMARY_SUBJECTS = [
     "Creative Activities", "CRE", "English Activities",
@@ -208,13 +324,13 @@ _LOWER_PRIMARY_SUBJECTS = [
 ]
 
 _UPPER_PRIMARY_SUBJECTS = [
-    "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
+    "AI", "AI Literacy", "Blockchain Literacy", "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
     "German", "HRE", "Indigenous Language", "IRE", "Kiswahili", "Mandarin",
     "Mathematics", "Science & Technology", "Social Studies",
 ]
 
 _JUNIOR_SECONDARY_SUBJECTS = [
-    "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
+    "AI Literacy", "Blockchain Literacy", "Agriculture", "Arabic", "Creative Arts", "CRE", "English", "French",
     "German", "HRE", "Indigenous Language", "Integrated Science", "IRE",
     "Kiswahili", "Mandarin", "Mathematics", "Pre-Technical Studies",
     "Social Studies",
@@ -230,7 +346,7 @@ def get_subjects_for_grade(grade: str) -> List[str]:
         return _LOWER_PRIMARY_SUBJECTS
     if 4 <= num <= 6:
         return _UPPER_PRIMARY_SUBJECTS
-    if 7 <= num <= 9:
+    if 7 <= num <= 12:
         return _JUNIOR_SECONDARY_SUBJECTS
     return _UPPER_PRIMARY_SUBJECTS
 
@@ -263,11 +379,12 @@ from .validator import CurriculumValidator
 
 __all__ = [
     # Legacy registry (used by LessonArchitectAgent.generate_scheme)
-    "StrandInfo", "SubStrandInfo", "SchemeRow",
+    "StrandInfo", "SubStrandInfo", "LiteracyCurriculumEnvelope", "LiteracyScheduleAudit", "SchemeRow",
     "get_hardcoded_strands", "get_sub_strands_for_strand",
-    "get_lessons_per_week", "get_subjects_for_grade",
+    "get_lessons_per_week", "get_subjects_for_grade", "get_literacy_envelope", "get_literacy_schedule_audit",
     "COLUMN_HEADERS", "KISWAHILI_SUBJECTS", "GRADES",
-    "CURRICULUM_REGISTRY",
+    "CURRICULUM_REGISTRY", "AI_LITERACY_VERSION", "AI_BLOCKCHAIN_PROGRESSION",
+    "BLOCKCHAIN_LITERACY_VERSION", "LITERACY_SCHEMA_VERSION",
     # Curriculum-validation subsystem
     "Topic", "AlternativeTopic", "MisalignedTopic", "ValidationResult",
     "CurriculumData", "ValidatorStrandInfo", "ValidatorSubStrandInfo",

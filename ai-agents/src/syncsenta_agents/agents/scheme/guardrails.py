@@ -251,7 +251,7 @@ def ensure_no_empty_fields(row: SchemeRow, grade: str, subject: str) -> SchemeRo
         learningExperiences=row.get("learningExperiences") or "",
         learningResources=row.get("learningResources") or get_klb_book_title(subject, grade),
         assessmentMethods=row.get("assessmentMethods") or "Oral questions, observation",
-        reflection="",
+        reflection=row.get("reflection") or "What became clearer, and what should the learner practise next?",
     )
 
 
