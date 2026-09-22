@@ -98,6 +98,27 @@ export interface SubjectInfo {
   description?: string;
 }
 
+export type LiteracyReleaseState = 'draft' | 'teacher_review' | 'verified';
+
+/** Shared JSON contract for the AI and Blockchain Literacy packs. */
+export interface LiteracyCurriculumEnvelope {
+  curriculumId: string;
+  schemaVersion: string;
+  curriculumVersion: string;
+  grade: GradeLevel;
+  subject: 'AI Literacy' | 'Blockchain Literacy';
+  gradeBand: 'upper_primary' | 'junior_secondary' | 'senior_school';
+  lessonsPerWeek: number;
+  sourceType: 'authored';
+  provenance: string;
+  evidenceRequired: boolean;
+  teacherMediationRequired: boolean;
+  syntheticDataOnly: boolean;
+  externalActionsAllowed: false;
+  prohibitedOperations: string[];
+  releaseState: LiteracyReleaseState;
+}
+
 /**
  * Term allocation for non-language subjects
  */
@@ -128,6 +149,7 @@ export interface CurriculumData {
   subject: string;
   category: SubjectCategory;
   strands: StrandInfo[];
+  envelope?: LiteracyCurriculumEnvelope;
   termAllocations?: TermAllocation[];
   weeklyDistributions?: WeeklyDistribution[];
 }

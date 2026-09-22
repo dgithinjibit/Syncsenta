@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Optional
 
-from .types import StrandInfo, SubStrandInfo, SchemeRow
+from .types import StrandInfo, SubStrandInfo, SchemeRow, LiteracyCurriculumEnvelope
 from .ai_literacy import AI_BLOCKCHAIN_PROGRESSION, AI_LITERACY_VERSION, grade6AILiteracy
 from .ai_identifiers import grade7AIIdentifiers, grade8AIIdentifiers, grade9AIIdentifiers, grade10AIIdentifiers, grade11AIIdentifiers, grade12AIIdentifiers
 from .blockchain_literacy import (
@@ -18,6 +18,15 @@ from .blockchain_literacy import (
     grade9BlockchainLiteracy, grade10BlockchainLiteracy, grade11BlockchainLiteracy,
     grade12BlockchainLiteracy,
 )
+
+LITERACY_SCHEMA_VERSION = "2026-09-22.phase1.v1"
+BLOCKCHAIN_LITERACY_VERSION = "2026-09-22.blockchain-literacy.v1"
+_LITERACY_PROVENANCE = "Syncsenta authored AI and Blockchain Literacy progression"
+_LITERACY_PROHIBITED_OPERATIONS = [
+    "credentials", "personal_identity_data", "precise_location_data",
+    "wallets", "tokens", "seed_phrases", "private_keys", "trading",
+    "real_transactions", "unsupervised_external_ai",
+]
 
 # --- Grade/subject data -------------------------------------------------
 
@@ -133,6 +142,42 @@ _HARDCODED_STRANDS: Dict[str, List[StrandInfo]] = {
 def get_hardcoded_strands(grade: str, subject: str) -> Optional[List[StrandInfo]]:
     """Return the official KICD strand list for a grade+subject, or None."""
     return _HARDCODED_STRANDS.get(f"{grade}|{subject}")
+
+
+def get_literacy_envelope(
+    grade: str, subject: str
+) -> Optional[LiteracyCurriculumEnvelope]:
+    """Return the canonical shared envelope for an authored literacy pack."""
+    canonical_grade = normalize_grade_label(grade)
+    canonical_subject = normalize_subject_label(subject)
+    if canonical_subject not in {"AI Literacy", "Blockchain Literacy"}:
+        return None
+    if f"{canonical_grade}|{canonical_subject}" not in CURRICULUM_REGISTRY:
+        return None
+    number = int(canonical_grade.split()[-1])
+    grade_band = (
+        "upper_primary" if number <= 6 else
+        "junior_secondary" if number <= 9 else
+        "senior_school"
+    )
+    version = AI_LITERACY_VERSION if canonical_subject == "AI Literacy" else BLOCKCHAIN_LITERACY_VERSION
+    return {
+        "curriculumId": f"{canonical_grade}|{canonical_subject}",
+        "schemaVersion": LITERACY_SCHEMA_VERSION,
+        "curriculumVersion": version,
+        "grade": canonical_grade,
+        "subject": canonical_subject,
+        "gradeBand": grade_band,
+        "lessonsPerWeek": get_lessons_per_week(canonical_grade, canonical_subject),
+        "sourceType": "authored",
+        "provenance": _LITERACY_PROVENANCE,
+        "evidenceRequired": True,
+        "teacherMediationRequired": True,
+        "syntheticDataOnly": True,
+        "externalActionsAllowed": False,
+        "prohibitedOperations": list(_LITERACY_PROHIBITED_OPERATIONS),
+        "releaseState": "teacher_review",
+    }
 
 
 def get_sub_strands_for_strand(
@@ -305,11 +350,12 @@ from .validator import CurriculumValidator
 
 __all__ = [
     # Legacy registry (used by LessonArchitectAgent.generate_scheme)
-    "StrandInfo", "SubStrandInfo", "SchemeRow",
+    "StrandInfo", "SubStrandInfo", "LiteracyCurriculumEnvelope", "SchemeRow",
     "get_hardcoded_strands", "get_sub_strands_for_strand",
-    "get_lessons_per_week", "get_subjects_for_grade",
+    "get_lessons_per_week", "get_subjects_for_grade", "get_literacy_envelope",
     "COLUMN_HEADERS", "KISWAHILI_SUBJECTS", "GRADES",
     "CURRICULUM_REGISTRY", "AI_LITERACY_VERSION", "AI_BLOCKCHAIN_PROGRESSION",
+    "BLOCKCHAIN_LITERACY_VERSION", "LITERACY_SCHEMA_VERSION",
     # Curriculum-validation subsystem
     "Topic", "AlternativeTopic", "MisalignedTopic", "ValidationResult",
     "CurriculumData", "ValidatorStrandInfo", "ValidatorSubStrandInfo",

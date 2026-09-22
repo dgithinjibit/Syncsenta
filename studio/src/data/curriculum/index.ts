@@ -12,9 +12,11 @@ import type {
   TermAllocation,
   WeeklyDistribution,
   Term,
+  LiteracyCurriculumEnvelope,
 } from '@/types/curriculum';
 import { grade6AI, grade7AI, grade8AI, grade9AI, grade10AI, grade11AI, grade12AI } from './senior-school/ai';
-import { blockchainStrandsByGrade } from './blockchain';
+import { BLOCKCHAIN_LITERACY_VERSION, blockchainStrandsByGrade } from './blockchain';
+import { AI_LITERACY_VERSION } from './senior-school/ai';
 import { grade4Kiswahili } from './upper-primary/kiswahili';
 import { grade4ScienceTechnology } from './upper-primary/science-technology-grade4';
 import { grade1Kiswahili, grade2Kiswahili, grade3Kiswahili } from './lower-primary/kiswahili';
@@ -88,14 +90,15 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
  * This is a simplified version - full data will be ported from scheme-scribe-ai
  */
 export function getHardcodedStrands(grade: GradeLevel, subject: string): StrandInfo[] {
-  const key = `${grade}-${subject}`;
+  const normalizedGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
+  const key = `${normalizedGrade}-${subject}`;
 
   if (subject === 'AI Literacy') {
-    return ({ Grade6: grade6AI, Grade7: grade7AI, Grade8: grade8AI, Grade9: grade9AI, Grade10: grade10AI, Grade11: grade11AI, Grade12: grade12AI } as Record<string, StrandInfo[]>)[grade] || [];
+    return ({ Grade6: grade6AI, Grade7: grade7AI, Grade8: grade8AI, Grade9: grade9AI, Grade10: grade10AI, Grade11: grade11AI, Grade12: grade12AI } as Record<string, StrandInfo[]>)[normalizedGrade] || [];
   }
 
   if (subject === 'Blockchain Literacy') {
-    return blockchainStrandsByGrade[grade] || [];
+    return blockchainStrandsByGrade[normalizedGrade] || [];
   }
 
   if (subject === 'Kiswahili' && String(grade).replace(/\s+/g, '') === 'Grade4') {
@@ -249,6 +252,34 @@ export function getLessonsPerWeek(subject: string): number {
   return 3;
 }
 
+export function getLiteracyEnvelope(
+  grade: GradeLevel | string,
+  subject: string,
+): LiteracyCurriculumEnvelope | null {
+  const canonicalGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
+  const canonicalSubject = subject === 'AI' ? 'AI Literacy' : subject;
+  if (canonicalSubject !== 'AI Literacy' && canonicalSubject !== 'Blockchain Literacy') return null;
+  if (getHardcodedStrands(canonicalGrade, canonicalSubject).length === 0) return null;
+  const numericGrade = Number(canonicalGrade.replace(/\D/g, ''));
+  return {
+    curriculumId: `${canonicalGrade}|${canonicalSubject}`,
+    schemaVersion: '2026-09-22.phase1.v1',
+    curriculumVersion: canonicalSubject === 'AI Literacy' ? AI_LITERACY_VERSION : BLOCKCHAIN_LITERACY_VERSION,
+    grade: canonicalGrade,
+    subject: canonicalSubject,
+    gradeBand: numericGrade <= 6 ? 'upper_primary' : numericGrade <= 9 ? 'junior_secondary' : 'senior_school',
+    lessonsPerWeek: getLessonsPerWeek(canonicalSubject),
+    sourceType: 'authored',
+    provenance: 'Syncsenta authored AI and Blockchain Literacy progression',
+    evidenceRequired: true,
+    teacherMediationRequired: true,
+    syntheticDataOnly: true,
+    externalActionsAllowed: false,
+    prohibitedOperations: ['credentials', 'personal_identity_data', 'precise_location_data', 'wallets', 'tokens', 'seed_phrases', 'private_keys', 'trading', 'real_transactions', 'unsupervised_external_ai'],
+    releaseState: 'teacher_review',
+  };
+}
+
 /**
  * Get term allocation for non-language subjects
  * Distributes strands across the three CBC terms with proper error handling
@@ -382,11 +413,12 @@ export function getWeeklyDistribution(
  * Get complete curriculum data for a grade-subject combination
  */
 export function getCurriculumData(
-  grade: GradeLevel,
+  grade: GradeLevel | string,
   subject: string
 ): CurriculumData | null {
-  const subjects = getSubjectsForGrade(grade);
-  const strands = getHardcodedStrands(grade, subject);
+  const normalizedGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
+  const subjects = getSubjectsForGrade(normalizedGrade);
+  const strands = getHardcodedStrands(normalizedGrade, subject);
   
   if (strands.length === 0) {
     console.warn(`[Curriculum] No curriculum data for ${grade} ${subject}`);
@@ -397,24 +429,25 @@ export function getCurriculumData(
   const category = subjectInfo?.category ?? (subject.toLowerCase().includes('english') || subject.toLowerCase().includes('kiswahili') ? 'language' : 'non-language');
   
   const data: CurriculumData = {
-    grade,
+    grade: normalizedGrade,
     subject,
     category,
     strands,
+    envelope: getLiteracyEnvelope(grade, subject) ?? undefined,
   };
   
   // Add term allocations for non-language subjects
   if (category === 'non-language') {
     data.termAllocations = [
-      getTermAllocation(grade, subject, 'Term1'),
-      getTermAllocation(grade, subject, 'Term2'),
-      getTermAllocation(grade, subject, 'Term3'),
+      getTermAllocation(normalizedGrade, subject, 'Term1'),
+      getTermAllocation(normalizedGrade, subject, 'Term2'),
+      getTermAllocation(normalizedGrade, subject, 'Term3'),
     ].filter((t): t is TermAllocation => t !== null);
   }
   
   // Add weekly distributions for language subjects
   if (category === 'language') {
-    data.weeklyDistributions = getWeeklyDistribution(grade, subject, 'Term1');
+    data.weeklyDistributions = getWeeklyDistribution(normalizedGrade, subject, 'Term1');
   }
   
   return data;

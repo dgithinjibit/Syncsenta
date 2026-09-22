@@ -1,5 +1,7 @@
 import type { StrandInfo, SubStrandInfo } from "../types";
 
+export const AI_LITERACY_VERSION = "2026-09-22.grade6.lovable-import.v1";
+
 /**
  * AI Literacy (Artificial Intelligence) Learning Area
  * Kenyan CBE-aligned design, Grades 4-12.

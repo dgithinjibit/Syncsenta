@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, TypedDict
+from typing import List, Literal, Optional, TypedDict
 
 
 class SubStrandInfo(TypedDict, total=False):
@@ -18,6 +18,24 @@ class StrandInfo(TypedDict):
     subStrands: List[SubStrandInfo]
 
 
+class LiteracyCurriculumEnvelope(TypedDict):
+    curriculumId: str
+    schemaVersion: str
+    curriculumVersion: str
+    grade: str
+    subject: Literal['AI Literacy', 'Blockchain Literacy']
+    gradeBand: Literal['upper_primary', 'junior_secondary', 'senior_school']
+    lessonsPerWeek: int
+    sourceType: Literal['authored']
+    provenance: str
+    evidenceRequired: bool
+    teacherMediationRequired: bool
+    syntheticDataOnly: bool
+    externalActionsAllowed: Literal[False]
+    prohibitedOperations: List[str]
+    releaseState: Literal['draft', 'teacher_review', 'verified']
+
+
 class SchemeRow(TypedDict):
     week: int
     lesson: int
@@ -31,4 +49,4 @@ class SchemeRow(TypedDict):
     reflection: str
 
 
-__all__ = ["SubStrandInfo", "StrandInfo", "SchemeRow"]
+__all__ = ["SubStrandInfo", "StrandInfo", "LiteracyCurriculumEnvelope", "SchemeRow"]

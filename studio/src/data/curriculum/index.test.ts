@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getAllGrades, getHardcodedStrands, getLessonsPerWeek, getSubjectsForGrade, getTermAllocation } from './index';
+import { getAllGrades, getHardcodedStrands, getLessonsPerWeek, getLiteracyEnvelope, getSubjectsForGrade, getTermAllocation } from './index';
 
 describe('CBC curriculum registry', () => {
   it('resolves Grade 6 AI Literacy from the canonical local adapter', () => {
@@ -33,6 +33,22 @@ describe('CBC curriculum registry', () => {
     expect(grade6?.[2].name).toBe('3.0 Linked Records and Blockchain');
     expect(grade10?.[2].name).toBe('3.0 Consensus, Smart Contracts, and Governance');
     expect(getTermAllocation('Grade6', 'Blockchain Literacy', 'Term1')?.strands.length).toBeGreaterThan(0);
+  });
+
+  it('returns the shared versioned safety envelope for literacy packs', () => {
+    const envelope = getLiteracyEnvelope('Grade 6', 'AI Literacy');
+    expect(envelope).toMatchObject({
+      curriculumId: 'Grade6|AI Literacy',
+      schemaVersion: '2026-09-22.phase1.v1',
+      gradeBand: 'upper_primary',
+      lessonsPerWeek: 2,
+      sourceType: 'authored',
+      teacherMediationRequired: true,
+      syntheticDataOnly: true,
+      externalActionsAllowed: false,
+      releaseState: 'teacher_review',
+    });
+    expect(envelope?.prohibitedOperations).toContain('seed_phrases');
   });
 
   it('includes several offline paper-block interactions with no real credentials or transactions', () => {

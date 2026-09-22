@@ -800,7 +800,7 @@ function iconForCurriculumSubject(subject: SubjectId, title: string): string {
 function curriculumActivitiesForGrade(grade: GradeId, subject: SubjectId): Activity[] {
   const gradeLabel = gradeNameToLabel(grade);
   const curriculum = curriculumSubjectCandidates(grade, subject)
-    .map(candidate => getCurriculumData(gradeLabel, candidate))
+    .map(candidate => getCurriculumData(gradeLabel as GradeId, candidate))
     .find(Boolean);
   if (!curriculum) return [];
 
@@ -826,7 +826,7 @@ function curriculumActivitiesForGrade(grade: GradeId, subject: SubjectId): Activ
       difficulty: Math.min(4, 1 + Math.floor(index / 4)),
       prerequisites: index === 0 ? [] : [`g4-${subject}-s${rows[index - 1].strandIndex + 1}-ss${rows[index - 1].subStrandIndex + 1}`],
       learningObjectives,
-      estimatedTime: Math.max(10, Math.min(25, subStrand.lessons * 2)),
+      estimatedTime: Math.max(10, Math.min(25, (subStrand.lessons ?? 1) * 2)),
       term,
       icon: iconForCurriculumSubject(subject, subStrand.name),
       color: subject === 'mathematics' ? 'bg-indigo-500' : 'bg-teal-500',

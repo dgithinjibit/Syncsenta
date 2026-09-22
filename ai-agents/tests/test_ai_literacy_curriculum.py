@@ -2,6 +2,7 @@ from syncsenta_agents.curriculum import (
     AI_BLOCKCHAIN_PROGRESSION,
     AI_LITERACY_VERSION,
     get_hardcoded_strands,
+    get_literacy_envelope,
     get_lessons_per_week,
     get_subjects_for_grade,
     normalize_grade_label,
@@ -24,6 +25,22 @@ def test_scheme_aliases_resolve_to_canonical_labels():
     assert normalize_grade_label(" grade 7 ") == "Grade 7"
     assert normalize_subject_label("AI") == "AI Literacy"
     assert normalize_subject_label(" Blockchain   Literacy ") == "Blockchain Literacy"
+
+
+def test_literacy_envelope_is_versioned_and_teacher_reviewed():
+    envelope = get_literacy_envelope("Grade6", "AI")
+
+    assert envelope is not None
+    assert envelope["curriculumId"] == "Grade 6|AI Literacy"
+    assert envelope["schemaVersion"] == "2026-09-22.phase1.v1"
+    assert envelope["gradeBand"] == "upper_primary"
+    assert envelope["lessonsPerWeek"] == 2
+    assert envelope["sourceType"] == "authored"
+    assert envelope["teacherMediationRequired"] is True
+    assert envelope["syntheticDataOnly"] is True
+    assert envelope["externalActionsAllowed"] is False
+    assert envelope["releaseState"] == "teacher_review"
+    assert "seed_phrases" in envelope["prohibitedOperations"]
 
 
 def test_grade6_ai_pack_has_66_lessons_and_is_two_lessons_per_week():
