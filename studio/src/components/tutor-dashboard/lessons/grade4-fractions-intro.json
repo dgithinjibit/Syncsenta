@@ -1,0 +1,251 @@
+{
+  "metadata": {
+    "id": "grade4-fractions-intro",
+    "title": "Introduction to Fractions",
+    "subject": "Mathematics",
+    "grade": "Grade 4",
+    "topic": "Understanding Fractions",
+    "cbcStrand": "Numbers",
+    "cbcSubStrand": "Fractions",
+    "estimatedTime": 15,
+    "difficulty": "beginner",
+    "learningOutcomes": [
+      "Understand fractions as parts of a whole",
+      "Identify numerator and denominator",
+      "Represent fractions visually using shapes",
+      "Compare simple fractions"
+    ],
+    "culturalContext": "Uses Kenyan examples like chapati, mandazi, and shillings"
+  },
+  "initialNode": "intro-1",
+  "nodes": [
+    {
+      "id": "intro-1",
+      "type": "teaching",
+      "explanation": {
+        "text": "# Welcome to Fractions!\n\nImagine your mother has just made a fresh **chapati** for breakfast. She cuts it into 4 equal pieces so everyone in the family can share.\n\nEach piece is called a **fraction** of the whole chapati. Today, we'll learn how to write and understand fractions!",
+        "culturalContext": "In Kenya, chapati is a common breakfast food that families share. This makes it perfect for understanding fractions!"
+      },
+      "transitions": {
+        "onNext": "teaching-1"
+      }
+    },
+    {
+      "id": "teaching-1",
+      "type": "teaching",
+      "explanation": {
+        "text": "## What is a Fraction?\n\nA fraction shows **part of a whole**.\n\nWhen we write a fraction like **1/4**, it has two parts:\n- The **top number (1)** is called the **numerator** - it shows how many pieces you have\n- The **bottom number (4)** is called the **denominator** - it shows how many equal pieces the whole is divided into\n\nSo **1/4** means: 1 piece out of 4 equal pieces.",
+        "culturalContext": "Think of it like sharing 1 mandazi from a pack of 4 mandazi!"
+      },
+      "widget": {
+        "type": "fraction-builder",
+        "config": {
+          "shape": "circle",
+          "maxDenominator": 8,
+          "locked": true
+        }
+      },
+      "transitions": {
+        "onNext": "micro-eval-1"
+      }
+    },
+    {
+      "id": "micro-eval-1",
+      "type": "micro-eval",
+      "question": {
+        "text": "## Let's Practice!\n\nYour mother cuts a chapati into **4 equal pieces**. You eat **1 piece**.\n\n**What fraction of the chapati did you eat?**\n\nUse the fraction builder below: First select how many pieces the chapati was divided into, then click on the pieces you ate.",
+        "type": "widget-based",
+        "correctAnswer": {
+          "numerator": 1,
+          "denominator": 4
+        },
+        "hints": [
+          "Remember: The bottom number (denominator) is how many pieces the chapati was cut into.",
+          "The top number (numerator) is how many pieces you ate.",
+          "The chapati was cut into 4 pieces, and you ate 1 piece. So the fraction is 1/4."
+        ]
+      },
+      "widget": {
+        "type": "fraction-builder",
+        "config": {
+          "shape": "circle",
+          "maxDenominator": 8,
+          "targetFraction": {
+            "numerator": 1,
+            "denominator": 4
+          },
+          "allowEquivalent": false
+        }
+      },
+      "knowledgeComponent": "fraction-concept",
+      "transitions": {
+        "onCorrect": "teaching-2",
+        "onIncorrect": "scaffold-1"
+      }
+    },
+    {
+      "id": "scaffold-1",
+      "type": "scaffolding",
+      "explanation": {
+        "text": "Let's think about this step by step:\n\n1. **How many pieces was the chapati divided into?** → 4 pieces\n2. **How many pieces did you eat?** → 1 piece\n3. **So the fraction is:** 1 piece out of 4 pieces = **1/4**\n\nRemember:\n- **Denominator (bottom)** = total pieces\n- **Numerator (top)** = pieces you have",
+        "culturalContext": "Think of it like this: If you have 4 shillings and you spend 1 shilling, you spent 1/4 of your money!"
+      },
+      "scaffolding": {
+        "lockUI": false,
+        "message": "Take your time and try again. Use the hints if you need help!"
+      },
+      "transitions": {
+        "onRetry": "micro-eval-1"
+      }
+    },
+    {
+      "id": "teaching-2",
+      "type": "teaching",
+      "explanation": {
+        "text": "## Great Job! 🎉\n\nYou correctly identified **1/4**!\n\nNow let's learn about **different fractions**:\n\n- If the chapati is cut into **2 pieces**, each piece is **1/2** (one half)\n- If it's cut into **3 pieces**, each piece is **1/3** (one third)\n- If it's cut into **4 pieces**, each piece is **1/4** (one quarter)\n\nThe more pieces you divide something into, the **smaller** each piece becomes!",
+        "culturalContext": "Just like when you share mandazi with more friends - everyone gets a smaller piece!"
+      },
+      "transitions": {
+        "onNext": "micro-eval-2"
+      }
+    },
+    {
+      "id": "micro-eval-2",
+      "type": "micro-eval",
+      "question": {
+        "text": "## Challenge Question!\n\nYour teacher brings **8 mandazi** to class. She gives you **3 mandazi**.\n\n**What fraction of the mandazi did you get?**\n\nBuild the fraction using the tool below.",
+        "type": "widget-based",
+        "correctAnswer": {
+          "numerator": 3,
+          "denominator": 8
+        },
+        "hints": [
+          "Count the total number of mandazi first - that's your denominator.",
+          "Count how many mandazi you got - that's your numerator.",
+          "You got 3 mandazi out of 8 total mandazi."
+        ]
+      },
+      "widget": {
+        "type": "fraction-builder",
+        "config": {
+          "shape": "rectangle",
+          "maxDenominator": 12,
+          "targetFraction": {
+            "numerator": 3,
+            "denominator": 8
+          },
+          "allowEquivalent": false
+        }
+      },
+      "knowledgeComponent": "fraction-parts",
+      "transitions": {
+        "onCorrect": "teaching-3",
+        "onIncorrect": "scaffold-2"
+      }
+    },
+    {
+      "id": "scaffold-2",
+      "type": "scaffolding",
+      "explanation": {
+        "text": "Let's break it down:\n\n**Total mandazi** = 8 (this is the denominator - the bottom number)\n**Mandazi you got** = 3 (this is the numerator - the top number)\n\n**Fraction** = 3/8 (three eighths)\n\nRemember: Always count the **total** first, then count **your part**!",
+        "culturalContext": "Think of it like counting shillings: If you have 3 shillings out of 8 shillings total, you have 3/8 of the money."
+      },
+      "scaffolding": {
+        "lockUI": false,
+        "message": "You're doing great! Try one more time."
+      },
+      "transitions": {
+        "onRetry": "micro-eval-2"
+      }
+    },
+    {
+      "id": "teaching-3",
+      "type": "teaching",
+      "explanation": {
+        "text": "## Excellent Work! 🌟\n\nYou're becoming a fraction expert!\n\nLet's learn one more important thing: **Fractions on a Number Line**\n\nJust like whole numbers (1, 2, 3...) can be shown on a number line, fractions can too!\n\nFor example, **1/2** is exactly halfway between 0 and 1 on a number line.",
+        "culturalContext": "Think of it like walking from your home to school - 1/2 means you're halfway there!"
+      },
+      "widget": {
+        "type": "number-line",
+        "config": {
+          "min": 0,
+          "max": 1,
+          "step": 0.25,
+          "showLabels": true,
+          "locked": true
+        }
+      },
+      "transitions": {
+        "onNext": "micro-eval-3"
+      }
+    },
+    {
+      "id": "micro-eval-3",
+      "type": "micro-eval",
+      "question": {
+        "text": "## Final Challenge!\n\nLook at the number line below. It goes from 0 to 1.\n\n**Where would you place the fraction 1/2 (one half)?**\n\nDrag the marker to the correct position.",
+        "type": "widget-based",
+        "correctAnswer": 0.5,
+        "hints": [
+          "1/2 means halfway between 0 and 1.",
+          "Look for the middle point on the number line.",
+          "The answer is 0.5, which is the same as 1/2!"
+        ]
+      },
+      "widget": {
+        "type": "number-line",
+        "config": {
+          "min": 0,
+          "max": 1,
+          "step": 0.25,
+          "targetValue": 0.5,
+          "showLabels": true
+        }
+      },
+      "knowledgeComponent": "fraction-number-line",
+      "transitions": {
+        "onCorrect": "summary",
+        "onIncorrect": "scaffold-3"
+      }
+    },
+    {
+      "id": "scaffold-3",
+      "type": "scaffolding",
+      "explanation": {
+        "text": "Let's think about **1/2** (one half):\n\n- It means **1 out of 2 equal parts**\n- On a number line from 0 to 1, it's exactly in the **middle**\n- The middle point is **0.5**\n\nSo 1/2 = 0.5 - they're the same thing!",
+        "culturalContext": "If you walk from home (0) to school (1), halfway there is 1/2 of the journey!"
+      },
+      "scaffolding": {
+        "lockUI": false,
+        "highlightElements": ["0.5"],
+        "message": "Look for the middle point on the number line!"
+      },
+      "transitions": {
+        "onRetry": "micro-eval-3"
+      }
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "summary": {
+        "text": "# Congratulations! 🎉\n\nYou've completed the Introduction to Fractions lesson!\n\nYou've learned so much today about fractions using examples from everyday Kenyan life - chapati, mandazi, and more!",
+        "keyTakeaways": [
+          "A fraction shows part of a whole (like 1 piece of a 4-piece chapati)",
+          "The numerator (top number) shows how many pieces you have",
+          "The denominator (bottom number) shows how many equal pieces in total",
+          "Fractions can be shown visually with shapes and on number lines",
+          "1/2 means one half, which is the same as 0.5"
+        ],
+        "masteryIndicators": [
+          "Write fractions using numerator and denominator",
+          "Identify fractions from visual representations",
+          "Place simple fractions on a number line",
+          "Solve real-world fraction problems using Kenyan examples"
+        ]
+      },
+      "transitions": {
+        "onComplete": "completed"
+      }
+    }
+  ]
+}

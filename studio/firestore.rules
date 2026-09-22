@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Helper function to get user data
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Users can only manage their own profile.
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // School heads can only manage their school.
+    match /schools/{schoolId} {
+      allow read, write: if getUserData().role == 'school_head' && resource.data.school_head == request.auth.uid;
+    }
+
+    // Analytics restricted to administrators.
+    match /analytics/{doc} {
+      allow read: if getUserData().role == 'school_head' || getUserData().role == 'county_officer';
+    }
+
+    // Teachers can manage their own data.
+    match /teachers/{teacherId} {
+      allow read, write: if request.auth != null && request.auth.uid == teacherId;
+    }
+    
+    // Classes accessible by assigned teacher or enrolled students.
+    match /classes/{classId} {
+      allow read: if request.auth != null && 
+                     (resource.data.teacherId == request.auth.uid || 
+                      getUserData().role == 'student');
+      allow write: if request.auth != null && resource.data.teacherId == request.auth.uid;
+    }
+    
+    // Students can only read/write their own document.
+    match /students/{studentId} {
+      allow read, write: if request.auth != null && request.auth.uid == studentId;
+    }
+
+    // Teacher Resources: Creator has full control, others read-only if they have access.
+    match /teacherResources/{resourceId} {
+        allow read: if request.auth != null;
+        allow create: if getUserData().role == 'teacher' && request.resource.data.creatorId == request.auth.uid;
+        allow delete: if resource.data.creatorId == request.auth.uid;
+    }
+
+    // Learning Summaries: Private between student and teacher.
+    match /learningSummaries/{summaryId} {
+        allow read: if request.auth != null && (resource.data.teacherId == request.auth.uid || resource.data.studentId == request.auth.uid);
+        allow create: if request.auth != null;
+    }
+  }
+}

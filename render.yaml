@@ -1,0 +1,58 @@
+services:
+  # Frontend Service (Next.js - studio/)
+  - type: web
+    name: syncsenta-frontend
+    runtime: node
+    rootDir: studio
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_WS_URL
+        sync: false
+
+  # Backend Service (Rust/Axum - backend/syncsenta-backend/)
+  - type: web
+    name: syncsenta-backend
+    runtime: rust
+    rootDir: backend
+    buildCommand: cargo build --release --package syncsenta-backend
+    startCommand: ./target/release/syncsenta-backend
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: RUST_LOG
+        value: info
+      - key: PORT
+        value: 8080
+
+  # AI Agents Service (Python/CrewAI - ai-agents/)
+  - type: web
+    name: syncsenta-ai-agents
+    runtime: python
+    rootDir: ai-agents
+    buildCommand: pip install poetry && poetry install --no-dev
+    startCommand: poetry run uvicorn src.syncsenta_agents.api:app --host 0.0.0.0 --port 8000
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GIKUYU_MODEL_ENDPOINT
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+databases:
+  - name: syncsenta-db
+    databaseName: syncsenta
+    user: web4ke
+    plan: free
+
+  - name: syncsenta-redis
+    plan: free

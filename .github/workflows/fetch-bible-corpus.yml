@@ -1,0 +1,97 @@
+name: Fetch Bible corpus (Gikuyu + English parallel)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly refresh on Sundays at 03:17 UTC. Cheap; the script is idempotent.
+    - cron: "17 3 * * 0"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  fetch:
+    name: Fetch ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: gikuyu
+            bible_id: be8dc4ba39edf911-01
+          - label: english
+            bible_id: bba9f40183526463-01
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Restore chapter progress cache
+        uses: actions/cache@v4
+        with:
+          path: data/gikuyu_bible/.chapters_done_${{ matrix.label }}
+          key: bible-progress-${{ matrix.label }}-${{ matrix.bible_id }}-v1
+
+      - name: Fetch ${{ matrix.label }} Bible
+        env:
+          BIBLE_API_KEY: ${{ secrets.BIBLE_API_KEY }}
+        run: |
+          if [ -z "$BIBLE_API_KEY" ]; then
+            echo "::error::BIBLE_API_KEY secret is not set. Add it at Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          python scripts/fetch_gikuyu_bible.py \
+            --bible-id "${{ matrix.bible_id }}" \
+            --label "${{ matrix.label }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bible-${{ matrix.label }}
+          path: |
+            data/gikuyu_bible/verses_${{ matrix.label }}.jsonl
+            data/gikuyu_bible/.chapters_done_${{ matrix.label }}
+          retention-days: 90
+
+  pr:
+    name: Open PR with combined corpus
+    needs: fetch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Stage data files
+        run: |
+          mkdir -p data/gikuyu_bible
+          # Move only the JSONL into the tree; progress files stay in cache/artifacts.
+          find artifacts -name 'verses_*.jsonl' -exec cp -v {} data/gikuyu_bible/ \;
+          ls -la data/gikuyu_bible/
+          wc -l data/gikuyu_bible/*.jsonl || true
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: data/bible-corpus-refresh
+          title: "data: refresh Gikuyu + English Bible corpus"
+          commit-message: "data: refresh Gikuyu + English Bible corpus from API.Bible"
+          body: |
+            Automated refresh of `data/gikuyu_bible/`.
+
+            - `verses_gikuyu.jsonl` — Biblica® Open Kikuyu Holy Word of God 2013
+            - `verses_english.jsonl` — Berean Standard Bible (parallel reference)
+
+            Both pulled chapter-by-chapter from API.Bible. Re-run the
+            "Fetch Bible corpus" workflow to refresh.
+          add-paths: |
+            data/gikuyu_bible/*.jsonl
+          delete-branch: true

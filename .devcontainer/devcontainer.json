@@ -1,0 +1,50 @@
+{
+  "name": "SyncSenta Development",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+
+  "forwardPorts": [5173, 8080, 8001, 11434],
+  
+  "portsAttributes": {
+    "5173": {
+      "label": "Frontend (Next.js)",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Backend (Rust/Axum)",
+      "onAutoForward": "notify"
+    },
+    "8001": {
+      "label": "AI Agents (Python)",
+      "onAutoForward": "silent"
+    },
+    "11434": {
+      "label": "Ollama API",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-python.python"
+      ]
+    }
+  }
+}

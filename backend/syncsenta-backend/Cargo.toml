@@ -1,0 +1,96 @@
+[package]
+name = "syncsenta-backend"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "syncsenta_backend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "syncsenta-backend"
+path = "src/main.rs"
+
+[features]
+default = []
+# Enable the real hyperon-backed MeTTa runtime. When disabled, `metta_core`
+# falls back to an in-process symbolic engine so the crate still compiles
+# without the native hyperon build toolchain.
+metta = ["dep:hyperon"]
+
+[dependencies]
+syncsenta-common = { path = "../syncsenta-common" }
+
+# MeTTa symbolic AI runtime (Task 2.1) — optional, pulled via workspace dep
+hyperon = { workspace = true, optional = true }
+
+# Async
+tokio = { workspace = true }
+
+# Web
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+redis = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Auth (Web4 - DID/VC)
+# TODO: Re-enable when ssi crate dependency issues are resolved
+# did-key = { workspace = true }
+# did-web = { workspace = true }
+# ssi = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# HTTP client (for AI APIs, M-Pesa, SMS)
+reqwest = { workspace = true }
+
+# Config
+config = { workspace = true }
+dotenv = { workspace = true }
+
+# Validation
+validator = { workspace = true }
+
+# Email
+lettre = { workspace = true }
+
+# Crypto (M-Pesa HMAC signing)
+hmac = { workspace = true }
+sha2 = { workspace = true }
+base64 = { workspace = true }
+hex = "0.4"
+async-trait = "0.1"
+
+# Auth (backward compatibility)
+argon2 = { workspace = true }
+totp-rs = { workspace = true }
+jsonwebtoken = { workspace = true }
+
+# Reports
+printpdf = { workspace = true }
+rust_xlsxwriter = { workspace = true }
+
+# Web3/Blockchain
+ethers = { workspace = true }
+
+# IPFS
+# TODO: Re-enable when dependency issues are resolved (Task 5)
+# ipfs-api = { workspace = true }
+# cid = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+tokio = { workspace = true }

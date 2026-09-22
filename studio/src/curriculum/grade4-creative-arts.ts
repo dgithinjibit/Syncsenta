@@ -1,0 +1,295 @@
+
+/**
+ * @fileOverview Curriculum data for Grade 4 Creative Arts.
+ * 
+ * This file contains the structured curriculum content that will be used
+ * by the AI to generate lesson plans, schemes of work, and other resources.
+ * This data is extracted from the KICD Grade 4 Creative Arts curriculum design document.
+ */
+
+export const grade4CreativeArtsCurriculum = {
+    grade: "Grade 4",
+    subject: "Creative Arts",
+    strands: [
+        {
+            title: "1.0 CREATING AND EXECUTION",
+            sub_strands: [
+                {
+                    title: "1.1 Picture Making (Percussion Instruments)",
+                    learning_outcomes: [
+                        "classify indigenous Kenyan percussion instruments as melodic and non-melodic,",
+                        "make a percussion instrument using locally available materials,",
+                        "improvise charcoal sticks using locally available resources for drawing,",
+                        "draw a percussion instrument using the smudging technique,",
+                        "appreciate percussion instruments from different Kenyan communities.",
+                    ],
+                    suggested_activities: [
+                        "watch virtual or actual samples of percussion instruments to; - identify (name of instrument, community, method of playing) and - classify (melodic or non-melodic),",
+                        "research and discuss the parts of a percussion instrument and their roles,",
+                        "assemble tools and material from the locality for making one percussion instrument (rattles, shakers, drums, gourds or marimba), observing environmental conservation,",
+                        "in groups, make and tune the percussion instruments using appropriate technique observing safety,",
+                        "in group, research and discuss value/ tone as an element of art created in sample pictures (virtual and actual)",
+                        "collaboratively, collect materials and tools for making charcoal sticks (sticks, cutting tools, tin-kiln, fire),",
+                        "in groups, make charcoal sticks observing safety following correct procedure: - cutting green sticks, - peeling off bark, - cutting to size, - packing in a tin with a hole on the lid, - putting it on the fire to burn, - cooling.",
+                        "individually, experiment by drawing simple shapes and shade them using charcoal with focus on; - lines of varied thickness, - different tones through application of pressure on the media,",
+                        "draw still-life picture of one of the following percussion instruments (drum, marimba, gourds) from observation and create tonal variation by smudging using charcoal sticks,",
+                        "explore drawing still pictures of single objects using smudge technique in the environment,",
+                        "present the drawings in a working portfolio folder decorated by pasting coloured paper/fabric",
+                        "in plenary, display and critique own and peers’ percussion instruments and drawings in a just and fair manner.",
+                    ],
+                    key_inquiry_questions: [
+                        "How is a percussion instrument made?",
+                        "What is the effect of value/tone in a drawing?",
+                    ],
+                },
+                {
+                    title: "1.2 Netball",
+                    learning_outcomes: [
+                        "describe the skills of passing, catching and shooting, in Netball through demonstration,",
+                        "improvise a ball for use in performing shooting, passing and catching in Netball,",
+                        "Perform the skills of passing, catching and shooting, in Netball,",
+                        "classify colours into primary and secondary,",
+                        "paint a picture of a ball to bring out colour value,",
+                        "value netball as a game and the skill of painting.",
+                    ],
+                    suggested_activities: [
+                        "observe/participate in a demonstration of the netball skills; passing (chest, overhead and underarm), catching (double-handed) and shooting(standing)",
+                        "explain/practise while observing the stance, grip, release and follow through,",
+                        "collect reusable material with the guidance of parents and improvise a ball using macramé technique (overhand knot)",
+                        "play a mini game of Netball applying the skills of passing, catching and shooting) skills in groups while observing safety,",
+                        "mix primary colours to create secondary colours,",
+                        "mix white with a secondary colour to create light tones on a scale strip,",
+                        "mix black with a secondary colour to create dark tones on a scale strip and clean the working area,",
+                        "paint a picture of a ball from observation using secondary colours with emphasis on colour value,",
+                        "store the balls in an improvised storage such as; recyclable gunny bags, boxes, crates, carton boxes and woven baskets.",
+                        "display and critique own and others’ portfolios",
+                    ],
+                    key_inquiry_questions: [
+                        "Why are the skills of shooting, passing and catching important in the game of Netball?",
+                        "Why is colour classification important in painting?",
+                    ],
+                },
+                {
+                    title: "1.3 Rhythm and Pattern Making",
+                    learning_outcomes: [
+                        "interpret rhythmic patterns involving the crotchet and a pair of quavers using French rhythm names,",
+                        "write the French rhythm names taa, ta-te using free hand lettering,",
+                        "describe the qualities of a good rhythmic pattern,",
+                        "create a simple rhythmic pattern using the French rhythm names taa, ta-te,",
+                        "create an alternate repeat pattern using a block for rhythm acquisition",
+                        "value creating rhythmic patterns using French rhythm names.",
+                    ],
+                    suggested_activities: [
+                        "clap/tap rhythms of words involving taa and ta-te maintaining a steady beat,",
+                        "clap/tap the pulse of the clock and heartbeat and associate it to the crotchet French rhythm name,",
+                        "listen to/sing familiar topical songs and is guided in identifying the notes (crotchet, a pair of quavers) using their French rhythm names (taa, ta-te),",
+                        "sing familiar songs then clap the rhythm of the song while reciting using French rhythm names,",
+                        "practice writing letters of the alphabet in lowercase using free hand (ascenders and descenders),",
+                        "use free hand lettering to write French rhythm name taa and ta-te,",
+                        "listen to rhythmic patterns in familiar tunes and discuss the techniques used in composing rhythmic patterns (variation of note values, repetition of patterns, ending on taa),",
+                        "apply the composition techniques to compose own original rhythmic patterns using the French rhythm names taa and ta-te observing integrity,",
+                        "collect to improvise a block from varied textured materials (banana stalk, wood/ rubber block)",
+                        "individually, print an all over repeat pattern using one water colours on the paper,",
+                        "critique rhythms created by self and peers respecting each other’s views fairly.",
+                    ],
+                    key_inquiry_questions: [
+                        "How can a rhythm be created?",
+                        "How are rhythms applied in daily life?",
+                    ],
+                },
+                {
+                    title: "1.4 Melody",
+                    learning_outcomes: [
+                        "identify solfa syllables d, r, and m in a simple melody,",
+                        "interpret hand signs for the solfa syllables d, r, and m for pitch discrimination,",
+                        "describe the qualities of a good melody,",
+                        "create short melodies using solfa syllables d, r and m,",
+                        "model clay slabs with solfa syllables,",
+                        "enjoy creating short melodies using solfa syllables.",
+                    ],
+                    suggested_activities: [
+                        "individually and in groups sing familiar songs based on solfa syllables d r m, and identify the solfa syllables,",
+                        "watch videos/demonstrations of execution of the Kodaly hand signs for the solfa syllables d, r m and practice performing the hand signs,",
+                        "perform the hand signs for solfa syllables (d r m) in familiar songs,",
+                        "write solfa syllables (d r m) using free hand lettering (ascenders and descenders)",
+                        "recognize solfa syllables (d r m) in familiar songs by ear individually and in groups,",
+                        "listen and identify solfa pitches (d r m) as sounded on a melodic instrument/voice,",
+                        "recognize solfa syllables (d r m) in familiar songs by ear,",
+                        "brainstorm on and discuss the qualities of a good melody, (use of stepwise motion, variation of the solfa syllables and sound duration, starting and ending on d),",
+                        "in groups apply various techniques to create short melodies using the solfa syllables d, r, m and the French rhythm names taa and ta-te,",
+                        "roll clay into slab and cut out three rectangular pieces of three different sizes,",
+                        "Attach clay models (coiling technique) of solfa syllables ( d, r, m) to the rectangular slabs, allow to dry and paint using primary colours,",
+                        "perform vocal warm ups in preparation to perform melodies created by self and others,",
+                        "sing melodies (using solfa syllables) created by self and peers and talk in turns respecting each other’s opinions.",
+                    ],
+                    key_inquiry_questions: [
+                        "How can one create interesting melodies?",
+                    ],
+                },
+            ],
+        },
+        {
+            title: "2.0 PERFORMANCE AND DISPLAY",
+            sub_strands: [
+                {
+                    title: "2.1 Athletics",
+                    learning_outcomes: [
+                        "explain the performance of the skills of sprint starts and sprinting techniques,",
+                        "perform the skill of medium and elongated sprint starts and sprinting techniques for knowledge and skill development,",
+                        "sing the Kenya National Anthem applying performance techniques,",
+                        "paint the Kenyan flag for athletic event,",
+                        "perform a sprint in an athletics event,",
+                        "recognise the value of flying the Kenyan flag and singing the Kenya National Anthem during an athletics event.",
+                    ],
+                    suggested_activities: [
+                        "explain/demonstrate a medium and elongated sprint start technique, (onto your marks, set position, stance and body alignment, reaction and take off),",
+                        "explain/demonstrate the sprinting technique with a focus body posture, acceleration, transition and finish,",
+                        "read through the words of the Kenya National Anthem and discuss the meaning/message,",
+                        "sing the Kenya National Anthem in groups applying performance techniques (with accuracy in tune, proper pronunciation of words, appropriate tempo and observing the appropriate etiquette),",
+                        "search for images of the Kenyan flag from virtual sources to study colours and their arrangement,",
+                        "sketch and paint the Kenyan Flag on paper using the six colours,",
+                        "attach the flag to a suitable handle to be used during an athletics performance,",
+                        "in pairs practice: - the medium start (on your marks-set-go),- sprinting technique, focus on start, arm and leg action and finish,",
+                        "practise a sprint in an athletics competition in groups while observing safety,",
+                        "record a sprint competition and critique the application of the techniques used (starting and sprinting)",
+                    ],
+                    key_inquiry_questions: [
+                        "Why is appropriate posture important in sprinting?",
+                        "Why is the Kenya National Anthem performed during an athletic event?",
+                    ],
+                },
+                {
+                    title: "2.2 Gymnastics",
+                    learning_outcomes: [
+                        "perform the balances and rolls in gymnastics",
+                        "sing patriotic songs during warm ups before performance of gymnastics with proper diction,",
+                        "perform the crab balance and side roll accompanied by a percussion instrument performance,",
+                        "perform a side roll and crab balance to a rhythmic pattern,",
+                        "appreciate performing warm and gymnastics skills accompanied with rhythmic patterns and percussion instruments for enjoyment.",
+                    ],
+                    suggested_activities: [
+                        "demonstration/illustration of the head balance, crab balance",
+                        "Explain/demonstrate the head balance, crab balance (start, weight distribution, balancing, leg extension, descent) and backward and side roll (stance, initiation, rolling phase, compilation, spotting) skill progression in gymnastics",
+                        "in groups, sing relevant patriotic songs during general warm up with proper diction,",
+                        "In pairs, practise the crab balance and side roll and get feedback from peers,",
+                        "play rhythmic percussion instruments (shakers, rattles, drum) to accompany gymnastic activities,",
+                        "in pairs, practise the side roll and crab balance and get feedback from each other while observing safety measures in gymnastics,",
+                        "take turns to perform the side roll in pairs as they recite French rhythm names of a rhythmic pattern involving taa (stance), and ta-te (progression),",
+                        "use digital device to take several photographs of a person performing crab balance and side roll on centre of interest,",
+                    ],
+                    key_inquiry_questions: [
+                        "How does performance of rolls and balances enhance gymnastics?",
+                        "How does music support the performance of gymnastics?",
+                    ],
+                },
+                {
+                    title: "2.3 Descant Recorder",
+                    learning_outcomes: [
+                        "identify the parts of a descant recorder in readiness for playing,",
+                        "care for and maintain a descant recorder,",
+                        "play notes G A B on the descant recorder using correct techniques,",
+                        "make a decorated case for a descant recorder,",
+                        "play simple melodies based on notes G A B on the descant recorder,",
+                        "enjoy playing melodies on the descant recorder.",
+                    ],
+                    suggested_activities: [
+                        "explore the descant recorder and identify the parts (head joint, middle joint and foot joint, finger holes)",
+                        "practice holding and blowing the descant recorder,",
+                        "assemble and disassemble the descant recorder,",
+                        "in groups, brainstorm on ways of caring for and maintaining a descant recorder and its importance; - observing hygiene - proper storage - proper handling",
+                        "practice holding and blowing the descant recorder with appropriate fingering,",
+                        "collect recyclable materials such as yarns, pieces of cloth, leather,",
+                        "make a descant recorder case by stitching the fabric/ leather or crocheting the yarns considering colour variation,",
+                        "embellish the case with found objects,",
+                        "responsibly use digital devices to search and watch recordings on how to play notes G A and B on the descant recorder,",
+                        "individually and in groups, practice playing notes G A and B using appropriate techniques (posture, fingering and blowing),",
+                        "individually and in groups, play simple melodies based on G A B on the descant recorder with accuracy in pitch and rhythm,",
+                        "watch peers play melodies on the descant recorder, critique and give feedback to peers for improvement.",
+                    ],
+                    key_inquiry_questions: [
+                        "How can a good tone be produced on the descant recorder?",
+                    ],
+                },
+                {
+                    title: "2.4 Swimming (OPTIONAL)",
+                    learning_outcomes: [
+                        "explain the skills of crouch and standing surface dives in swimming,",
+                        "demonstrate the skills of crouch and standing surface dives in swimming,",
+                        "take a photograph of the crouch and standing surface dives with focus on centre of interest,",
+                        "appreciate your own and others' efforts in performing the crouch surface dive and standing surface dive.",
+                    ],
+                    suggested_activities: [
+                        "watch an actual or virtual performance/illustration of crouch surface dive and standing surface dive,",
+                        "explain/demonstrate the crouch surface dive and the standing surface dive considering the progression (stance, push-off, descent, entry, transition),",
+                        "explain the procedure/practise the execution of a crouch surface dive and standing surface dive for water entry while observing water safety rules - warm up - safe entry - safe skill execution - safety of others NB. establish the depth of the pool before diving.",
+                        "use digital device to take several photographs of a person performing a crouch and standing surface dives focusing on centre of interest,",
+                        "select appropriate photographs and store them in an e- folder/ portfolio,",
+                        "show and talk about your own and others photographs in the e portfolio",
+                    ],
+                    key_inquiry_questions: [
+                        "Why is Swimming an essential life skill?",
+                        "Why is the centre of interest important in photography?",
+                    ],
+                },
+                {
+                    title: "2.5 Songs",
+                    learning_outcomes: [
+                        "sing different types of songs expressively to convey the mood of the piece,",
+                        "identify types of folk songs performed by indigenous Kenyan communities,",
+                        "decorate a costume for a folk song using an appropriate technique,",
+                        "perform an indigenous Kenyan folk song in a group,",
+                        "value performing Indigenous folk songs from different Kenyan communities.",
+                    ],
+                    suggested_activities: [
+                        "listen to different types of songs (sacred, patriotic and topical songs) and sing with accuracy in tempo, pitch, rhythm and dynamics,",
+                        "discuss the messages of the songs and demonstrate how the mood of the songs can be expressed while singing,",
+                        "sing different types of songs with appropriate gestures, facial expressions and diction to convey the message,",
+                        "watch a variety of live/recorded folk songs from different indigenous Kenyan communities, identify them (name, community) and classify them as work, funeral, naming, initiation, marriage and worship songs,",
+                        "explore indigenous methods of decorating costumes within Kenyan community (tie-dye or beadwork)",
+                        "identify the fabric decoration techniques used by the local community, (tie -dye or beadwork)",
+                        "decorate a costume for performing a folk song using appropriate technique, - tie and dye (circles) using artificial/ natural dye in one primary colour, - beadwork using recyclable materials focusing on type of beads, colour, and function,",
+                        "in groups, take a role to perform different folk songs with correct diction, appropriate facial expressions and gestures accompanied by a percussion instrument (where applicable),",
+                        "practice playing percussion instruments to accompany a folksong using appropriate technique (hitting, shaking, plucking), NB:(Observe safety, care and maintenance practices while handling percussion instruments)",
+                        "appreciate the role of percussion instruments in performances.",
+                    ],
+                    key_inquiry_questions: [
+                        "What contributes towards a good performance ?",
+                        "How do Kenyan communities decorate costumes for performing folk songs?",
+                    ],
+                },
+            ],
+        },
+        {
+            title: "3.0 APPRECIATION IN CREATIVE ARTS",
+            sub_strands: [
+                {
+                    title: "3.1 Analysis of Creative Arts works",
+                    learning_outcomes: [
+                        "describe the concept of appreciation in Creative Arts,",
+                        "showcase own and peers’ artworks in a gallery,",
+                        "critique displayed artworks for appreciation,",
+                        "describe a Kenyan folk song performance using appropriate terminologies,",
+                        "participate in games and sports event as a class,",
+                        "value appreciation of Creative Arts works drawn from various cultural backgrounds.",
+                    ],
+                    suggested_activities: [
+                        "in groups, research and brainstorm concept of appreciation in creative arts with focus on; - behaviour - aesthetic, - skills, - message - behaviour - feedback - care",
+                        "in groups, select and prepare previously created artworks for display, (drawings, painting, photographs, musical instruments, balls, clay slabs, recorder cases among others)",
+                        "prepare display areas, boards and props,",
+                        "display works of Creative Arts in appropriate areas within the school,",
+                        "take a gallery walk to observe artworks,",
+                        "talk about own and peers' work for appreciation focussing on; - type of artwork, - materials used, - media used and - craftsmanship.",
+                        "in groups, brainstorm on how to undertake critical analysis of Kenyan folk songs focusing on; - community of origin - type/occasion, - instrumentation, - participants (soloist, instrumentalist, singers)",
+                        "Participate in folk song performances drawn from communities in Kenya in an event/festival in school",
+                        "Talk about own and peers’ folk song performances for analysis",
+                        "participate in netball, athletics and gymnastics events for fun and for inter class/inter school championships",
+                        "appreciate the performances with focus on; - teamwork - safety for self and others",
+                    ],
+                    key_inquiry_questions: [
+                        "What is the importance of analysis in Creative Arts?",
+                    ],
+                },
+            ],
+        },
+    ],
+};

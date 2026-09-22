@@ -1,0 +1,111 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "syncsenta-ai-agents"
+version = "0.1.0"
+description = "SyncSenta AI Agents - Production-ready LangChain + CrewAI + Stellar system for Kenya's CBC curriculum"
+authors = ["SyncSenta Team <team@syncsenta.ke>"]
+readme = "README.md"
+packages = [{include = "syncsenta_agents", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# Web framework
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.27.0"}
+
+# LangChain ecosystem
+langchain = "^0.1.0"
+langchain-community = "^0.0.29"
+langgraph = "^0.0.26"
+langsmith = "^0.0.83"
+
+# CrewAI framework
+crewai = "^0.22.0"
+crewai-tools = "^0.1.0"
+
+# Ollama client
+ollama = "^0.1.7"
+
+# Stellar blockchain
+stellar-sdk = "^8.0.0"
+
+# Database and sync
+# pouchdb = "^0.1.0"  # No Python package available
+# couchdb = "^1.2"  # Will use requests for CouchDB API
+sqlalchemy = "^2.0.0"
+alembic = "^1.13.0"
+
+# Voice and multimodal
+# openai-whisper = "^20231117"  # Temporarily disabled due to build issues
+elevenlabs = "^0.2.26"
+pytesseract = "^0.3.10"
+pillow = "^10.0.0"
+
+# Async and networking
+aiohttp = "^3.9.0"
+asyncio = "^3.4.3"
+httpx = "^0.26.0"
+
+# Data processing
+pydantic = "^2.5.0"
+numpy = "^1.24.0"
+pandas = "^2.1.0"
+
+# Monitoring and logging
+structlog = "^23.2.0"
+prometheus-client = "^0.19.0"
+
+[tool.poetry.group.dev.dependencies]
+# Testing
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+pytest-cov = "^4.1.0"
+hypothesis = "^6.92.0"
+
+# Code quality
+black = "^23.12.0"
+isort = "^5.13.0"
+flake8 = "^6.1.0"
+mypy = "^1.8.0"
+
+# Development tools
+pre-commit = "^3.6.0"
+jupyter = "^1.0.0"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/test_*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError"
+]
