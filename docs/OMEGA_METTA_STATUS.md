@@ -622,3 +622,55 @@ Student chat request
 ---
 
 *End of assessment. Last updated: September 2, 2026*
+
+
+---
+
+## 2026-09-22 Verified LMS/Omega Boundary Flaws
+
+The following issues were reproduced against the deployed Vercel application after the latest merged changes. They are recorded here as **verified integration flaws**, not as evidence that the Omega tutoring decision function itself is unavailable.
+
+### 1. Demo identity is established, but the student dashboard does not consume it
+
+The demo-login route successfully creates a Supabase session and redirects the student to `/student?demo=1`. However, `studio/src/app/student/page.tsx` still requests personalization data using the hard-coded identifier `user1` through `/api/test-personalization`. The endpoint is an in-memory development engine, not the authenticated learner's durable Supabase profile and progress source. This creates an identity boundary flaw: authentication succeeds, while the dashboard can display data for a synthetic user unrelated to the signed-in account.
+
+The same loader also waits for multiple personalization requests without a timeout, cancellation, partial-result strategy, or visible failure state. A stalled request leaves the student permanently on `Loading your personalized dashboard...`. This is a learner-facing reliability failure and prevents grade context from reaching downstream adaptive tutoring in a predictable way.
+
+### 2. Teacher demo routing points at the wrong dashboard surface
+
+The canonical legacy-compatible teacher route is `/teacher`, and it renders the expected teacher dashboard with the gradient/theme shell and teacher workspace. The current demo destination map points the teacher demo to `/teacher/dashboard`. That route is a separate newer wrapper and was observed to remain on `Checking workspace access...`. The normal legacy sign-in page also contains a stale redirect to `/dashboard` for non-student roles.
+
+There are therefore three competing teacher entry points: `/teacher`, `/teacher/dashboard`, and `/dashboard`. This is a route-contract flaw, not an Omega reasoning flaw. Until one canonical route is selected, demo accounts and ordinary sign-in can enter different teacher experiences.
+
+### 3. Grade selection is disabled by a curriculum-key mismatch
+
+The student journey UI renders labels such as `Grade 4`, `Grade 5`, and `Grade 6`, while `studio/src/data/curriculum/index.ts#getAllGrades()` returns keys such as `Grade4`, `Grade5`, and `Grade6`. The journey checks `coveredGrades.has(selectedGrade)`, so the displayed labels do not match the registry keys. As a result, the live Grade 4–6 cards are marked `Coming soon`, receive `aria-disabled=true`, and cannot be clicked even though the roadmap states that Grade 4 coverage and all-grade activity generation are available.
+
+This is a curriculum-contract failure at the point where learner choice becomes Omega context. The learner cannot select a grade, so the platform cannot reliably establish the grade-specific curriculum context that should shape subject routing, activity selection, and tutoring decisions.
+
+### 4. Roadmap status has drifted from deployed behavior
+
+The roadmap records grade selection, Grade 4 coverage, all-grade activity generation, and frontend reliability work as complete. The live behavior contradicts those claims in three places: upper-primary cards are disabled, the student dashboard can hang indefinitely, and the teacher demo enters a non-canonical route. The roadmap should distinguish repository implementation from verified browser behavior and should not mark these slices complete until browser-level smoke tests pass.
+
+### 5. Omega interpretation
+
+Omega's production tutoring decision function remains active inside `/api/chat`; the observed failures occur before or beside that decision boundary. The current student dashboard does not yet provide Omega with a durable, authenticated, grade-specific learning state. The correct interpretation is therefore:
+
+```text
+Omega decision logic: active in chat
+Learner identity binding: inconsistent in dashboard demo path
+Grade context selection: currently blocked for Grade 4–9 by UI/registry mismatch
+Curriculum-to-Omega context: incomplete
+Browser-level reliability proof: missing
+```
+
+### Recommended recovery order
+
+1. Establish `/teacher` as the single canonical teacher demo and normal-login destination; keep other routes only as explicit compatibility aliases if required.
+2. Normalize grade identifiers at the curriculum boundary or use one shared display/value contract so Grade 4–9 cards are selectable where content is actually available.
+3. Restore bounded, retryable student dashboard loading and remove the hard-coded `user1` production path.
+4. Verify authenticated profile, grade, progress, and subject context before testing Omega behavior.
+5. Add browser-level smoke tests for all four demo roles, student grade selection, `/student`, and `/teacher` before updating roadmap completion percentages.
+6. Only then proceed to curriculum-architecture expansion and deeper Omega/Hyperon integration.
+
+No Omega core code was changed while recording these findings.
