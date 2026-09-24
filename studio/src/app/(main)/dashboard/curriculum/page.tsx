@@ -126,9 +126,13 @@ export default function CurriculumIngestorPage() {
     }, [selectedSubLevel, availableSubLevels]);
 
     const availableSubjects = useMemo(() => {
-        if (!selectedGrade) return [];
+        // `null` means "no selection yet" so the trigger's disabled check and
+        // the core/optional branching below share one sentinel (previously a
+        // bare `[]` union with the {core, optional} object, which made
+        // `.core`/`.optional` not exist on the array arm).
+        if (!selectedGrade) return null;
         const gradeData = availableGrades.find(g => g.name === selectedGrade);
-        if (!gradeData) return [];
+        if (!gradeData) return null;
 
         const coreSubjects = gradeData.subjects.filter(s => s.type === 'Core');
         const optionalSubjects = gradeData.subjects.filter(s => s.type === 'Optional');

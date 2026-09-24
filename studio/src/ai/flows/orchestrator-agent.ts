@@ -8,7 +8,7 @@ import { mwalimuAiTutor } from './mwalimu-ai-flow';
 import { generateLessonPlan } from './generate-lesson-plan';
 import { personalizedLearning } from '../../lib/personalized-learning';
 
-interface OrchestratorRequest {
+export interface OrchestratorRequest {
   message: string;
   context: {
     userId: string;
@@ -101,9 +101,9 @@ export class OrchestratorAgent {
       const requestAnalysis = this.analyzeRequest(request);
       
       // Check for subject switching
-      const subjectSwitch = context.lastSubject && 
+      const subjectSwitch = Boolean(context.lastSubject && 
                            request.context.subject && 
-                           context.lastSubject !== request.context.subject;
+                           context.lastSubject !== request.context.subject);
 
       let response: OrchestratorResponse;
 
@@ -407,7 +407,6 @@ export class OrchestratorAgent {
         grade: request.context.grade || profile.grade.replace('Grade ', 'g'),
         subject: request.context.subject || 'General',
         history: [],
-        conversationId: request.context.sessionId || 'default',
         studentId: request.context.userId,
         studentName: profile.name
       });
@@ -446,17 +445,24 @@ export class OrchestratorAgent {
    */
   private async handleLessonPlanningRequest(request: OrchestratorRequest): Promise<OrchestratorResponse> {
     try {
-      const lessonResponse = await generateLessonPlan({
-        subject: request.context.subject || 'Mathematics',
-        grade: request.context.grade || 'g4',
-        topic: this.extractTopicFromMessage(request.message),
-        duration: '40 minutes',
-        learningObjectives: []
-      });
+      // generateLessonPlan is a streaming prompt API (input + onUpdate,
+      // resolves void) — collect the streamed document. The former call
+      // used a stale {grade, duration, learningObjectives[]} shape and read
+      // a `.lessonPlan` property that never existed on `void`.
+      let lessonPlanDocument = '';
+      await generateLessonPlan(
+        {
+          subject: request.context.subject || 'Mathematics',
+          gradeLevel: request.context.grade || 'Grade 4',
+          topic: this.extractTopicFromMessage(request.message),
+          learningObjectives: ''
+        },
+        (chunk) => { lessonPlanDocument += chunk; }
+      );
 
       return {
         success: true,
-        response: lessonResponse.lessonPlan,
+        response: lessonPlanDocument,
         primaryAgent: 'LESSON_ARCHITECT',
         agentsUsed: ['LESSON_ARCHITECT'],
         responseTime: 0,

@@ -9,21 +9,27 @@ export async function POST(req: NextRequest) {
   try {
     const input = (await req.json()) as ClassroomCompassInput;
     
-    // Extract grade and subject from context if available
-    const context = input.context || 'General teaching assistance';
+    // The caller sends { teacherContext, history } (see ClassroomCompassInput
+    // and student/chat/chat-interface.tsx). Read the latest user turn as the
+    // query — the former `input.query`/`input.context` fields never existed,
+    // so the model silently received `undefined`.
+    const context = input.teacherContext || 'General teaching assistance';
     const grade = extractGrade(context);
     const subject = extractSubject(context);
+    const query = [...(input.history ?? [])]
+      .reverse()
+      .find((turn) => turn.role === 'user')?.content ?? '';
     
     // Use multi-provider client for lesson planning
     const aiResponse = await multiAIClient.generateClassroomCompass(
-      input.query,
+      query,
       grade || 'General',
       subject || 'Teaching'
     );
 
     return NextResponse.json({
       response: aiResponse.content,
-      context: input.context,
+      context: input.teacherContext,
       timestamp: new Date().toISOString(),
       provider: aiResponse.provider,
       model: aiResponse.model,

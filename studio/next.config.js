@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // SECURITY/STABILITY: `typescript.ignoreBuildErrors` was masking 70 type
+  // errors on main (the same mechanism that let the dashboard routing
+  // regression ship). As of 2026-09-24 `npx tsc --noEmit` is clean on main,
+  // so the gate stays ON. Do not re-enable without a written exception.
   eslint: {
     ignoreDuringBuilds: true,
   },

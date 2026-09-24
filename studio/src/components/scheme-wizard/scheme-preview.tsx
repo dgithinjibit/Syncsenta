@@ -50,8 +50,9 @@ export default function SchemePreview({
   const useKiswahili = isKiswahiliSubject(subject);
   const lang = useKiswahili ? 'sw' : 'en';
 
-  // Build column headers array
-  const headers = [
+  // Build column headers array (plain strings: the per-field literals
+  // widen to a union that would reject the extra lesson-plan column).
+  const headers: string[] = [
     SCHEME_COLUMN_HEADERS.week[lang],
     SCHEME_COLUMN_HEADERS.lesson[lang],
     SCHEME_COLUMN_HEADERS.strand[lang],

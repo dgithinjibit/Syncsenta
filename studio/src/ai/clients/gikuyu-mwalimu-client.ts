@@ -57,7 +57,7 @@ export class GikuyuMwalimuClient {
       }
     } catch (error) {
       console.error('Gikuyu Mwalimu Client Error:', error);
-      throw new Error(`Failed to generate response: ${error.message}`);
+      throw new Error(`Failed to generate response: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -122,7 +122,7 @@ export class GikuyuMwalimuClient {
     } catch (error) {
       clearTimeout(timeoutId);
       
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timeout: HuggingFace API took too long to respond');
       }
       
@@ -168,7 +168,7 @@ export class GikuyuMwalimuClient {
     } catch (error) {
       clearTimeout(timeoutId);
       
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timeout: Ollama took too long to respond');
       }
       

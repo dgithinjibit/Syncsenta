@@ -4,7 +4,7 @@
  */
 
 import { kikuyuDictionary } from '@/lib/kikuyu-dictionary';
-import { generate } from '@genkit-ai/ai';
+import { ai } from '@/ai/genkit';
 import { googleAI } from '@genkit-ai/googleai';
 
 interface GikuyuContext {
@@ -66,12 +66,14 @@ Remember: You're a real teacher having a conversation, not a dictionary bot.`;
 
     try {
       // Generate response using LLM
-      const response = await generate({
-        model: googleAI('gemini-1.5-flash'),
+      const response = await ai.generate({
+        model: googleAI.model('gemini-1.5-flash'),
         system: systemPrompt,
         prompt: userMessage,
-        history: conversationHistory.map(msg => ({
-          role: msg.role,
+        // Genkit v1 uses `messages` (formerly `history`); Gemini models
+        // expect the 'model' role for prior assistant turns.
+        messages: conversationHistory.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
           content: [{ text: msg.content }]
         })),
         config: {

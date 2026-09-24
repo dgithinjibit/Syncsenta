@@ -92,7 +92,7 @@ interface CompetencyMastery {
   updatedAt: string;
 }
 
-interface StudentWork {
+export interface StudentWork {
   type: 'written_response' | 'project' | 'presentation';
   content: string;
   question: string;
