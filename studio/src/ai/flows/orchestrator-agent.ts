@@ -78,7 +78,7 @@ export class OrchestratorAgent {
    */
   async processRequest(request: OrchestratorRequest): Promise<OrchestratorResponse> {
     const startTime = Date.now();
-    
+
     try {
       // Validate request
       const validation = this.validateRequest(request);
@@ -99,10 +99,10 @@ export class OrchestratorAgent {
 
       // Determine request type and route to appropriate agents
       const requestAnalysis = this.analyzeRequest(request);
-      
+
       // Check for subject switching
-      const subjectSwitch = Boolean(context.lastSubject && 
-                           request.context.subject && 
+      const subjectSwitch = Boolean(context.lastSubject &&
+                           request.context.subject &&
                            context.lastSubject !== request.context.subject);
 
       let response: OrchestratorResponse;
@@ -116,7 +116,7 @@ export class OrchestratorAgent {
       // Add context information
       response.contextAware = contextAware;
       response.subjectSwitch = subjectSwitch;
-      response.previousContext = context.conversationHistory.length > 0 ? 
+      response.previousContext = context.conversationHistory.length > 0 ?
         context.conversationHistory[context.conversationHistory.length - 1].message : undefined;
       response.responseTime = Date.now() - startTime;
       response.cached = false;
@@ -197,8 +197,8 @@ export class OrchestratorAgent {
     }
 
     // Curriculum-specific queries - more comprehensive detection
-    if (message.includes('learning outcomes') || 
-        message.includes('curriculum') || 
+    if (message.includes('learning outcomes') ||
+        message.includes('curriculum') ||
         message.includes('cbc') ||
         message.includes('competencies') ||
         message.includes('grade 4 mathematics') ||
@@ -212,10 +212,10 @@ export class OrchestratorAgent {
     }
 
     // Lesson planning requests - improved detection
-    if ((message.includes('lesson plan') || 
+    if ((message.includes('lesson plan') ||
          message.includes('create a lesson') ||
-         message.includes('scheme of work') || 
-         message.includes('worksheet')) && 
+         message.includes('scheme of work') ||
+         message.includes('worksheet')) &&
         (context.role === 'teacher' || message.includes('lesson'))) {
       return {
         primaryAgent: 'LESSON_ARCHITECT',
@@ -238,20 +238,20 @@ export class OrchestratorAgent {
    * Route request to single agent
    */
   private async routeToSingleAgent(
-    request: OrchestratorRequest, 
+    request: OrchestratorRequest,
     analysis: any
   ): Promise<OrchestratorResponse> {
-    
+
     switch (analysis.primaryAgent) {
       case 'CBC_CURRICULUM':
         return await this.handleCurriculumQuery(request);
-      
+
       case 'SOCRATIC_TUTOR':
         return await this.handleTutoringRequest(request);
-      
+
       case 'LESSON_ARCHITECT':
         return await this.handleLessonPlanningRequest(request);
-      
+
       default:
         return await this.handleTutoringRequest(request); // Fallback to tutoring
     }
@@ -264,7 +264,7 @@ export class OrchestratorAgent {
     request: OrchestratorRequest,
     analysis: any
   ): Promise<OrchestratorResponse> {
-    
+
     const coordination: AgentCoordination = {
       sequence: [],
       dependencies: {},
@@ -302,7 +302,7 @@ export class OrchestratorAgent {
       if (request.message.includes('lesson') || request.message.includes('plan')) {
         coordination.sequence.push('LESSON_ARCHITECT');
         coordination.dependencies['LESSON_ARCHITECT'] = ['CBC_CURRICULUM'];
-        
+
         const lessonResponse = await this.handleLessonPlanningRequest(request);
         lessonContent = lessonResponse.response;
       }
@@ -310,7 +310,7 @@ export class OrchestratorAgent {
       // Step 3: Generate tutoring explanation
       coordination.sequence.push('SOCRATIC_TUTOR');
       coordination.dependencies['SOCRATIC_TUTOR'] = ['CBC_CURRICULUM'];
-      
+
       const tutoringResponse = await this.handleTutoringRequest(request);
 
       // Step 4: Synthesize responses
@@ -401,7 +401,7 @@ export class OrchestratorAgent {
     try {
       // Get personalized prompt
       const profile = await personalizedLearning.getStudentProfile(request.context.userId);
-      
+
       const tutoringResponse = await mwalimuAiTutor({
         currentMessage: request.message,
         grade: request.context.grade || profile.grade.replace('Grade ', 'g'),
@@ -479,7 +479,7 @@ export class OrchestratorAgent {
    */
   private synthesizeResponses(responses: Array<{ agent: string; content: string }>): string {
     let synthesis = '';
-    
+
     for (const response of responses) {
       if (response.content && response.content.trim()) {
         synthesis += `${response.content}\n\n`;
@@ -507,10 +507,10 @@ export class OrchestratorAgent {
    */
   private updateConversationContext(context: ConversationContext, request: OrchestratorRequest): boolean {
     const hasContext = context.conversationHistory.length > 0;
-    
+
     // Don't update context here - do it after processing
     // This method just returns whether we have existing context
-    
+
     return hasContext;
   }
 
@@ -548,13 +548,13 @@ export class OrchestratorAgent {
   private extractTopicFromMessage(message: string): string {
     const topicKeywords = ['fractions', 'addition', 'subtraction', 'multiplication', 'division', 'geometry', 'measurement'];
     const messageLower = message.toLowerCase();
-    
+
     for (const keyword of topicKeywords) {
       if (messageLower.includes(keyword)) {
         return keyword;
       }
     }
-    
+
     return 'general topic';
   }
 
