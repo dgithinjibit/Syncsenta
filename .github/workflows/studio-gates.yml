@@ -1,0 +1,57 @@
+name: Studio gates
+
+# WHY THIS EXISTS: on 2026-09-24 the role-dashboard P0 regression shipped to
+# production because next.config.js carried typescript.ignoreBuildErrors and
+# no CI ran typecheck, tests, or build for studio/. That masking layer is
+# removed; this workflow is the enforcement that keeps it removed.
+
+on:
+  pull_request:
+    paths:
+      - 'studio/**'
+      - '.github/workflows/studio-gates.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'studio/**'
+      - '.github/workflows/studio-gates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: install / typecheck / test / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: studio
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+
+      # Reproducibility gate: plain `npm ci` must succeed with the committed
+      # lockfile — no --force, no --ignore-scripts workarounds.
+      - name: npm ci
+        run: npm ci
+
+      # The gate that was disabled when the 70 type errors were masked.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
+      # Build re-validates types by config; if ignoreBuildErrors is ever
+      # re-added to next.config.js this still passes, so the explicit
+      # typecheck step above is the real gate. Keep both.
+      - name: Production build
+        run: npm run build
