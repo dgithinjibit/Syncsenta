@@ -29,7 +29,7 @@
 - [ ] Make `npm ci` succeed without bypass flags (lock mismatch fixed; plain `npm ci` run pending).
 - [x] Add an explicit Studio test script matching documentation (`"test": "vitest run"`).
 - [x] Re-arm the TypeScript build gate: 70 → 0 `tsc --noEmit` errors; `typescript.ignoreBuildErrors` removed from `next.config.js` (2026-09-24). ESLint stays build-ignored because Next 14's `next lint` cannot read the repo's flat `eslint.config.mjs` — separate follow-up.
-- [ ] Add CI coverage for install, tests, typecheck, build, and role-route smoke tests.
+- [x] Add CI coverage for install, tests, typecheck, build, and role-route smoke tests. (`.github/workflows/studio-gates.yml`: `npm ci` + `tsc --noEmit` + `npm test` + `npm run build` on PRs touching `studio/**`, pushes to `main`, and manual dispatch. Role-route browser smoke remains a post-deploy step until credentials exist for it.)
 - [ ] Keep Omega TypeScript/Rust parity enforcement active.
 
 ## Phase 3 — Inventory branches (P1)
