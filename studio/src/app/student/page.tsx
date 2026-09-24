@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { StudentHeader } from '@/components/layout/student-header';
 import { InteractiveChallengePath } from '@/components/student/interactive-challenge-path';
+import { useAuth } from '@/hooks/use-auth';
 
 interface StudentProfile {
   id: string;
@@ -86,6 +87,7 @@ const todaysClasses = [
 
 export default function StudentDashboardPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [studentName, setStudentName] = useState('Student');
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [learningProgress, setLearningProgress] = useState<LearningProgress[]>([]);
@@ -95,16 +97,24 @@ export default function StudentDashboardPage() {
     const stored = localStorage.getItem('userName') || localStorage.getItem('studentName');
     if (stored) setStudentName(stored.split(' ')[0]);
     
-    // Load personalized learning data
+    // Load personalized learning data for the signed-in learner only.
+    if (authLoading) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     loadPersonalizedData();
-  }, []);
+  }, [user, authLoading]);
 
   const loadPersonalizedData = async () => {
     try {
       setIsLoading(true);
       
-      // Get student profile
-      const profileResponse = await fetch('/api/test-personalization?action=profile&userId=user1');
+      // Get student profile — the API derives identity from the session
+      // cookie; no userId is sent (and none is trusted) from the client.
+      const profileResponse = await fetch('/api/test-personalization?action=profile', {
+        credentials: 'same-origin',
+      });
       const profileData = await profileResponse.json();
       
       if (profileData.success) {
@@ -115,7 +125,9 @@ export default function StudentDashboardPage() {
       // Get learning progress for main subjects
       const subjects = ['Mathematics', 'English', 'Science'];
       const progressPromises = subjects.map(async (subject) => {
-        const response = await fetch(`/api/test-personalization?action=progress&userId=user1&subject=${subject}`);
+        const response = await fetch(`/api/test-personalization?action=progress&subject=${subject}`, {
+          credentials: 'same-origin',
+        });
         const data = await response.json();
         return data.success ? { subject, ...data.progress } : null;
       });

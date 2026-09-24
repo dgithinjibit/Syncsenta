@@ -2,7 +2,7 @@ export type DemoRole = 'student' | 'teacher' | 'head' | 'parent';
 
 export const DEMO_DESTINATIONS: Record<DemoRole, string> = {
   student: '/student',
-  teacher: '/teacher/dashboard',
+  teacher: '/teacher',
   head: '/head',
   parent: '/parent',
 };

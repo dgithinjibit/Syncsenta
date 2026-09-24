@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { getAllGrades } from '@/data/curriculum';
 import { supabase } from '@/lib/supabase/client';
 import { getGradePersonalizationCopy } from '@/lib/student-journey';
+import { normalizeGradeKey } from '@/lib/curriculum/grade-id';
 
 const STORAGE_LEVEL = 'learningJourney.level';
 const STORAGE_GRADE = 'learningJourney.grade';
@@ -87,7 +88,9 @@ export default function JourneyPage() {
     }
   }, []);
 
-  const coveredGrades = new Set<string>(getAllGrades());
+  // Registry keys are `Grade4` while journey options are `Grade 4`; compare
+  // on one normalized form so coverage checks actually match.
+  const coveredGrades = new Set<string>(getAllGrades().map(normalizeGradeKey));
 
   const pickLevel = (id: LevelId) => {
     setLevel(id);
@@ -104,7 +107,7 @@ export default function JourneyPage() {
   };
 
   const pickGrade = async (selectedGrade: string) => {
-    if (!coveredGrades.has(selectedGrade) || isPreparingDashboard) return;
+    if (!coveredGrades.has(normalizeGradeKey(selectedGrade)) || isPreparingDashboard) return;
     setIsPreparingDashboard(true);
     setGrade(selectedGrade);
     if (typeof window !== 'undefined') {
@@ -127,7 +130,7 @@ export default function JourneyPage() {
 
   return (
     <div className="education-shell">
-      <StudentHeader showBackButton onBack={() => router.back()} variant="catalog" />
+      <StudentHeader showBackButton onBack={() => router.back()} />
 
       <main className="container mx-auto max-w-4xl px-4 py-8" aria-live="polite">
         {isPreparingDashboard && personalizationCopy ? (
@@ -206,7 +209,7 @@ export default function JourneyPage() {
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {currentLevel.grades.map((selectedGrade) => {
-                const covered = coveredGrades.has(selectedGrade);
+                const covered = coveredGrades.has(normalizeGradeKey(selectedGrade));
                 return (
                   <Card
                     key={selectedGrade}
