@@ -48,3 +48,16 @@ tips are harmful, not just stale.
 If any branch is later found to contain work not covered here (e.g., an
 unpushed colleague commit), it re-enters the queue as a normal candidate:
 reproduce, failing test first, minimum fix, full gates, then merge decision.
+
+## Post-audit re-check (2026-09-24 16:45 UTC, `git fetch origin`)
+
+- `origin/main` unchanged at `7595550`; no new refs beyond those tabulated.
+- `fix/main-stability-dashboard-recovery` (recovery series) has merge-base
+  `7595550` — it is based exactly on the current main tip, so its PR is
+  clean and non-conflicting; zero file overlap concerns with PR #13.
+- PR #13 (`#13` curriculum, +3,282 lines incl. Studio curriculum data) is
+  already inside the recovery branch's baseline, and the recorded green
+  gates (`tsc` 0 errors, full vitest suite, `npm run build`) were measured
+  on that combined tree.
+- PR #13 introduced no `studio/package.json` or lockfile change, so the
+  verified install path is unaffected.
