@@ -304,8 +304,8 @@ export function SchemeOfWorkGenerator() {
               </SelectTrigger>
               <SelectContent>
                 {subjects.map(s => (
-                  <SelectItem key={s} value={s}>
-                    {s}
+                  <SelectItem key={s.name} value={s.name}>
+                    {s.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -432,8 +432,6 @@ export function SchemeOfWorkGenerator() {
           grade={grade}
           subject={subject}
           term={term}
-          teacherId={getTeacherId()}
-          schemeId={currentSchemeId || undefined}
         />
       )}
 

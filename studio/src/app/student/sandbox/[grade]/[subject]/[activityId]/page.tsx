@@ -139,7 +139,7 @@ export default function ActivityPage() {
   const canvasReady = sandboxActivityType !== null && sandboxVariations !== undefined;
 
   if (!resumeLoaded) {
-    return <div className="education-shell"><StudentHeader showBackButton onBack={handleBack} variant="catalog" /><div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8 animate-pulse"><div className="h-96 rounded-2xl bg-teal-50" /></div></div>;
+    return <div className="education-shell"><StudentHeader showBackButton onBack={handleBack} /><div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8 animate-pulse"><div className="h-96 rounded-2xl bg-teal-50" /></div></div>;
   }
 
   const studentName = profile?.full_name ?? 'Student';
@@ -148,7 +148,7 @@ export default function ActivityPage() {
 
   return (
     <div className="education-shell">
-      <StudentHeader showBackButton onBack={handleBack} variant="catalog" />
+      <StudentHeader showBackButton onBack={handleBack} />
       <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8">
         {canvasReady && sandboxActivityType && sandboxVariations ? (
           <InteractiveSandbox

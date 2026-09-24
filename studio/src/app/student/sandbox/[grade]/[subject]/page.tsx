@@ -93,7 +93,7 @@ export default function SandboxPage() {
 
   return (
     <div className="education-shell">
-      <StudentHeader showBackButton onBack={handleBack} variant="catalog" />
+      <StudentHeader showBackButton onBack={handleBack}  />
       
       <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8">
         {/* Date Warning Alert */}

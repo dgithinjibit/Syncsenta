@@ -500,8 +500,8 @@ Create a comprehensive formative assessment toolkit with:
                     </SelectTrigger>
                     <SelectContent>
                       {subjects.map(s => (
-                        <SelectItem key={s} value={s}>
-                          {s}
+                        <SelectItem key={s.name} value={s.name}>
+                          {s.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

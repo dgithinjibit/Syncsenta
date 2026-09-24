@@ -125,7 +125,7 @@ export default function LearnByMakingPage() {
   return (
     <div className="min-h-screen bg-teal-400 p-1 sm:p-2">
       <div className="min-h-[calc(100vh-0.5rem)] overflow-hidden rounded-[1.6rem] bg-[#fffaf0] shadow-2xl sm:rounded-[2rem]">
-        <StudentHeader showBackButton onBack={() => router.push('/student')} variant="catalog" />
+        <StudentHeader showBackButton onBack={() => router.push('/student')}  />
         <main className="px-5 pb-16 pt-2 sm:px-8 lg:px-14">
           <div className="mx-auto max-w-7xl">
             <div className="mb-8 flex flex-col justify-between gap-4 border-b border-teal-100 pb-6 sm:flex-row sm:items-end">
