@@ -121,7 +121,7 @@ export default function SubjectPage() {
           <StudentHeader
             showBackButton
             onBack={() => router.push('/student/learn_by_making')}
-            variant="catalog"
+
           />
           {loadError ? (
             <p className="px-6 pt-8 text-red-600">{loadError}</p>
@@ -162,7 +162,7 @@ export default function SubjectPage() {
         <StudentHeader
           showBackButton
           onBack={() => router.push('/student/learn_by_making')}
-          variant="catalog"
+
         />
         <SubjectHeader
           label={subjectMeta.label}

@@ -75,14 +75,15 @@ async function verifySupabaseConnection(): Promise<boolean> {
     );
 
     // Test connection with a simple query
-    const { error } = await supabase.from('profiles').select('id').limit(1);
+    // NOTE: do not name this `error` — it shadows the console helper below.
+    const { error: queryError } = await supabase.from('profiles').select('id').limit(1);
 
-    if (error) {
-      if (error.message.includes('relation') || error.message.includes('does not exist')) {
+    if (queryError) {
+      if (queryError.message.includes('relation') || queryError.message.includes('does not exist')) {
         warning('Profiles table not found (may be expected in new setup)');
         return true;
       }
-      error(`Supabase connection error: ${error.message}`);
+      error(`Supabase connection error: ${queryError.message}`);
       return false;
     }
 
@@ -228,10 +229,10 @@ async function verifyDatabaseSchema(): Promise<boolean> {
     let allExist = true;
 
     for (const table of tables) {
-      const { error } = await supabase.from(table).select('id').limit(1);
+      const { error: tableError } = await supabase.from(table).select('id').limit(1);
       
-      if (error) {
-        if (error.message.includes('does not exist')) {
+      if (tableError) {
+        if (tableError.message.includes('does not exist')) {
           error(`Table '${table}' does not exist`);
           allExist = false;
         } else {

@@ -2,12 +2,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import Map, { Marker, Popup, MapRef } from 'react-map-gl';
+// Use the maplibre-typed entry of react-map-gl: we render with MapLibre,
+// so the default mapbox-gl typings reject `mapLib={maplibregl}`.
+import Map, { Marker, Popup, type MapRef } from 'react-map-gl/maplibre';
 import type { School } from '@/lib/types';
 import { MapPin } from 'lucide-react';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { cn } from '@/lib/utils';
-import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 const MAPTILER_TOKEN = "<REDACTED_SECRET>";
@@ -46,7 +46,6 @@ export default function SchoolMap({ schools, selectedSchool, onSchoolSelect, cli
   return (
     <Map
       ref={mapRef}
-      mapLib={maplibregl}
       initialViewState={{
         longitude: 36.8219, // Centered on Nairobi
         latitude: -1.2921,
@@ -54,8 +53,6 @@ export default function SchoolMap({ schools, selectedSchool, onSchoolSelect, cli
       }}
       style={{ width: '100%', height: '100%', borderRadius: '0.5rem', background: 'transparent' }}
       mapStyle={`https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${MAPTILER_TOKEN}`}
-      mapboxAccessToken={null} // Set to null as we are not using Mapbox
-      crossOrigin="anonymous"
     >
       {schools.map(school => (
         <Marker

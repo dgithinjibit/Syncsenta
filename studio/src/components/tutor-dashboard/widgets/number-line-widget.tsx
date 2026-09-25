@@ -44,7 +44,7 @@ export function NumberLineWidget({
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
   // Calculate snap positions
-  const snapPositions = [];
+  const snapPositions: number[] = [];
   for (let i = min; i <= max; i += step) {
     snapPositions.push(i);
   }

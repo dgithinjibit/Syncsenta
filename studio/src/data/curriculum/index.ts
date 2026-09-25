@@ -5,6 +5,7 @@
 
 import type {
   GradeLevel,
+  GradeInput,
   SubjectInfo,
   StrandInfo,
   SubStrandInfo,
@@ -26,7 +27,7 @@ import { grade1EnvironmentalActivities } from './lower-primary/environmental-act
 /**
  * Get all subjects available for a given grade
  */
-export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
+export function getSubjectsForGrade(grade: GradeInput): SubjectInfo[] {
   const normalizedGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
 
   // Lower Primary (PP1-Grade 3)
@@ -90,7 +91,7 @@ export function getSubjectsForGrade(grade: GradeLevel): SubjectInfo[] {
  * Get hardcoded strands for a grade-subject combination
  * This is a simplified version - full data will be ported from scheme-scribe-ai
  */
-export function getHardcodedStrands(grade: GradeLevel, subject: string): StrandInfo[] {
+export function getHardcodedStrands(grade: GradeInput, subject: string): StrandInfo[] {
   const normalizedGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
   const key = `${normalizedGrade}-${subject}`;
 

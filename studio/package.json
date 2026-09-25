@@ -8,6 +8,7 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
+    "test": "vitest run",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
@@ -75,6 +76,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/file-saver": "^2.0.7",
     "@types/mapbox-gl": "^3.1.0",
     "@types/node": "^20.14.13",

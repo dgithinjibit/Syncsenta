@@ -1,8 +1,13 @@
-# Syncsenta MVP Roadmap
+# Syncsenta Evidence-Driven Roadmap
 
 **Project**: Syncsenta - AI-Powered Education Platform for Kenya
-**Target**: 100% MVP Launch Readiness  
-**Last Updated**: 2026-09-21
+
+**North star**: Validate a pluggable education Omega Claw with Kenya CBC before expanding to other curricula
+
+**Last Updated**: 2026-09-24
+
+**Active recovery specification**:
+[`main-stability-and-branch-consolidation`](../.kiro/specs/main-stability-and-branch-consolidation/requirements.md)
 
 **Omega/Hyperon review update**: 2026-09-08 — representative Hyperon
 dependents reviewed; adapter input validation and fallback telemetry contract
@@ -10,15 +15,34 @@ hardening started. See [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJE
 
 ---
 
-## Current Status: 78% MVP web product / 70% overall evidence-weighted estimate
+## Current Status: Recovery baseline in progress
 
-The earlier 95% figure was an internal MVP estimate. The current assessment
-separates the deployed MVP web product from the full Phase 2/3 roadmap. Studio
-is a real deployed application with working routes, authentication
-foundations, curriculum activities, AI decision code, PWA assets, and
-automated tests, but the Render AI readiness path, production RAG proof,
-durable offline reconciliation, observability, and several role workflows
-remain incomplete.
+Previous percentage estimates are retained below as historical planning data,
+not as release evidence. A capability is now tracked separately as
+**implemented**, **tested**, **deployed**, and **browser-verified**. Current
+`main` has a reported role-dashboard access regression, `npm ci` cannot install
+from the committed Studio lockfile, and local Rust verification is unavailable
+until a Rust toolchain is present. These are release blockers rather than
+percentage adjustments.
+
+### Now / Next / Later
+
+| Horizon | Priority | Outcome | Exit evidence |
+|---|---|---|---|
+| **Now** | P0 | Restore canonical student, teacher, parent, and admin dashboard entry paths | Regression tests, Studio gates, and browser smoke tests pass |
+| **Now** | P0 | Restore reproducible verification on clean `main` | `npm ci` succeeds; documented test commands exist; Rust gates run in CI/toolchain environment |
+| **Next** | P1 | Classify and consolidate remote branches | Every branch has containment, unique-diff, PR, architecture-impact, and test evidence |
+| **Next** | P1 | Document-digitization OCR via a pluggable provider adapter (Baidu first) | Provider contract tests pass; quota/cost telemetry proven; English + Kiswahili CBC worksheet samples extracted with reviewed accuracy |
+| **Next** | P1 | Make architecture documentation trustworthy | Current and target states are labeled; deployed boundaries have resolvable source evidence |
+| **Later** | P2 | Strengthen the Rust Omega service behind stable contracts | TypeScript/Rust parity, timeout, observability, fallback, and rollback gates pass |
+| **Later** | P2 | Extract universal education adapters from Kenya evidence | Curriculum, policy, localization, assessment, and LMS contracts validated against CBC |
+
+### Merge policy
+
+- Architecture-preserving fixes may merge only after their required gates pass.
+- Architecture-changing branches require an explicit benefit/tradeoff decision before merge.
+- Dashboard smoke tests run after every accepted branch; a regression stops the queue.
+- Branch deletion is outside this roadmap and happens only after integration is proven.
 
 ### Recent Progress
 - ✅ Task 5: MeTTa/Hyperon telemetry integration (COMPLETE)
@@ -223,6 +247,25 @@ analytics remain future scope.
 - [x] Add troubleshooting guide (`docs/TROUBLESHOOTING.md`)
 - [ ] Document environment variable requirements
 - [ ] Create video walkthrough for developers
+
+### 5. Document Digitisation OCR (Baidu-first provider adapter)
+**Priority**: HIGH (feeds the teacher content pipeline: scanned worksheets, textbook pages, handwritten answers)
+
+**Design decision (senior-dev call)**: OCR is an *adapter*, not a feature coupled to one vendor.
+SyncSenta already runs a multi-provider LLM client; the same pattern applies here so a future
+curriculum locale can swap providers without touching product code.
+
+- [ ] Define an `OcrProvider` contract in the Python `ai-agents` service: `extract(document, langs) -> { blocks[], confidence, language }` with timeout, retry, and per-request cost/quota accounting.
+- [ ] Implement `BaiduOcrProvider` (Baidu general text recognition, accurate/standard variants) using AK/SK from Render environment variables only — never committed, never client-side.
+- [ ] Keep the existing vision-LLM path (Groq multimodal, see `provider-capability-evidence.md`) as the registered fallback provider behind the same contract.
+- [ ] Verify Baidu's actual free quota and pricing for the account tier before claiming "unlimited" — the roadmap tracks quotas as evidence, not assumption; add a usage counter exposed in the admin dashboard.
+- [ ] Kenya-first validation set: CBC worksheets and exam papers in English and Kiswahili (printed), plus a handwritten-sample slice; record extraction accuracy per document type.
+- [ ] Wire the first consumer end-to-end: teacher uploads scanned worksheet → OCR text → existing question-bank/lesson-plan generators.
+- [ ] Track each stage separately: implemented / tested (contract + fixture tests in CI) / deployed (Render) / browser-verified (sentastudio).
+
+**Why Rust/Omega is not in this path yet**: extraction is I/O-bound provider calling, which the
+stable Python agent boundary already handles; the Omega Claw consumes OCR output as structured
+knowledge, so the contract above is what the Rust side will later depend on.
 
 ---
 

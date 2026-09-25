@@ -29,7 +29,10 @@ export interface SchemeRow {
   keyInquiryQuestion: string;
   learningResources: string;
   assessmentMethods: string;
-  reflection: string;
+  /** Optional to stay structurally compatible with the canonical
+   *  `SchemeRow` in `types/curriculum`; the table renderer already
+   *  falls back to '-' when absent. */
+  reflection?: string;
 }
 
 // Column headers

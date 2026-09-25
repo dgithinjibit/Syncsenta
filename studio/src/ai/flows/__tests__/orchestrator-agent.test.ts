@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { OrchestratorAgent } from '../orchestrator-agent';
+import { OrchestratorAgent, type OrchestratorRequest } from '../orchestrator-agent';
 
 // Mock the dependencies
 vi.mock('../cbc-curriculum-agent', () => ({
@@ -62,7 +62,8 @@ describe('Orchestrator Agent', () => {
     });
 
     it('should route student tutoring to Socratic Tutor Agent', async () => {
-      const request = {
+      // Annotated so the `type` literal isn't widened to `string`.
+      const request: OrchestratorRequest = {
         message: 'I need help understanding fractions',
         context: { userId: 'user1', grade: 'g4', subject: 'Mathematics', type: 'tutoring' }
       };
@@ -74,7 +75,7 @@ describe('Orchestrator Agent', () => {
     });
 
     it('should route lesson planning to Lesson Architect Agent', async () => {
-      const request = {
+      const request: OrchestratorRequest = {
         message: 'Create a lesson plan for Grade 4 fractions',
         context: { userId: 'teacher1', role: 'teacher', grade: 'g4', subject: 'Mathematics' }
       };
@@ -88,7 +89,7 @@ describe('Orchestrator Agent', () => {
 
   describe('Multi-Agent Coordination', () => {
     it('should coordinate multiple agents for complex requests', async () => {
-      const request = {
+      const request: OrchestratorRequest = {
         message: 'Create a CBC-aligned lesson plan for Grade 4 fractions and explain the concepts to students',
         context: { userId: 'teacher1', role: 'teacher', grade: 'g4', subject: 'Mathematics' }
       };
@@ -110,7 +111,7 @@ describe('Orchestrator Agent', () => {
     });
 
     it('should validate curriculum alignment across agents', async () => {
-      const request = {
+      const request: OrchestratorRequest = {
         message: 'Create a CBC-aligned lesson plan for calculus and explain the concepts to Grade 4 students',
         context: { userId: 'teacher1', role: 'teacher', grade: 'g4', subject: 'Mathematics' }
       };
@@ -228,7 +229,8 @@ describe('Orchestrator Agent', () => {
     });
 
     it('should prioritize agents based on request type', async () => {
-      const urgentRequest = {
+      // Annotated so the `priority` literal isn't widened to `string`.
+      const urgentRequest: OrchestratorRequest = {
         message: 'Student needs immediate help with fractions',
         context: { userId: 'user1', grade: 'g4', subject: 'Mathematics', priority: 'high' }
       };

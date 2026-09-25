@@ -19,3 +19,14 @@ export function gradeNameToId(name: string): string {
   const n = name.replace(/^Grade\s+/, '');
   return /^[0-9]+$/.test(n) ? `g${n}` : name;
 }
+
+/**
+ * Collapse the three grade spellings used across the app (`Grade 4`,
+ * `Grade4`, `g4`-free registry keys) to one comparable key so set-membership
+ * checks like "is this grade covered by the curriculum registry?" match.
+ * The curriculum data layer (`src/data/curriculum`) keys off the spaced-free
+ * form (`Grade4`), while journey/UI strings use `Grade 4`.
+ */
+export function normalizeGradeKey(grade: string): string {
+  return String(grade).trim().replace(/\s+/g, '');
+}

@@ -83,6 +83,13 @@ export type GradeLevel =
   | "Grade10" | "Grade11" | "Grade12";
 
 /**
+ * Anything the curriculum data layer can resolve to a grade. The data layer
+ * normalizes spaced UI strings ("Grade 4") to registry keys ("Grade4") at
+ * runtime, so display-layer callers legitimately pass plain strings.
+ */
+export type GradeInput = GradeLevel | string;
+
+/**
  * CBC Terms
  */
 export type Term = "Term1" | "Term2" | "Term3";

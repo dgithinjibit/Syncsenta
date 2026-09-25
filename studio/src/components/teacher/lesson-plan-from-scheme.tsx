@@ -254,8 +254,6 @@ export function LessonPlanFromScheme() {
             grade={selectedScheme.grade}
             subject={selectedScheme.subject}
             term={selectedScheme.term}
-            teacherId={user.id}
-            schemeId={selectedScheme.scheme_id}
           />
         )}
 

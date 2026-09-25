@@ -1,15 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { personalizedLearning } from '@/lib/personalized-learning';
 import { multiAIClient } from '@/lib/multi-ai-client';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ * Learner identity is derived from the session cookie ONLY. The former
+ * `?userId=` / body `userId` parameter defaulted to `user1`, which leaked
+ * one learner's profile to every caller and let anyone read another user's
+ * data (verified LMS/Omega boundary flaw, 2026-09-22).
+ */
+async function resolveSessionUserId(): Promise<string | null> {
+  const supabase = await createSupabaseRouteHandlerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
+function unauthorized() {
+  return NextResponse.json(
+    { success: false, error: 'Authentication required' },
+    { status: 401 },
+  );
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId') || 'user1';
     const action = searchParams.get('action') || 'profile';
+
+    // Provider diagnostics are test-only output too — require a session.
+    const userId = await resolveSessionUserId();
+    if (!userId) return unauthorized();
 
     switch (action) {
       case 'profile':
@@ -57,8 +80,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await resolveSessionUserId();
+    if (!userId) return unauthorized();
     const body = await req.json();
-    const { action, userId = 'user1', ...data } = body;
+    const { action, ...data } = body;
 
     switch (action) {
       case 'updateProfile':

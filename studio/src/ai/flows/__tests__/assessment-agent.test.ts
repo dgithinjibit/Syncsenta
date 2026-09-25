@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AssessmentAgent } from '../assessment-agent';
+import { AssessmentAgent, type StudentWork } from '../assessment-agent';
 
 describe('Assessment Agent', () => {
   let agent: AssessmentAgent;
@@ -151,7 +151,8 @@ describe('Assessment Agent', () => {
 
   describe('Rubric-based Assessment', () => {
     it('should assess student work against CBC rubrics', async () => {
-      const studentWork = {
+      // Annotated so the `type` literal isn't widened to `string`.
+      const studentWork: StudentWork = {
         type: 'written_response',
         content: 'A fraction is when you divide something into equal parts. Like if you have a pizza and cut it into 4 pieces, each piece is 1/4.',
         question: 'Explain what a fraction is and give an example'

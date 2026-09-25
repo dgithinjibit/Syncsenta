@@ -22,13 +22,26 @@ const GenerateSchemeOfWorkDialog = dynamic(() => import('@/components/generate-s
 const GenerateRubricDialog = dynamic(() => import('@/components/generate-rubric-dialog'), { ssr: false });
 const GenerateWorksheetDialog = dynamic(() => import('@/components/generate-worksheet-dialog'), { ssr: false });
 const DifferentiateWorksheetDialog = dynamic(() => import('@/components/differentiate-worksheet-dialog'), { ssr: false });
-const GenerateFamilyEmailDialog = dynamic(() => import('@/components/generate-family-email-dialog'), { ssr: false });
+// The dialog is a named export — map it explicitly or `dynamic()` resolves a
+// module object with no default and the component loses its props.
+const GenerateFamilyEmailDialog = dynamic(() => import('@/components/generate-family-email-dialog').then(m => m.GenerateFamilyEmailDialog), { ssr: false });
 
 type Category = "All" | "Planning" | "Content" | "Assessment" | "Support" | "Communication" | "Productivity" | "Engagement";
 
 const categories: Category[] = ["All", "Planning", "Content", "Assessment", "Support", "Communication", "Productivity", "Engagement"];
 
-const teacherTools = [
+// Annotate so `fields[].type` keeps the ToolField union instead of widening
+// to `string`, which GenericToolDialog rejects.
+const teacherTools: Array<{
+    id: string;
+    title: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    category: Category;
+    fields?: ToolField[];
+    /** Tools that render their own dedicated dialog instead of GenericToolDialog. */
+    customDialog?: boolean;
+}> = [
     {
         id: "schemeOfWork",
         title: "Schemer: Schemes of Work",

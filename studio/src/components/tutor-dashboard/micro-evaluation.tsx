@@ -10,8 +10,8 @@
 
 import React, { useState, useEffect } from 'react';
 import type { MicroEvalNode } from './types/lesson-script';
-import { NumberLineWidget } from './widgets/number-line-widget';
-import { FractionBuilderWidget } from './widgets/fraction-builder-widget';
+import { NumberLineWidget, type NumberLineConfig } from './widgets/number-line-widget';
+import { FractionBuilderWidget, type FractionBuilderConfig } from './widgets/fraction-builder-widget';
 import { validateAnswer } from './utils/answer-validator';
 
 interface MicroEvaluationProps {
@@ -134,17 +134,38 @@ export function MicroEvaluation({
   const renderWidget = () => {
     if (!node.widget) return null;
 
-    const widgetProps = {
-      config: node.widget.config,
-      onSubmit: handleWidgetAnswer,
-      disabled: showFeedback,
+    // The lesson-script type intentionally keeps widget config as
+    // Record<string, any> (scripts are generated at runtime); cast at each
+    // widget boundary to the config the widget actually consumes.
+    //
+    // NOTE: this previously passed `onSubmit`, which is not a widget prop —
+    // widget answers were silently dropped. The widgets emit `onAnswer`.
+    const validateWidgetAnswer = (answer: unknown) => {
+      const { isCorrect } = validateAnswer(
+        node.question.type,
+        answer,
+        node.question.correctAnswer
+      );
+      handleWidgetAnswer(answer, isCorrect);
     };
 
     switch (node.widget.type) {
       case 'number-line':
-        return <NumberLineWidget {...widgetProps} />;
+        return (
+          <NumberLineWidget
+            config={node.widget.config as NumberLineConfig}
+            onAnswer={(value) => validateWidgetAnswer(value)}
+            disabled={showFeedback}
+          />
+        );
       case 'fraction-builder':
-        return <FractionBuilderWidget {...widgetProps} />;
+        return (
+          <FractionBuilderWidget
+            config={node.widget.config as FractionBuilderConfig}
+            onAnswer={(numerator, denominator) => validateWidgetAnswer({ numerator, denominator })}
+            disabled={showFeedback}
+          />
+        );
       default:
         return (
           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">

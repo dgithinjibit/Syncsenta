@@ -319,8 +319,8 @@ By the end of this lesson, learners should be able to:
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.map(s => (
-                      <SelectItem key={s} value={s}>
-                        {s}
+                      <SelectItem key={s.name} value={s.name}>
+                        {s.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
