@@ -1,74 +1,46 @@
+import { redirect } from 'next/navigation';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
+import { getRoleHome } from '@/lib/auth/role-home';
 
-"use client";
+/**
+ * Legacy `/dashboard` index → the visitor's real role home.
+ *
+ * This page used to be a client component that resolved a role through
+ * `getServerUser()`, which reads a `userEmail` cookie. That cookie was written
+ * only by the Firebase-era `signupUser()` server action, so under Supabase it
+ * was never present: the role stayed `null`, the switch fell to its `default:`
+ * branch, and that branch rendered `<DashboardSkeleton />` even though
+ * `loading` was already `false`. Every visitor — including a signed-in
+ * student — saw a permanently blank page, and because `/dashboard` was not in
+ * the middleware's protected list, anonymous visitors saw it too.
+ *
+ * Identity now comes from the Supabase session and `profiles.role`, the same
+ * source of truth `SignInForm` and `/api/auth/demo-login` use, and the result
+ * is a redirect rather than a placeholder. `getRoleHome()` deliberately has no
+ * `/dashboard` entry, so this page can no longer be a landing destination — it
+ * only forwards.
+ *
+ * The `/dashboard/**` sub-routes (tools, learning-lab, reports, county and
+ * school screens) are untouched pending the feature-collision audit; this
+ * change only stops the index from swallowing people.
+ */
+export const dynamic = 'force-dynamic';
 
-import { Suspense, useState, useEffect } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import TeacherDashboard from '@/components/dashboards/teacher-dashboard';
-import SchoolHeadDashboard from '@/components/dashboards/school-head-dashboard';
-import { CountyOfficerDashboard } from '@/components/dashboards/county-officer-dashboard';
-import ParentDashboard from '@/components/dashboards/parent-dashboard';
-import SchoolAdminDashboard from '@/components/dashboards/school-admin-dashboard';
-import NationalAdminDashboard from '@/components/dashboards/national-admin-dashboard';
-import { getServerUser } from '@/lib/auth';
-import type { UserRole } from '@/lib/types';
+export default async function DashboardPage() {
+  const supabase = await createSupabaseRouteHandlerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-const DashboardSkeleton = () => (
-    <div className="space-y-6">
-        <div className="flex items-center justify-between">
-            <div>
-                <Skeleton className="h-8 w-64 mb-2" />
-                <Skeleton className="h-4 w-80" />
-            </div>
-            <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="h-[350px] w-full" />
-            <Skeleton className="h-[350px] w-full" />
-            <Skeleton className="h-[350px] w-full" />
-        </div>
-    </div>
-);
+  if (!user) {
+    redirect('/auth/signin');
+  }
 
-export default function DashboardPage() {
-    const [role, setRole] = useState<UserRole | null>(null);
-    const [loading, setLoading] = useState(true);
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle<{ role: string }>();
 
-    useEffect(() => {
-        const fetchRole = async () => {
-             const user = await getServerUser();
-             setRole(user?.role as UserRole);
-             setLoading(false);
-        }
-        fetchRole();
-    }, []);
-
-    const renderDashboardByRole = () => {
-        switch (role) {
-            case 'teacher':
-                return <TeacherDashboard />;
-            case 'school_head':
-                return <SchoolHeadDashboard />;
-            case 'county_officer':
-                return <CountyOfficerDashboard />;
-            case 'parent':
-                return <ParentDashboard />;
-            case 'school_admin':
-                return <SchoolAdminDashboard />;
-            case 'national_admin':
-                return <NationalAdminDashboard />;
-            default:
-                // Return a loading state or a generic view if the role is not yet determined or unrecognized.
-                return <DashboardSkeleton />;
-        }
-    };
-    
-    if (loading) {
-        return <DashboardSkeleton />;
-    }
-
-    return (
-        <Suspense fallback={<DashboardSkeleton />}>
-            {renderDashboardByRole()}
-        </Suspense>
-    );
+  // An authenticated account with no profile row has no workspace to land in;
+  // send it to sign-in rather than inventing a surface to show.
+  redirect(getRoleHome(profile?.role));
 }
