@@ -3,7 +3,7 @@ import { canManageSubjectData, dataRequestSchema, getBackendActor, persistTrustR
 
 export async function POST(request: Request) {
   try {
-    const actor = getBackendActor();
+    const actor = await getBackendActor();
     if (!actor) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
 
     const parsed = dataRequestSchema.safeParse(await request.json());

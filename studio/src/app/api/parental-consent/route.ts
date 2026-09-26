@@ -3,7 +3,7 @@ import { canManageConsent, consentSchema, getBackendActor, persistTrustRecord } 
 
 export async function POST(request: Request) {
   try {
-    const actor = getBackendActor();
+    const actor = await getBackendActor();
     if (!actor) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     if (!canManageConsent(actor)) return NextResponse.json({ error: 'Insufficient role for consent management' }, { status: 403 });
 

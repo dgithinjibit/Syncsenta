@@ -121,7 +121,7 @@ is needed.
 - Deployed: `studio/` on Vercel (sentastudio.vercel.app), `ai-agents/` on Render,
   Supabase for auth/Postgres/RLS
 - Studio gates, measured 2026-09-26 on `fix/legacy-auth-surface`: `npx tsc --noEmit`
-  clean; vitest **397 passed, 17 skipped** across 59 files (`npx vitest run
+  clean; vitest **403 passed, 17 skipped** across 59 files (`npx vitest run
   --no-file-parallelism`; the `basic` reporter no longer exists in Vitest 4). Earlier
   notes claiming 366 tests were stale.
 - 0 open pull requests (PR #15 merged 2026-09-26); 13 remote branches, most already
@@ -142,9 +142,20 @@ is needed.
   deleted, and `/login` + `/signin` forward to `/auth/signin`. `app-sidebar.tsx` and
   `/dashboard/reports` were the same bug one layer up — they resolved a null role and
   rendered an empty nav / the wrong view, and now read `useAuth()`, with a repo-wide
-  test barring any `"use client"` module from calling `getServerUser()`. Still open in
-  the `(main)/dashboard/**` audit: the `userEmail` read in
-  `lib/backend/trust-backend.ts`, the now-unreferenced `getServerUser()`/`signupUser()`
+  test barring any `"use client"` module from calling `getServerUser()`. The trust
+  surface (`lib/backend/trust-backend.ts` and its four API routes) had the same
+  defect: `getBackendActor()` read the dead `userRole`/`userEmail` cookies, so
+  `/api/parental-consent`, `/api/data-requests` and `/api/school-controls` answered
+  401 for every real signed-in user while the pages looked functional. It now
+  resolves the caller from the Supabase session through the RLS-enforcing
+  route-handler client — never `getSupabaseServerClient()`, which carries the
+  service-role key and reports a null user. Its Firestore write branch is gone too:
+  it sat behind `TRUST_BACKEND_ENABLED`, a flag set nowhere, and enabling it would
+  have started storing children's consent records in a retired database with no
+  reviewed access policy. `persistTrustRecord()` now returns `persisted: false`
+  honestly. Durable trust records need Supabase tables plus RLS policies — a
+  migration the account holder owns, not a code fix. Still open in the
+  `(main)/dashboard/**` audit: the now-unreferenced `getServerUser()`/`signupUser()`
   actions in `lib/auth.ts`, and the sidebar's own links to `/dashboard`, which now
   redirect instead of rendering.
 - Laya System-1 affect router exists as a gated, unadopted PoC

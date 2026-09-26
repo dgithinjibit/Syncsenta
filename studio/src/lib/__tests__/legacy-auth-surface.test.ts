@@ -169,6 +169,55 @@ describe('client components do not read the legacy cookie session', () => {
   });
 });
 
+describe('trust endpoints authenticate against Supabase, not dead cookies', () => {
+  const trustSource = readRepoSource('src', 'lib', 'backend', 'trust-backend.ts');
+
+  it('reads the calling user from the Supabase session', () => {
+    expect(trustSource).toContain('createSupabaseRouteHandlerClient');
+    expect(trustSource).toContain('auth.getUser');
+  });
+
+  it('does not use the service-role client, which reports a null user and bypasses RLS', () => {
+    expect(trustSource).not.toContain('getSupabaseServerClient');
+    expect(trustSource).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
+  });
+
+  it('takes its role from the profiles row instead of the userRole cookie', () => {
+    expect(trustSource).toContain("'profiles'");
+    expect(trustSource).not.toMatch(/\bcookieStore\.get\(\s*['"]user(Role|Email|Name)['"]/);
+    expect(trustSource).not.toContain('getServerUser');
+  });
+
+  it('never claims a trust record was stored', () => {
+    // The Firestore branch was unreachable (TRUST_BACKEND_ENABLED is set
+    // nowhere) and would have written consent data into a retired database.
+    expect(trustSource).not.toMatch(/from\s+['"]firebase/);
+    expect(trustSource).not.toMatch(/persisted:\s*true/);
+    expect(trustSource).toContain("mode: 'demo'");
+  });
+
+  it('every consumer awaits the now-asynchronous actor lookup', () => {
+    const consumers = allSourceFiles()
+      .filter((file) => /\bgetBackendActor\b/.test(readFileSync(file, 'utf8')))
+      .map((file) => relative(process.cwd(), file));
+
+    // The four trust endpoints, plus the module that declares the lookup.
+    expect(consumers).toContain('src/lib/backend/trust-backend.ts');
+    expect(consumers.length).toBeGreaterThanOrEqual(5);
+
+    // The declaration itself reads `getBackendActor(): Promise<...>`, which
+    // matches the call pattern without being one, so it is skipped explicitly
+    // rather than with a cleverer regex.
+    const unawaited = consumers
+      .filter((rel) => rel !== 'src/lib/backend/trust-backend.ts')
+      .filter((rel) => {
+        const source = stripComments(readFileSync(join(process.cwd(), rel), 'utf8'));
+        return /getBackendActor\(\)/.test(source) && !/await getBackendActor\(\)/.test(source);
+      });
+    expect(unawaited).toEqual([]);
+  });
+});
+
 describe('branding', () => {
   it('has no leftover "3D" footer copyright in source', () => {
     const offenders = allSourceFiles()

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request', issues: parsed.error.flatten() }, { status: 400 });
     }
 
-    const actor = getBackendActor();
+    const actor = await getBackendActor();
     const result = await persistTrustRecord('trustRequests', {
       ...parsed.data,
       actorId: actor?.id || null,
