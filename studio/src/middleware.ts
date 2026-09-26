@@ -15,7 +15,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { shouldEnforceAuthWall } from '@/lib/auth/route-policy';
+import { shouldEnforceAuthWall, isProtectedWorkspace } from '@/lib/auth/route-policy';
 
 const API_VERSION = '1.0.0';
 const SUPPORTED_VERSIONS = ['1.0.0'];
@@ -50,7 +50,11 @@ export async function middleware(request: NextRequest) {
   // Protect every learner, teacher, parent, and head workspace in production.
   // The former unauthenticated /student/demo mock is now a compatibility
   // redirect to the real student_1 demo account.
-  const protectedRoute = request.nextUrl.pathname.startsWith('/teacher') || request.nextUrl.pathname.startsWith('/student') || request.nextUrl.pathname.startsWith('/parent') || request.nextUrl.pathname.startsWith('/head');
+  //
+  // /dashboard is included deliberately: it is the legacy surface whose
+  // identity came from a `userEmail` cookie that nothing writes any more, so
+  // unprotected visitors got an unresolved loading skeleton instead of a page.
+  const protectedRoute = isProtectedWorkspace(request.nextUrl.pathname);
   const demoBypass = process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_AUTH_DEMO_BYPASS === 'true';
   // Production role workspaces are protected by default. Local development
   // remains opt-in so contributors can run the UI without a Supabase session.
@@ -64,7 +68,7 @@ export async function middleware(request: NextRequest) {
 
   if (protectedRoute && authWallEnabled && !demoBypass) {
     if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.redirect(new URL('/login?error=auth_not_configured', request.url));
+      return NextResponse.redirect(new URL('/auth/signin?error=auth_not_configured', request.url));
     }
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -77,9 +81,12 @@ export async function middleware(request: NextRequest) {
     });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
-      return NextResponse.redirect(loginUrl);
+      // Bounce straight to the Supabase sign-in page. This used to target
+      // /login, which was a stub that client-side redirected to the anonymous
+      // /signup role picker — two hops that ended on a blank /dashboard.
+      const signInUrl = new URL('/auth/signin', request.url);
+      signInUrl.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
+      return NextResponse.redirect(signInUrl);
     }
   }
 

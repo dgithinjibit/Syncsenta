@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { MyResources } from "@/components/my-resources";
 import { BarChart2, Megaphone, Send } from "lucide-react";
-import { getServerUser } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import type { UserRole, Communication } from "@/lib/types";
 import { Button } from '@/components/ui/button';
 import { AddCommunicationDialog } from '@/components/add-communication-dialog';
@@ -116,27 +116,22 @@ function SchoolHeadReportsView() {
     )
 }
 
-// This is an async component because it needs to fetch the user role on the server.
 export default function ReportsPage() {
-    // We use a state to hold the role, and determine it on the client side.
-    // This avoids issues with server-side rendering mismatches.
-    const [role, setRole] = useState<UserRole | null>(null);
-
-    useEffect(() => {
-        // This is a workaround to get the role on the client, as `getServerUser` can only be used in Server Components.
-        // In a real app, you'd use a proper client-side auth context.
-        const fetchRole = async () => {
-             const user = await getServerUser();
-             setRole(user?.role as UserRole);
-        }
-        fetchRole();
-    }, []);
-
+    // The comment here used to apologize: "In a real app, you'd use a proper
+    // client-side auth context." That context exists — `useAuth()` reads the
+    // Supabase session and its `profiles` row. Before this, the page called the
+    // `getServerUser()` server action, whose `userEmail` cookie is never written
+    // under Supabase, so `role` stayed null and a headteacher was silently shown
+    // the teacher view.
+    const { profile } = useAuth();
+    const role = profile?.role as UserRole | undefined;
 
     if (role === 'school_head') {
         return <SchoolHeadReportsView />;
     }
 
-    // Default to teacher view for teachers and any other role, or while loading
+    // Teacher view for teachers, and for anything else that reaches this legacy
+    // route — including while the profile is still loading. The role homes are
+    // the intended destinations; this page is pending the (main)/dashboard audit.
     return <TeacherResourcesView />;
 }

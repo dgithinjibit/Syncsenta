@@ -154,7 +154,7 @@ function SignupFormComponent() {
                     </CardContent>
                 </Card>
             </main>
-            <footer className="p-4 text-center text-xs text-muted-foreground">© 2025 3D. All rights reserved.</footer>
+            <footer className="p-4 text-center text-xs text-muted-foreground">© 2025 SyncSenta. All rights reserved.</footer>
         </div>
     );
 }

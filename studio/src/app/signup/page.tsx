@@ -27,49 +27,36 @@ export default function SignupPage() {
         setIsMounted(true);
     }, []);
 
-    const handleRoleSelect = async (role: Role) => {
+    // Roles that have a real, provisioned demo identity in
+    // /api/auth/demo-login. That endpoint signs the account in against
+    // Supabase server-side and redirects to the role home, so the visitor gets
+    // the same authenticated session a real user has.
+    const DEMO_ROLE_BY_PICKER: Partial<Record<Role, string>> = {
+        student: 'student',
+        teacher: 'teacher',
+        school_head: 'head',
+    };
+
+    const handleRoleSelect = (role: Role) => {
         setLoadingRole(role);
-        
-        // Default names for demo mode
-        const names = {
-            student: 'Demo Student',
-            teacher: 'Mwalimu Demo',
-            school_head: 'Headteacher Demo',
-            county_officer: 'Officer Demo'
-        };
 
-        try {
-            const response = await fetch('/api/set-auth-cookie', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role, name: names[role] }),
-            });
+        const demoRole = DEMO_ROLE_BY_PICKER[role];
 
-            if (response.ok) {
-                localStorage.setItem('userName', names[role]);
-                localStorage.setItem('userRole', role);
-                
-                toast({
-                    title: `Welcome, ${names[role]}`,
-                    description: "Redirecting to your dashboard...",
-                });
-
-                if (role === 'student') {
-                    router.push('/student/journey');
-                } else {
-                    router.push('/dashboard');
-                }
-            } else {
-                throw new Error("Failed to set session.");
-            }
-        } catch (error) {
+        if (!demoRole) {
+            // county_officer has no shared demo account: a county workspace
+            // shows real sub-county data, so it must be a provisioned user.
             toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Could not start session. Please try again.",
+                title: "Sign-in required",
+                description: "County officer workspaces are invitation-only. Sign in with your credentials.",
             });
             setLoadingRole(null);
+            router.push('/auth/signin');
+            return;
         }
+
+        // Hard navigation, not router.push: /api/auth/demo-login sets the
+        // Supabase session cookies on a 307, and the new document picks them up.
+        window.location.assign(`/api/auth/demo-login?role=${demoRole}`);
     };
 
     if (!isMounted) {
@@ -88,7 +75,7 @@ export default function SignupPage() {
                     </Link>
                     <CardHeader className="text-center pt-12">
                         <CardTitle className="font-headline text-2xl">Choose Your Role</CardTitle>
-                        <CardDescription>Select a role to enter the SyncSenta platform immediately.</CardDescription>
+                        <CardDescription>Pick a role to open its demo workspace with a real sign-in, or sign in with your own account.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {roles.map((role) => {
@@ -122,7 +109,7 @@ export default function SignupPage() {
                 </Card>
             </main>
              <footer className="p-4 text-center text-xs text-muted-foreground">
-                © 2025 3D. All rights reserved. | <Link href="/terms" className="hover:underline">Terms & Conditions</Link> | <Link href="https://forms.gle/3vQhgtJbnEaGD6xV8" target="_blank" rel="noopener noreferrer" className="hover:underline">Provide Feedback</Link>
+                © 2025 SyncSenta. All rights reserved. | <Link href="/terms" className="hover:underline">Terms & Conditions</Link> | <Link href="https://forms.gle/3vQhgtJbnEaGD6xV8" target="_blank" rel="noopener noreferrer" className="hover:underline">Provide Feedback</Link>
             </footer>
         </div>
     );

@@ -11,7 +11,7 @@ const schoolActionSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const actor = getBackendActor();
+    const actor = await getBackendActor();
     if (!actor) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     if (!canManageSchool(actor)) return NextResponse.json({ error: 'School-admin role required' }, { status: 403 });
 

@@ -35,6 +35,11 @@ import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Groq from 'groq-sdk';
+import {
+  PROVIDER_KEY_ENV_NAMES,
+  resolveLlmTargets,
+  type LlmTarget,
+} from '@/lib/llm/provider-chain';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 import {
@@ -325,17 +330,22 @@ export async function POST(req: NextRequest) {
     learnerContext.recentPractice     = contextRow.last_practiced_at ?? undefined;
   }
 
-  // ── LLM provider env ────────────────────────────────────────────────────────
-  const provider = (process.env.LLM_PROVIDER || 'groq').trim().toLowerCase();
-  const isGemini = provider === 'gemini';
-  const apiKey = isGemini ? process.env.GEMINI_API_KEY : process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    const key = isGemini ? 'GEMINI_API_KEY' : 'GROQ_API_KEY';
-    return Response.json({ error: `Server is missing ${key}`, detail: `Set ${key} in your server environment.` }, { status: 500 });
+  // ── LLM provider chain ──────────────────────────────────────────────────────
+  // One upstream used to mean one point of failure: whatever `LLM_PROVIDER`
+  // named was the only model this endpoint could reach, and its errors became
+  // 502s the learner saw as a dead tutor. `resolveLlmTargets()` returns the
+  // configured providers in preference order, so a second key - if one exists -
+  // is a backup rather than an unused variable.
+  const targets = resolveLlmTargets();
+  if (targets.length === 0) {
+    return Response.json(
+      {
+        error: 'Tutor is not configured',
+        detail: `Set ${PROVIDER_KEY_ENV_NAMES.join(' or ')} in the server environment.`,
+      },
+      { status: 500 },
+    );
   }
-  const model = isGemini
-    ? process.env.GEMINI_MODEL || 'gemini-3.6-flash'
-    : process.env.GROQ_MODEL  || 'llama-3.3-70b-versatile';
 
   // ── Session ─────────────────────────────────────────────────────────────────
   let sessionId = isDevChat ? undefined : body.sessionId;
@@ -458,13 +468,16 @@ export async function POST(req: NextRequest) {
   ];
 
   // ── LLM call ────────────────────────────────────────────────────────────────
+  // The deadline covers the whole request, not each attempt: if the first
+  // provider times out, trying a second would make the learner wait twice as
+  // long for an answer that may still not come. A provider that refuses fast
+  // (bad key, retired model, rate limit) is what the fallback is for.
   const timeoutSignal = AbortSignal.timeout(MODEL_TIMEOUT_MS);
-  let modelStream: AsyncIterable<string>;
 
-  try {
-    if (isGemini) {
-      const gemini = new GoogleGenerativeAI(apiKey);
-      const gModel = gemini.getGenerativeModel({ model, systemInstruction: systemPrompt });
+  const openModelStream = async (target: LlmTarget): Promise<AsyncIterable<string>> => {
+    if (target.provider === 'gemini') {
+      const gemini = new GoogleGenerativeAI(target.apiKey);
+      const gModel = gemini.getGenerativeModel({ model: target.model, systemInstruction: systemPrompt });
       const geminiHistory = trimmedHistory.map((e) => ({
         role: e.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: e.content }],
@@ -473,40 +486,70 @@ export async function POST(req: NextRequest) {
         contents: [...geminiHistory, { role: 'user', parts: [{ text: body.message }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 600, topP: 1 },
       });
-      modelStream = (async function* () {
+      return (async function* () {
         for await (const chunk of geminiResult.stream) {
           const t = chunk.text();
           if (t) yield t;
         }
       })();
-    } else {
-      const groq = new Groq({ apiKey });
-      const stream = await groq.chat.completions.create(
-        { model, messages, temperature: 0.7, max_tokens: 600, top_p: 1, stream: true },
-        { signal: timeoutSignal },
-      );
-      modelStream = (async function* () {
-        for await (const chunk of stream) {
-          const t = chunk?.choices?.[0]?.delta?.content;
-          if (t) yield t;
-        }
-      })();
     }
-  } catch (err) {
-    const aborted = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
-    const detail  = err instanceof Error ? err.message : `Unknown ${provider} error`;
-    console.error(`[/api/chat] ${provider} request failed:`, detail);
+
+    const groq = new Groq({ apiKey: target.apiKey });
+    const stream = await groq.chat.completions.create(
+      { model: target.model, messages, temperature: 0.7, max_tokens: 600, top_p: 1, stream: true },
+      { signal: timeoutSignal },
+    );
+    return (async function* () {
+      for await (const chunk of stream) {
+        const t = chunk?.choices?.[0]?.delta?.content;
+        if (t) yield t;
+      }
+    })();
+  };
+
+  let modelStream: AsyncIterable<string> | null = null;
+  let served: LlmTarget | null = null;
+  let timedOut = false;
+  const attempts: string[] = [];
+
+  for (const target of targets) {
+    try {
+      modelStream = await openModelStream(target);
+      served = target;
+      break;
+    } catch (err) {
+      const aborted = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
+      const detail = err instanceof Error ? err.message : `Unknown ${target.provider} error`;
+      attempts.push(`${target.provider}/${target.model}: ${aborted ? 'timed out' : detail}`);
+      console.error(`[/api/chat] ${target.provider} request failed:`, detail);
+      if (aborted) {
+        timedOut = true;
+        break;
+      }
+    }
+  }
+
+  if (!modelStream || !served) {
     if (!isDevChat) {
       await supabaseAdmin.from('api_usage').insert({
         user_id: user.id, endpoint: '/api/chat', method: 'POST',
-        status_code: aborted ? 504 : 502, latency_ms: Date.now() - startTime,
+        status_code: timedOut ? 504 : 502, latency_ms: Date.now() - startTime,
       });
     }
+    // `detail` stays server-log-shaped on purpose: the learner sees the error
+    // code and a retry, not a stack trace from an upstream vendor.
     return Response.json(
-      { error: aborted ? 'Upstream timeout' : 'Upstream model error', detail },
-      { status: aborted ? 504 : 502 },
+      {
+        error: timedOut ? 'Upstream timeout' : 'Upstream model error',
+        detail: attempts.join(' | ') || 'No configured provider could be reached',
+        providers_tried: targets.map((t) => t.provider),
+      },
+      { status: timedOut ? 504 : 502 },
     );
   }
+
+  const { model } = served;
+  const provider = served.provider;
 
   // ── SSE stream ──────────────────────────────────────────────────────────────
   const encoder = new TextEncoder();
