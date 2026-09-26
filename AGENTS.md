@@ -112,6 +112,7 @@ is needed.
 | `studio/src/` | Next.js application — the deployed web frontend |
 | `studio/src/lib/omega/` | Omega adaptive tutoring decision engine |
 | `rust-core/` | Adaptive policy source of truth |
+| `docs/architecture/laya-decision-router.md` | Where an open-weight decision model may and may not sit in the tutoring loop |
 | `docs/README.md` | Which documentation is authoritative |
 | `docs/CONTENT_READINESS.md` | What a student can actually do today |
 
@@ -119,9 +120,32 @@ is needed.
 
 - Deployed: `studio/` on Vercel (sentastudio.vercel.app), `ai-agents/` on Render,
   Supabase for auth/Postgres/RLS
-- Studio gates: `npm ci` clean, 366 vitest tests passing, `tsc --noEmit` clean,
-  `typescript.ignoreBuildErrors` removed
-- 0 open pull requests; 11 branches, most already merged or superseded — see
+- Studio gates, measured 2026-09-26: `npx tsc --noEmit` clean; vitest **385 passed,
+  17 skipped** across 58 files (`npx vitest run --no-file-parallelism`; the
+  `basic` reporter no longer exists in Vitest 4). Earlier notes claiming 366 tests
+  were stale.
+- 0 open pull requests (PR #15 merged 2026-09-26); 13 remote branches, most already
+  merged or superseded — see
   `.kiro/specs/main-stability-and-branch-consolidation/branch-audit.md`
+- Known outage, unfixed: student chat 502s on Groq. `studio/src/app/api/chat/route.ts`
+  defaults to `LLM_PROVIDER=groq` with model `llama-3.3-70b-versatile` and has no
+  provider fallback, so a key-entitlement or rate-limit problem takes chat down
+  entirely. Needs the account holder to change `GROQ_MODEL`/key or add a fallback.
+- Legacy auth surface retired: `/dashboard` used to resolve a role from a `userEmail`
+  cookie nothing writes any more, which rendered a permanently blank page for every
+  visitor including signed-in students. It is now a server redirect to the real role
+  home, `/api/set-auth-cookie` (which minted roles from an unauthenticated POST) is
+  deleted, and `/login` + `/signin` forward to `/auth/signin`. Still outstanding from
+  the audit of `(main)/dashboard/**`: `getServerUser()` readers in `/dashboard/reports`
+  and `components/layout/app-sidebar.tsx`, and the `userEmail` read in
+  `lib/backend/trust-backend.ts`.
+- Laya System-1 affect router exists as a gated, unadopted PoC
+  (`ai-agents/src/syncsenta_agents/decisions/`, `LAYA_AFFECT_ENABLED` off by
+  default). CPU latency and Kiswahili/Sheng accuracy are deliberately **unmeasured**:
+  the development laptop has 3.7 GB RAM and cannot host torch. See
+  `docs/architecture/laya-decision-router.md`.
+- `docs/research/conference-submission-agi-venues-2026-27.md` records what we could
+  submit externally, which venues are actually open, and the evidence gaps that block
+  a submission.
 - Rust workspaces build on a machine with a C linker; `cargo check` needs
   `build-essential`, which is not installed in every dev environment
