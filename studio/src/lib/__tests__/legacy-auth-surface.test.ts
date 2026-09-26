@@ -46,6 +46,13 @@ function readSource(...segments: string[]): string {
   return stripComments(readFileSync(file, 'utf8'));
 }
 
+/** Same as readSource(), for paths outside src/app (components, hooks, lib). */
+function readRepoSource(...segments: string[]): string {
+  const file = join(process.cwd(), ...segments);
+  expect(existsSync(file), `${relative(process.cwd(), file)} should exist`).toBe(true);
+  return stripComments(readFileSync(file, 'utf8'));
+}
+
 /** Every .ts/.tsx file under src/, for repo-wide "this pattern is gone" checks. */
 function allSourceFiles(dir = join(process.cwd(), 'src')): string[] {
   const found: string[] = [];
@@ -116,6 +123,41 @@ describe('/api/set-auth-cookie cannot mint a role anonymously', () => {
       source,
       'must not trust a role supplied by the browser',
     ).not.toMatch(/cookieStore\.set\(\s*'userRole'\s*,\s*role/);
+  });
+});
+
+describe('client components do not read the legacy cookie session', () => {
+  /**
+   * `getServerUser()` is a 'use server' action that reconstructs an identity
+   * from the `userEmail`/`userRole`/`userName` cookies. Under Supabase those
+   * cookies are never written, so calling it always yields null — which in
+   * `app-sidebar.tsx` collapsed the role switch to `default: return []` (a
+   * dashboard shell with no navigation at all) and in `/dashboard/reports`
+   * pinned every visitor to the teacher view.
+   *
+   * A client component must take its role from `useAuth()`, i.e. the Supabase
+   * session plus the `profiles` row, like the rest of the app.
+   */
+  it('no "use client" module still calls getServerUser()', () => {
+    const offenders = allSourceFiles()
+      .filter((file) => {
+        const source = stripComments(readFileSync(file, 'utf8'));
+        return /^\s*['"]use client['"]/m.test(source) && /\bgetServerUser\b/.test(source);
+      })
+      .map((file) => relative(process.cwd(), file));
+    expect(offenders).toEqual([]);
+  });
+
+  it('sidebar nav comes from the Supabase profile', () => {
+    const source = readRepoSource('src', 'components', 'layout', 'app-sidebar.tsx');
+    expect(source).toContain('useAuth');
+    expect(source).toContain('profile');
+  });
+
+  it('reports picks its view from the Supabase profile', () => {
+    const source = readSource('(main)', 'dashboard', 'reports', 'page.tsx');
+    expect(source).toContain('useAuth');
+    expect(source).toContain('school_head');
   });
 });
 

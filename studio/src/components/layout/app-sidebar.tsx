@@ -32,9 +32,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar";
-import { getServerUser } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import type { UserRole } from "@/lib/types";
-import { useEffect, useState } from "react";
 
 
 const teacherNavItems = [
@@ -63,15 +62,14 @@ const countyOfficerNavItems = [
 
 
 export function AppSidebar() {
-  const [role, setRole] = useState<UserRole | null>(null);
-
-  useEffect(() => {
-    const fetchRole = async () => {
-         const user = await getServerUser();
-         setRole(user?.role as UserRole);
-    }
-    fetchRole();
-  }, []);
+  // Role comes from the Supabase session and its `profiles` row, the same
+  // source the sign-in form and the route redirects use. This component used
+  // to call the `getServerUser()` server action, which reconstructs an
+  // identity from `userEmail`/`userRole` cookies that nothing writes any more;
+  // it always returned null, so the switch below fell through to an empty nav
+  // and the legacy dashboard rendered with no navigation at all.
+  const { profile } = useAuth();
+  const role = profile?.role as UserRole | undefined;
 
   const getNavItems = () => {
     switch (role) {
@@ -82,7 +80,11 @@ export function AppSidebar() {
         case 'county_officer':
             return countyOfficerNavItems;
         default:
-            return []; // Return an empty array if role is not determined yet
+            // No nav for a session that is still loading, and none for roles
+            // whose workspaces live outside this shell (/student, /parent,
+            // /head). Those visitors should not be in /dashboard at all: the
+            // index page redirects them to their role home.
+            return [];
     }
   };
 
