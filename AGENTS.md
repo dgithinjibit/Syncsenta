@@ -120,25 +120,33 @@ is needed.
 
 - Deployed: `studio/` on Vercel (sentastudio.vercel.app), `ai-agents/` on Render,
   Supabase for auth/Postgres/RLS
-- Studio gates, measured 2026-09-26: `npx tsc --noEmit` clean; vitest **385 passed,
-  17 skipped** across 58 files (`npx vitest run --no-file-parallelism`; the
-  `basic` reporter no longer exists in Vitest 4). Earlier notes claiming 366 tests
-  were stale.
+- Studio gates, measured 2026-09-26 on `fix/legacy-auth-surface`: `npx tsc --noEmit`
+  clean; vitest **397 passed, 17 skipped** across 59 files (`npx vitest run
+  --no-file-parallelism`; the `basic` reporter no longer exists in Vitest 4). Earlier
+  notes claiming 366 tests were stale.
 - 0 open pull requests (PR #15 merged 2026-09-26); 13 remote branches, most already
   merged or superseded — see
   `.kiro/specs/main-stability-and-branch-consolidation/branch-audit.md`
-- Known outage, unfixed: student chat 502s on Groq. `studio/src/app/api/chat/route.ts`
-  defaults to `LLM_PROVIDER=groq` with model `llama-3.3-70b-versatile` and has no
-  provider fallback, so a key-entitlement or rate-limit problem takes chat down
-  entirely. Needs the account holder to change `GROQ_MODEL`/key or add a fallback.
+- Student chat outage, partially mitigated in code only: it 502s on Groq. The
+  route no longer depends on one upstream — `resolveLlmTargets()`
+  (`studio/src/lib/llm/provider-chain.ts`) tries `LLM_PROVIDER` first and any
+  other configured provider as backup, and reports `providers_tried`. Two things
+  this does not fix: the fallback only exists if a second key is set in the
+  Vercel project, and the underlying Groq failure (key entitlement, rate limit,
+  or a retired `llama-3.3-70b-versatile`) is still unconfirmed. Both need the
+  account holder, and none of it is deployed until this branch ships.
 - Legacy auth surface retired: `/dashboard` used to resolve a role from a `userEmail`
   cookie nothing writes any more, which rendered a permanently blank page for every
   visitor including signed-in students. It is now a server redirect to the real role
   home, `/api/set-auth-cookie` (which minted roles from an unauthenticated POST) is
-  deleted, and `/login` + `/signin` forward to `/auth/signin`. Still outstanding from
-  the audit of `(main)/dashboard/**`: `getServerUser()` readers in `/dashboard/reports`
-  and `components/layout/app-sidebar.tsx`, and the `userEmail` read in
-  `lib/backend/trust-backend.ts`.
+  deleted, and `/login` + `/signin` forward to `/auth/signin`. `app-sidebar.tsx` and
+  `/dashboard/reports` were the same bug one layer up — they resolved a null role and
+  rendered an empty nav / the wrong view, and now read `useAuth()`, with a repo-wide
+  test barring any `"use client"` module from calling `getServerUser()`. Still open in
+  the `(main)/dashboard/**` audit: the `userEmail` read in
+  `lib/backend/trust-backend.ts`, the now-unreferenced `getServerUser()`/`signupUser()`
+  actions in `lib/auth.ts`, and the sidebar's own links to `/dashboard`, which now
+  redirect instead of rendering.
 - Laya System-1 affect router exists as a gated, unadopted PoC
   (`ai-agents/src/syncsenta_agents/decisions/`, `LAYA_AFFECT_ENABLED` off by
   default). CPU latency and Kiswahili/Sheng accuracy are deliberately **unmeasured**:
