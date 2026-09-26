@@ -24,15 +24,8 @@ Automated startup script for local development.
 - Node.js 18+
 - Ollama (or Dify API key)
 
-### start_notebook.sh
-Start JupyterLab for working with training notebooks.
-
-**Usage:**
-```bash
-./scripts/start_notebook.sh
-```
-
-**Access:** http://localhost:5000
+### start.sh
+Start both the FastAPI AI agents service and the Next.js dev server.
 
 ## 📦 Setup Scripts
 
@@ -71,4 +64,4 @@ When adding new scripts:
 4. Update this README
 5. Test on clean environment
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for more details.
+See [docs/CODING_STANDARDS.md](../docs/CODING_STANDARDS.md) for more details.

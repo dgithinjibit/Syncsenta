@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Start JupyterLab on port 5000 for working with the fine-tuning notebooks.
-# Switch back to the web app with:  bash start.sh
+# Switch back to the web app with:  bash scripts/start.sh
 
 set -e
 

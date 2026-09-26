@@ -46,12 +46,21 @@ happens in `studio/`.
 ```
 studio/          Next.js 16 — the primary web application (students + teachers)
 ai-agents/       FastAPI — LangGraph orchestrator, CBC content generators
+backend/         Rust — Axum API, blockchain and shared crates
 rust-core/       Rust — adaptive tutoring decision engine (source of truth)
 rust-service/    Rust HTTP wrapper around rust-core (built, not yet wired to prod)
 scheme-scribe/   Vite/React standalone — separate Supabase project
-supabase/        Database migrations
-docs/            Architecture, development, and reference documentation
+supabase/        Database migrations and SQL verification scripts
+scripts/         Development, deployment, and maintenance scripts
+docs/            Architecture, development, research, setup, and archived reports
 ```
+
+The repository root holds only deploy and workspace manifests
+(`vercel.json`, `render.yaml`, `Dockerfile`, `Cargo.toml`, `pyproject.toml`,
+`uv.lock`), the `README.md` / `AGENTS.md` entry points, and the Replit training
+entry points (`app.py`, `start_notebook.sh`, `jupyter_config.py`,
+`patch_unsloth_cpu.py`). Everything else belongs in a folder: new documents go
+under `docs/`, new executable helpers under `scripts/`.
 
 ## Documentation
 
