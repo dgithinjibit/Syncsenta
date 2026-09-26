@@ -40,7 +40,12 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .maybeSingle<{ role: string }>();
 
-  // An authenticated account with no profile row has no workspace to land in;
-  // send it to sign-in rather than inventing a surface to show.
-  redirect(getRoleHome(profile?.role));
+  // An authenticated account with no readable profile row, or a role this map
+  // does not place, has no workspace to land in. `getRoleHome()` answers '/login'
+  // for both, which used to mean "go sign in" — but this visitor is already
+  // signed in, and /login is now an alias for /auth/signin, so following it
+  // would bounce them back to the form they just left. The one screen that can
+  // actually help is profile completion.
+  const home = getRoleHome(profile?.role);
+  redirect(home === '/login' ? '/auth/onboarding' : home);
 }

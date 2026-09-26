@@ -99,6 +99,14 @@ describe('/dashboard cannot render a blank shell', () => {
     // surface must be replaced by a redirect, not by a placeholder.
     expect(source).not.toContain('DashboardSkeleton');
   });
+
+  it('does not bounce a signed-in visitor back to sign-in', () => {
+    // getRoleHome() answers '/login' for a missing profile row or an unmapped
+    // role, and '/login' is now an alias for '/auth/signin' — so following it
+    // for someone already authenticated would cycle them through the form they
+    // just left. Profile completion is the only useful destination there.
+    expect(source).toContain('/auth/onboarding');
+  });
 });
 
 describe('no handler navigates to the bare legacy /dashboard', () => {
