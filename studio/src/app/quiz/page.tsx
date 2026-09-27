@@ -63,7 +63,12 @@ export default function QuizPage() {
     setAnswers({});
 
     try {
-      const res = await fetch('/api/v1/mvp/agents/assessment/quiz', {
+      // `/api/agents/*` is rewritten to the deployed ai-agents service by
+      // studio/vercel.json. The `/api/v1/mvp/agents/...` this used to call is
+      // rewritten to http://localhost:8080 by next.config.js, so on Vercel it
+      // could only ever fail - the same dead prefix that left the student
+      // tutor spinning.
+      const res = await fetch('/api/agents/assessment/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -76,7 +81,7 @@ export default function QuizPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to generate quiz');
+        throw new Error(`Quiz service returned HTTP ${res.status}`);
       }
 
       const data = await res.json();
@@ -88,8 +93,9 @@ export default function QuizPage() {
     } catch (err) {
       console.error('[QuizPage] Failed to generate quiz:', err);
       toast({
-        title: 'Error',
-        description: 'Failed to generate quiz. Please try again.',
+        title: 'Could not load the quiz',
+        description:
+          err instanceof Error ? err.message : 'The assessment service is unavailable.',
         variant: 'destructive',
       });
     } finally {
@@ -111,14 +117,14 @@ export default function QuizPage() {
         })),
       };
 
-      const res = await fetch('/api/v1/mvp/agents/assessment/grade', {
+      const res = await fetch('/api/agents/assessment/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quiz, submission }),
       });
 
       if (!res.ok) {
-        throw new Error('Failed to grade quiz');
+        throw new Error(`Grading service returned HTTP ${res.status}`);
       }
 
       const data = await res.json();
@@ -135,8 +141,9 @@ export default function QuizPage() {
     } catch (err) {
       console.error('[QuizPage] Failed to grade quiz:', err);
       toast({
-        title: 'Error',
-        description: 'Failed to grade quiz. Please try again.',
+        title: 'Could not grade the quiz',
+        description:
+          err instanceof Error ? err.message : 'The assessment service is unavailable.',
         variant: 'destructive',
       });
     } finally {

@@ -182,7 +182,10 @@ class UnifiedLLMClient:
     
     def __init__(self):
         self.logger = AgentLogger("unified_llm_client")
-        self.provider = os.getenv("LLM_PROVIDER", "ollama").lower()
+        # Was `os.getenv("LLM_PROVIDER", "ollama")`, which resolved to a local
+        # Ollama daemon on any host that does not run one - i.e. every
+        # deployment. See inference/provider_choice.py.
+        self.provider = resolve_llm_provider(os.environ)
         self.client = None
         
     async def initialize(self) -> None:

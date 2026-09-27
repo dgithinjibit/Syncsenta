@@ -118,8 +118,10 @@ is needed.
 
 ## Current State (September 26, 2026)
 
-- Deployed: `studio/` on Vercel (sentastudio.vercel.app), `ai-agents/` on Render,
-  Supabase for auth/Postgres/RLS
+- Deployed: `studio/` on Vercel (sentastudio.vercel.app), `ai-agents/` on Render
+  (as `Ascendra-1`, and see the provider note below before trusting it),
+  Supabase for auth/Postgres/RLS. Not deployed anywhere: `backend/syncsenta-backend`
+  (Rust, `/api/v1/mvp/*`), which several studio surfaces still call.
 - Studio gates, measured 2026-09-26 on `fix/render-build-and-student-surface`:
   `npx tsc --noEmit` clean; vitest **419 passed, 17 skipped** across 61 files
   (`npx vitest run --no-file-parallelism`; the `basic` reporter no longer exists in
@@ -138,9 +140,16 @@ is needed.
     The tutor now streams from the route that *is* deployed: `/api/chat`, via
     `studio/src/lib/chat/tutor-stream.ts`, with the socket gated behind
     `NEXT_PUBLIC_BACKEND_WS_URL` so an absent backend shows as a separate, honest
-    "Teacher link" badge instead of swallowing the chat. The same dead rewrite still
-    breaks the teacher live view and `/quiz` — recorded in
-    `studio/src/lib/__tests__/student-chat-transport.test.ts` as known debt.
+    "Teacher link" badge instead of swallowing the chat. The teacher live view
+    (`/teacher`, which *is* the teacher role home) had the same defect and now
+    reports "Live monitoring is not connected" instead of spinning, and `/quiz`
+    was moved off the dead prefix onto `/api/agents/assessment/*`, which
+    `vercel.json` already proxies to Render. The remaining `/api/v1` callers
+    (schemes, lesson plans, exams, the interactive quiz modal,
+    `chat-interface.tsx`) are listed as a tripwire in
+    `studio/src/lib/__tests__/student-chat-transport.test.ts`;
+    `MVP_BACKEND_URL` in `next.config.js` is the one switch that turns them all
+    on once `backend/syncsenta-backend` is deployed somewhere.
   - *Why the route 502s* — the route no longer depends on one upstream:
     `resolveLlmTargets()` (`studio/src/lib/llm/provider-chain.ts`) tries
     `LLM_PROVIDER` first and any other configured provider as backup, and reports
@@ -151,6 +160,28 @@ is needed.
     re-verified (TLS failures from this machine), so `gemini-3.6-flash` is left alone:
     unproven, not disproven. Still needed from the account holder: a working
     `GROQ_API_KEY` and a second provider key in the Vercel project.
+- The deployed `ai-agents/` service is healthy and useless at the same time.
+  `https://ascendra-1.onrender.com/healthz` answers 200, and its OpenAPI shows
+  only four routes (`/healthz`, `/agents/chat`, `/agents/assessment/quiz`,
+  `/agents/assessment/grade` — the dashboard, WebSocket and lesson-architect
+  routers live in `scheme_server.py`, which `render.yaml` does not run). Both
+  LLM paths inside it construct an `Ollama` client unconditionally, so with no
+  daemon on the box `POST /agents/chat` returns HTTP 200 carrying
+  `{"success": false, "error": "Synthesis failed: … localhost:11434 … Connection
+  refused"}` and `POST /agents/assessment/quiz` returns 500. Fixed in code by
+  `ai-agents/src/syncsenta_agents/inference/provider_choice.py`, which resolves
+  the provider from the credential that exists instead of defaulting to a local
+  daemon. **This is not live until the account holder sets `LLM_PROVIDER=groq`
+  and a working `GROQ_API_KEY` on Ascendra-1 and redeploys** — `render.yaml` is
+  documentation only for that hand-created service, and the Python tests cannot
+  run on this laptop (no pip, no aiohttp/pytest).
+- The red Render build is not this repo's. `Ascendra-1` is live on the merged
+  commit; the failing builds belong to the `urban-train` service, which deploys
+  `dgithinjibit/urban-train` (a different repository, idle for about three
+  months) and 404s every `/api/v1/mvp/*` path people expect from this one. It
+  needs a decision from the account holder, not a code change: delete it, or
+  repoint it at `backend/syncsenta-backend` from this repo — which is exactly
+  the missing `/api/v1` service the teacher view is waiting for.
 - Legacy auth surface retired: `/dashboard` used to resolve a role from a `userEmail`
   cookie nothing writes any more, which rendered a permanently blank page for every
   visitor including signed-in students. It is now a server redirect to the real role

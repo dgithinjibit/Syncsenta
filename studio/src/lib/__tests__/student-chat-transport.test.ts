@@ -16,10 +16,13 @@ import { describe, expect, it } from 'vitest';
 
 function source(rel: string): string {
   // Strip comments first: the explanation of the old bug must not count as the
-  // bug being present.
+  // bug being present. Line comments go before block comments, because a note
+  // that mentions `/api/agents/*` would otherwise open a fake block comment and
+  // swallow the code below it. The `[^:]` guard keeps `https://…` inside string
+  // literals intact.
   return readFileSync(join(process.cwd(), rel), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '');
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
 describe('student chat transport', () => {
@@ -45,14 +48,56 @@ describe('student chat transport', () => {
   });
 });
 
+describe('teacher live view', () => {
+  it('does not invent a WebSocket host', () => {
+    const dash = source('src/components/teacher/teacher-dashboard.tsx');
+    // It used to fall back to `wss://<host>/api/v1/mvp/ws`, guessing at
+    // Codespaces port patterns, and retry every 3 seconds with no listener.
+    expect(dash).not.toMatch(/window\.location\.(host|hostname|protocol)/);
+    expect(dash).toMatch(/NEXT_PUBLIC_BACKEND_WS_URL/);
+  });
+
+  it('says the backend is missing instead of showing an empty dashboard', () => {
+    const dash = source('src/components/teacher/teacher-dashboard.tsx');
+    expect(dash).toMatch(/Live monitoring is not connected/);
+  });
+});
+
+describe('quiz page', () => {
+  it('calls the assessment service through the deployed proxy', () => {
+    const quiz = source('src/app/quiz/page.tsx');
+    // vercel.json maps /api/agents/* onto the Render service; /api/v1/mvp/* is
+    // the undeployed Rust one, and this page was pointing at it.
+    expect(quiz).toMatch(/['"`]\/api\/agents\/assessment\/quiz['"`]/);
+    expect(quiz).toMatch(/['"`]\/api\/agents\/assessment\/grade['"`]/);
+    expect(quiz).not.toMatch(/\/api\/v1\/mvp/);
+  });
+});
+
+describe('the /api/v1 rewrite', () => {
+  it('can be pointed at a deployed service without a code change', () => {
+    // The hardcoded `http://localhost:8080` in here is the single reason the
+    // tutor, the teacher view and the generators all fail on Vercel while
+    // working perfectly on a laptop.
+    expect(source('next.config.js')).toMatch(/process\.env\.MVP_BACKEND_URL/);
+  });
+});
+
 describe('surfaces still waiting on a deployed backend', () => {
-  // Not tonight's fix, but they must not be mistaken for working: these call
-  // the same `/api/v1` prefix and 404 on Vercel until the Rust service is
-  // deployed and the rewrite points at it.
+  // Tripwire, not a wish: these still call the `/api/v1` prefix that only a
+  // local `cargo run` answers, so they fail on Vercel until
+  // MVP_BACKEND_URL points the rewrite at a deployed service. If one of these
+  // stops matching, this list is stale - remove it and say so in the PR.
   it.each([
-    'src/components/teacher/teacher-dashboard.tsx',
-    'src/app/quiz/page.tsx',
+    'src/lib/teacher/scheme-v2-client.ts',
+    'src/lib/scheme-v2-client.ts',
+    'src/components/exam/ExamGeneratorDialog.tsx',
+    'src/components/exam/ExamRunner.tsx',
+    'src/components/scheme-wizard/steps/preview-step.tsx',
+    'src/components/scheme-wizard/lesson-plan-dialog.tsx',
+    'src/components/quiz/interactive-quiz-modal.tsx',
+    'src/app/student/chat/chat-interface.tsx',
   ])('%s is still wired to /api/v1', (rel) => {
-    expect(source(rel)).toMatch(/\/api\/v1\/mvp/);
+    expect(source(rel)).toMatch(/\/api\/v1/);
   });
 });

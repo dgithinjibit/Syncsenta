@@ -1,3 +1,21 @@
+# Render Blueprint for the `ai-agents/` FastAPI service.
+#
+# NOTE: the live service (Ascendra-1, https://ascendra-1.onrender.com) was
+# created by hand, so editing this file does NOT change it. Treat this as the
+# authoritative list of what that service must have, and mirror `LLM_PROVIDER`,
+# `GROQ_API_KEY` and `GROQ_MODEL` in the Render dashboard -> Environment tab
+# before trusting the chat or quiz surfaces.
+#
+# Why `LLM_PROVIDER` is now explicit: without it the orchestrator and the
+# assessment agent resolved to Ollama (`http://localhost:11434`), which does not
+# exist on Render. The service reported healthy on /healthz while every request
+# failed - `/agents/chat` returned 200 with "Synthesis failed: ... Connection
+# refused", and `/agents/assessment/quiz` returned 500. Measured 2026-09-26.
+#
+# Why `GROQ_MODEL` is no longer llama-3.3-70b-versatile: this organisation's
+# keys answer that model name with 404 model_not_found. `qwen/qwen3.8-27b` was
+# verified against a live key the same day.
+
 services:
   - type: web
     name: syncsenta-ai-backend
@@ -5,16 +23,18 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: PYTHONPATH=src uvicorn syncsenta_agents.api.server:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: LLM_PROVIDER
+        value: groq
       - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
       - key: FRONTEND_URL
-        value: https://syncsenta.vercel.app
-      - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
+        value: https://sentastudio.vercel.app
     healthCheckPath: /healthz
 
   - type: cron
@@ -24,11 +44,13 @@ services:
     buildCommand: pip install -e .
     startCommand: python -m syncsenta_agents.jobs.rule_learning_job
     envVars:
+      - key: LLM_PROVIDER
+        value: groq
       - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
-      - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
