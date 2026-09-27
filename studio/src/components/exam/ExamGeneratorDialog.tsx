@@ -90,7 +90,12 @@ const ExamGeneratorDialog = () => {
     setLoading(true);
     setQuestions(null);
     try {
-      const response = await fetch("/api/v1/exams/generate", {
+      // '/api/v1/exams/generate' went to the Rust MVP backend (deployed
+      // nowhere), so this button could never produce an exam. /api/generate/exam
+      // is a Next handler on the same deployment as this page; it scopes the
+      // paper to the allocation below and fails loudly instead of inventing
+      // questions when the AI service cannot answer.
+      const response = await fetch("/api/generate/exam", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -103,16 +108,14 @@ const ExamGeneratorDialog = () => {
           counts: opts?.weakStrandsFilter?.length
             ? { mcq: 8, short: 4, long: 1 }
             : { mcq: 15, short: 8, long: 2 },
-          forceRefresh: !!opts?.weakStrandsFilter?.length,
         }),
       });
 
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to generate exam");
+        throw new Error(data.detail || data.error || "Failed to generate exam");
       }
 
-      const data = await response.json();
       const qs = (data?.questions ?? []) as ExamQuestion[];
       
       if (!qs.length) {

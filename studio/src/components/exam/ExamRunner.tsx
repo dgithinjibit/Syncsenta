@@ -193,7 +193,11 @@ const ExamRunner = ({
 
     if (aiItems.length) {
       try {
-        const response = await fetch("/api/v1/exams/mark", {
+        // '/api/v1/exams/mark' targeted the Rust MVP backend, which is not
+        // deployed, so every submit landed in the catch below and the pupil was
+        // told "AI marking failed" with no reason. /api/exams/mark is a Next
+        // handler in this deployment and explains itself when it cannot mark.
+        const response = await fetch("/api/exams/mark", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -205,12 +209,12 @@ const ExamRunner = ({
           }),
         });
 
+        const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error("Marking failed");
+          throw new Error(payload.detail || payload.error || "Marking failed");
         }
 
-        const data = await response.json();
-        const list = (data?.results ?? []) as Array<{
+        const list = (payload?.results ?? []) as Array<{
           index: number;
           awarded: number;
           feedback: string;
@@ -229,13 +233,21 @@ const ExamRunner = ({
       } catch (e) {
         console.error(e);
         toast({
-          title: "Marking Failed",
-          description: "AI marking failed — showing partial results.",
+          title: "Written answers not marked",
+          description:
+            e instanceof Error && e.message !== "Marking failed"
+              ? `${e.message} Multiple-choice marks are still shown.`
+              : "AI marking is unavailable right now, so short and long answers score 0 until a teacher marks them.",
           variant: "destructive",
         });
         aiItems.forEach((it) => {
           if (!out[it.index])
-            out[it.index] = { awarded: 0, max: it.marks, correct: false };
+            out[it.index] = {
+              awarded: 0,
+              max: it.marks,
+              correct: false,
+              feedback: "Not marked automatically — a teacher needs to review this answer.",
+            };
         });
       }
     }
