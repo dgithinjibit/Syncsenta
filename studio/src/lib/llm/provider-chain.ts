@@ -23,11 +23,24 @@ export type LlmTarget = {
 type Env = Record<string, string | undefined>;
 
 /**
- * Defaults kept identical to the values `app/api/chat/route.ts` shipped with, so
- * introducing the chain cannot quietly change which model a learner is served.
+ * Model ids to fall back to when `GROQ_MODEL` / `GEMINI_MODEL` are unset.
+ *
+ * The groq default changed on 2026-09-27. `llama-3.3-70b-versatile` was the id
+ * the chat route shipped with, and probing the account's keys against
+ * `POST /openai/v1/chat/completions` returned `404 model_not_found` for it on
+ * every key that was not organisation-restricted — the default could not serve
+ * a single learner turn. `qwen/qwen3.8-27b` returned 200 with a correct,
+ * age-appropriate explanation for 77 tokens, and is on the account's model
+ * list. `openai/gpt-oss-20b` also answers but returns an empty `content` at
+ * small budgets because it spends them reasoning, which would read to a child
+ * as a tutor that says nothing.
+ *
+ * The gemini default is left alone: `gemini-2.5-flash` was confirmed present on
+ * the key, but the endpoint became unreachable before the full list could be
+ * read, so `gemini-3.6-flash` is unproven rather than disproven.
  */
 export const DEFAULT_MODELS: Record<LlmProvider, string> = {
-  groq: 'llama-3.3-70b-versatile',
+  groq: 'qwen/qwen3.8-27b',
   gemini: 'gemini-3.6-flash',
 };
 

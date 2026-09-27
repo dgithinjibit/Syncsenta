@@ -30,6 +30,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { streamTutorTurn, type TutorHistoryEntry } from '@/lib/chat/tutor-stream';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -87,7 +88,15 @@ export function MwalimuChat({
     indicators: [],
   });
   const [wsConnected, setWsConnected] = useState(false);
-  const [sessionId] = useState(() => `session_${Date.now()}`);
+  /**
+   * Whether the tutor itself can answer. This is the same-origin `/api/chat`
+   * route, not the WebSocket: the socket only pushes live teacher and agent
+   * updates when a backend URL is configured, and conflating the two is what
+   * left every learner on this screen staring at a "Connecting" spinner that
+   * had nothing to do with their question.
+   */
+  const [tutorStatus, setTutorStatus] = useState<'live' | 'thinking' | 'offline'>('live');
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -100,23 +109,16 @@ export function MwalimuChat({
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    // WebSocket must connect directly to backend (Next.js rewrites don't support WS)
-    // Use environment variable for backend URL, or construct from current location
-    const getWebSocketUrl = () => {
-      // If NEXT_PUBLIC_BACKEND_WS_URL is set, use it
-      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BACKEND_WS_URL) {
-        return `${process.env.NEXT_PUBLIC_BACKEND_WS_URL.replace(/\/$/, '')}/dashboard/ws/student/${studentId}`;
-      }
-      
-      // Otherwise, construct from current location
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.hostname === 'localhost' 
-        ? 'localhost:8080' 
-        : window.location.host.replace('-5173', '-8080'); // Codespaces port forwarding pattern
-      return `${protocol}//${host}/api/v1/mvp/ws`;
-    };
-    
-    const wsUrl = getWebSocketUrl();
+    // The socket is an enhancement, not the tutor: it carries teacher replies
+    // and agent activity from the Rust MVP backend. Next.js rewrites do not
+    // proxy WebSockets, so the old fallback built a `wss://<vercel-host>` URL
+    // that no server ever answered — the browser retried every three seconds
+    // for the life of the page. Without a configured backend there is nothing
+    // to dial, and saying so is better than pretending to connect.
+    const wsBase = process.env.NEXT_PUBLIC_BACKEND_WS_URL;
+    if (!wsBase) return;
+
+    const wsUrl = `${wsBase.replace(/\/$/, '')}/dashboard/ws/student/${studentId}`;
 
     const connectWebSocket = () => {
       try {
@@ -226,28 +228,6 @@ export function MwalimuChat({
   }, [studentId, autoSpeak, toast]);
 
   // ---------------------------------------------------------------------------
-  // Load chat history on mount
-  // ---------------------------------------------------------------------------
-
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const response = await fetch(`/api/v1/mvp/students/${studentId}/messages`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.messages && Array.isArray(data.messages)) {
-            setMessages(data.messages);
-          }
-        }
-      } catch (err) {
-        console.error('[MwalimuChat] Failed to load history:', err);
-      }
-    };
-
-    loadHistory();
-  }, [studentId]);
-
-  // ---------------------------------------------------------------------------
   // Auto-scroll to bottom when new messages arrive
   // ---------------------------------------------------------------------------
 
@@ -297,72 +277,83 @@ export function MwalimuChat({
   // ---------------------------------------------------------------------------
 
   const sendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
+    const text = inputText.trim();
+    if (!text || isLoading) return;
 
     const userMessage: Message = {
       id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Temporary local ID
       sender: 'student',
-      text: inputText.trim(),
+      text,
       timestamp: new Date().toISOString(),
     };
+    const replyId = `tutor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    setMessages((prev) => [...prev, userMessage]);
+    // Only learner and tutor turns belong in the conversation the model sees.
+    // A teacher's interjection is context for the human, not a turn to imitate.
+    const history: TutorHistoryEntry[] = messages
+      .filter((m) => m.sender !== 'teacher' && m.text.trim())
+      .map((m) => ({
+        role: m.sender === 'student' ? ('user' as const) : ('assistant' as const),
+        content: m.text,
+      }));
+
+    setMessages((prev) => [
+      ...prev,
+      userMessage,
+      { id: replyId, sender: 'agent', text: '', timestamp: new Date().toISOString(), isStreaming: true },
+    ]);
     setInputText('');
     setIsLoading(true);
+    setTutorStatus('thinking');
 
-    try {
-      const response = await fetch('/api/v1/mvp/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_id: studentId,
-          text: userMessage.text,
-          language,
-        }),
-      });
+    const result = await streamTutorTurn(
+      {
+        message: text,
+        history,
+        grade,
+        subject,
+        language,
+        studentName,
+        mode: 'socratic',
+        ...(sessionId ? { sessionId } : {}),
+      },
+      (delta) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === replyId ? { ...m, text: m.text + delta } : m)),
+        );
+      },
+    );
 
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
+    if (result.sessionId && !sessionId) setSessionId(result.sessionId);
 
-      const data = await response.json();
+    const failed = Boolean(result.error) && !result.aborted;
+    setTutorStatus(failed ? 'offline' : 'live');
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== replyId) return m;
+        if (!failed) return { ...m, isStreaming: false };
+        // Keep whatever did stream in: a tutor that stops halfway should show
+        // the half answer plus the reason, not a blank bubble or a spinner.
+        return {
+          ...m,
+          isStreaming: false,
+          text: m.text || `I could not reach my lessons just now. ${result.error}`,
+        };
+      }),
+    );
 
-      // If WebSocket is not connected, add the agent response directly
-      if (!wsConnected && data.agent_message) {
-        setMessages((prev) => [...prev, {
-          id: data.agent_message.id,
-          sender: 'agent',
-          text: data.agent_message.text,
-          agent: data.agent_message.agent,
-          agents_used: data.agent_message.agents_used || [],
-          timestamp: data.agent_message.timestamp,
-        }]);
-
-        if (autoSpeak) {
-          speakText(data.agent_message.text);
-        }
-      }
-
-      // Show fallback warning if AI service is down
-      if (data.fallback_used) {
-        toast({
-          title: 'Limited Mode',
-          description: 'AI tutors are temporarily unavailable',
-          variant: 'destructive',
-          duration: 3000,
-        });
-      }
-    } catch (err) {
-      console.error('[MwalimuChat] Failed to send message:', err);
+    if (failed) {
       toast({
-        title: 'Error',
-        description: 'Failed to send message. Please try again.',
+        title: 'Mwalimu is unavailable',
+        description: result.error ?? 'Please try again in a moment.',
         variant: 'destructive',
-        duration: 3000,
+        duration: 4000,
       });
-    } finally {
-      setIsLoading(false);
+    } else if (autoSpeak && result.text) {
+      speakText(result.text);
     }
+
+    setIsLoading(false);
   };
 
   // ---------------------------------------------------------------------------
@@ -533,19 +524,30 @@ export function MwalimuChat({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={wsConnected ? 'default' : 'secondary'} className="gap-1">
-              {wsConnected ? (
+            <Badge variant={tutorStatus === 'offline' ? 'destructive' : 'default'} className="gap-1">
+              {tutorStatus === 'thinking' ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Thinking
+                </>
+              ) : tutorStatus === 'offline' ? (
+                <>
+                  <AlertCircle className="h-3 w-3" />
+                  Unavailable
+                </>
+              ) : (
                 <>
                   <CheckCircle2 className="h-3 w-3" />
                   Live
                 </>
-              ) : (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Connecting
-                </>
               )}
             </Badge>
+            {process.env.NEXT_PUBLIC_BACKEND_WS_URL && !wsConnected && (
+              <Badge variant="outline" className="gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Teacher link
+              </Badge>
+            )}
             <Badge variant="outline" className="gap-1">
               {getEmotionalIcon()}
               {emotionalState.state}

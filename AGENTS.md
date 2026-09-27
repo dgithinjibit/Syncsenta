@@ -120,21 +120,37 @@ is needed.
 
 - Deployed: `studio/` on Vercel (sentastudio.vercel.app), `ai-agents/` on Render,
   Supabase for auth/Postgres/RLS
-- Studio gates, measured 2026-09-26 on `fix/legacy-auth-surface`: `npx tsc --noEmit`
-  clean; vitest **403 passed, 17 skipped** across 59 files (`npx vitest run
-  --no-file-parallelism`; the `basic` reporter no longer exists in Vitest 4). Earlier
-  notes claiming 366 tests were stale.
+- Studio gates, measured 2026-09-26 on `fix/render-build-and-student-surface`:
+  `npx tsc --noEmit` clean; vitest **419 passed, 17 skipped** across 61 files
+  (`npx vitest run --no-file-parallelism`; the `basic` reporter no longer exists in
+  Vitest 4). Earlier notes claiming 366 / 403 tests were stale.
 - 0 open pull requests (PR #15 merged 2026-09-26); 13 remote branches, most already
   merged or superseded — see
   `.kiro/specs/main-stability-and-branch-consolidation/branch-audit.md`
-- Student chat outage, partially mitigated in code only: it 502s on Groq. The
-  route no longer depends on one upstream — `resolveLlmTargets()`
-  (`studio/src/lib/llm/provider-chain.ts`) tries `LLM_PROVIDER` first and any
-  other configured provider as backup, and reports `providers_tried`. Two things
-  this does not fix: the fallback only exists if a second key is set in the
-  Vercel project, and the underlying Groq failure (key entitlement, rate limit,
-  or a retired `llama-3.3-70b-versatile`) is still unconfirmed. Both need the
-  account holder, and none of it is deployed until this branch ships.
+- Student chat: two separate failures, now both understood.
+  - *Why the learner saw "Connecting" forever* — not a placeholder. The student tutor
+    (`studio/src/components/student/mwalimu-chat.tsx`) was wired to the Rust MVP API
+    (`/api/v1/mvp/messages`, `/api/v1/mvp/students/<id>/messages`) and to a WebSocket
+    at `wss://sentastudio.vercel.app/api/v1/mvp/ws`. `next.config.js` rewrites
+    `/api/v1/:path*` to `http://localhost:8080`, so on Vercel every one of those is a
+    404 and no process ever answers the socket. `backend/syncsenta-backend` is
+    deployed nowhere. The header badge was reporting that dead socket, not the tutor.
+    The tutor now streams from the route that *is* deployed: `/api/chat`, via
+    `studio/src/lib/chat/tutor-stream.ts`, with the socket gated behind
+    `NEXT_PUBLIC_BACKEND_WS_URL` so an absent backend shows as a separate, honest
+    "Teacher link" badge instead of swallowing the chat. The same dead rewrite still
+    breaks the teacher live view and `/quiz` — recorded in
+    `studio/src/lib/__tests__/student-chat-transport.test.ts` as known debt.
+  - *Why the route 502s* — the route no longer depends on one upstream:
+    `resolveLlmTargets()` (`studio/src/lib/llm/provider-chain.ts`) tries
+    `LLM_PROVIDER` first and any other configured provider as backup, and reports
+    `providers_tried`. Probed 2026-09-26 against the supplied test keys: 6 of 8 Groq
+    keys are `organization_restricted`, and the 2 live ones 404 on
+    `llama-3.3-70b-versatile` but answer `qwen/qwen3.8-27b` — which is why that is now
+    the groq default. The Gemini key authenticates but its model list could not be
+    re-verified (TLS failures from this machine), so `gemini-3.6-flash` is left alone:
+    unproven, not disproven. Still needed from the account holder: a working
+    `GROQ_API_KEY` and a second provider key in the Vercel project.
 - Legacy auth surface retired: `/dashboard` used to resolve a role from a `userEmail`
   cookie nothing writes any more, which rendered a permanently blank page for every
   visitor including signed-in students. It is now a server redirect to the real role

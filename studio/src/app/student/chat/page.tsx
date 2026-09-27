@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { StudentHeader } from '@/components/layout/student-header';
 import { MwalimuChat } from '@/components/student/mwalimu-chat';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Brain, Heart, TrendingUp, Clock } from 'lucide-react';
@@ -16,7 +17,8 @@ interface EmotionalState {
 
 export default function StudentChatPage() {
   const router = useRouter();
-  const [studentId, setStudentId] = useState('stu_turkana_001');
+  const { user, profile } = useAuth();
+  const [studentId, setStudentId] = useState('');
   const [studentName, setStudentName] = useState('Student');
   const [emotionalState, setEmotionalState] = useState<EmotionalState>({
     state: 'neutral',
@@ -30,17 +32,12 @@ export default function StudentChatPage() {
   });
 
   useEffect(() => {
-    // Load student info from localStorage
-    const storedName = localStorage.getItem('userName') || localStorage.getItem('studentName');
-    if (storedName) {
-      setStudentName(storedName);
-    }
-
-    // Try to get student ID from localStorage or use default
-    const storedId = localStorage.getItem('studentId');
-    if (storedId) {
-      setStudentId(storedId);
-    }
+    // The learner is whoever the Supabase session says they are. This used to
+    // read `userName`/`studentId` out of localStorage, which nothing writes any
+    // more, so every visitor was addressed as "Student" and pinned to the
+    // hardcoded `stu_turkana_001` demo identity.
+    if (user?.id) setStudentId(user.id);
+    if (profile?.full_name) setStudentName(profile.full_name);
 
     // Track session time
     const startTime = Date.now();
@@ -50,7 +47,7 @@ export default function StudentChatPage() {
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user, profile]);
 
   const handleEmotionalStateChange = (state: EmotionalState) => {
     setEmotionalState(state);
@@ -84,8 +81,8 @@ export default function StudentChatPage() {
                 studentId={studentId}
                 studentName={studentName}
                 subject="Mathematics"
-                grade="Grade 5"
-                language="english"
+                grade={profile?.grade || 'Grade 5'}
+                language={profile?.language_preference || 'english'}
                 onEmotionalStateChange={handleEmotionalStateChange}
               />
             </div>
