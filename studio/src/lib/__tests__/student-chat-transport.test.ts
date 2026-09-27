@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -95,9 +95,26 @@ describe('surfaces still waiting on a deployed backend', () => {
     'src/components/exam/ExamRunner.tsx',
     'src/components/scheme-wizard/steps/preview-step.tsx',
     'src/components/scheme-wizard/lesson-plan-dialog.tsx',
-    'src/components/quiz/interactive-quiz-modal.tsx',
-    'src/app/student/chat/chat-interface.tsx',
   ])('%s is still wired to /api/v1', (rel) => {
     expect(source(rel)).toMatch(/\/api\/v1/);
+  });
+
+  // Deleted on 2026-09-27, not rewired: this 546-line legacy twin of the tutor
+  // was the surface `/student/chat/<subject>` rendered, so the subject link on
+  // the learner's home page reproduced the original "Connecting forever" bug
+  // after the real chat had been fixed. Nothing references it any more.
+  it.each([
+    'src/app/student/chat/chat-interface.tsx',
+    'src/components/quiz/interactive-quiz-modal.tsx',
+  ])('%s stays gone', (rel) => {
+    expect(existsSync(join(process.cwd(), rel))).toBe(false);
+  });
+
+  it('points the subject deep link at the one working tutor', () => {
+    const deepLink = source('src/app/student/chat/[subject]/page.tsx');
+    expect(deepLink).toMatch(/StudentChatView/);
+    expect(deepLink).not.toMatch(/localStorage/);
+    // Both URLs must render the same component, or they drift apart again.
+    expect(source('src/app/student/chat/page.tsx')).toMatch(/StudentChatView/);
   });
 });

@@ -36,7 +36,7 @@ The previous development environment lacked Python execution and system-level re
 ## 4. Operational Constraints
 - **Grounding:** The AI *must* remain grounded in the local curriculum data found in `src/curriculum/*.ts`.
 - **Persona:** Maintain the "Mwalimu" Socratic persona (guide, don't just answer).
-- **Branding:** All UI footers must maintain the "© 2025 3D" credit.
+- **Branding:** Footers carry the SyncSenta credit with a dynamic year; never pin a literal year, it reads as abandonment by the next school that looks at us.
 
 ## 5. Troubleshooting & Deployment
 ### Git Authentication Issues
@@ -44,4 +44,4 @@ If you encounter `fatal: Authentication failed` or `remote: Invalid username or 
 - **Solution:** Generate a [Personal Access Token (PAT)](https://github.com/settings/tokens) with `repo` scopes and use it as your password when pushing to the repository.
 - **Alternative:** Configure SSH keys for your development environment to bypass HTTPS token prompts entirely.
 
-**Your first action:** Analyze the interaction between `src/app/student/chat/chat-interface.tsx` and `src/ai/flows/mwalimu-ai-flow.ts` to design the first Python-based API endpoint that will replace it.
+**Where the tutor actually lives:** `src/components/student/mwalimu-chat.tsx` streams from `src/app/api/chat/route.ts` (via `src/lib/chat/tutor-stream.ts`), which is the only LLM-backed route deployed on Vercel. The older `src/app/student/chat/chat-interface.tsx` and its `mwalimu-ai-flow`/`interactive-quiz-modal` chain were deleted on 2026-09-27: that surface called `/api/v1/mvp/*`, a Rust service deployed nowhere, so every learner who reached it through a subject link saw a permanent "Connecting". Keep `/student/chat` and `/student/chat/<subject>` pointed at the one remaining view (`src/components/student/student-chat-view.tsx`).
