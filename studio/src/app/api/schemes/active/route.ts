@@ -1,158 +1,47 @@
 /**
- * Active Scheme Context API
- * 
- * Returns the active scheme context for a student's class.
- * Used by AI agents (Mwalimu, CBC Agent) to ground responses in current curriculum.
- * 
- * Students never see this data directly - only AI agents use it as guardrails.
+ * Active Scheme Context API — currently not backed by any deployed service.
+ *
+ * This handler used to call `getStudentSchemes()` in `@/lib/scheme-v2-client`,
+ * which fetches `${NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/schemes/v2/student/<id>`.
+ * That is the Rust MVP backend (`backend/syncsenta-backend`), deployed nowhere:
+ * from a Vercel function `http://localhost:8080` is the function's own container,
+ * so the call failed for every learner, every time, and the client swallowed it
+ * as "no active scheme". The AI prompt then silently lost its curriculum
+ * grounding while the code read as if it had it.
+ *
+ * The route now says what is true instead of failing inside a try/catch. Restore
+ * real behaviour by doing ONE of:
+ *   - deploying `backend/syncsenta-backend` and setting `MVP_BACKEND_URL` in
+ *     `next.config.js`, then reimplementing the student→class→scheme lookup here
+ *     (it needs the class membership table, which Supabase does not have yet); or
+ *   - persisting schemes against `/lesson-architect/schemes` in ai-agents and
+ *     looking them up by teacher + subject, which is the shape the deployed data
+ *     actually has today.
+ *
+ * `lib/scheme-context-client.ts` treats a non-200 as "no context" and keeps
+ * going, so learners are unaffected either way — they just no longer get a
+ * phantom grounding that silently does nothing.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getStudentSchemes } from '@/lib/scheme-v2-client';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const studentId = searchParams.get('student_id');
-    const subject = searchParams.get('subject');
-    const weekNumber = searchParams.get('week');
+  const { searchParams } = new URL(request.nextUrl);
 
-    if (!studentId || !subject) {
-      return NextResponse.json(
-        { error: 'Missing required parameters: student_id and subject' },
-        { status: 400 }
-      );
-    }
-
-    // Get auth token from request headers
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '') || '';
-
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Missing authorization token' },
-        { status: 401 }
-      );
-    }
-
-    // Fetch student's visible schemes from backend
-    const schemes = await getStudentSchemes(studentId, token);
-
-    if (!schemes || schemes.length === 0) {
-      return NextResponse.json(
-        { error: 'No active scheme found for this student' },
-        { status: 404 }
-      );
-    }
-
-    // Filter by subject
-    const subjectSchemes = schemes.filter(
-      (s) => s.subject.toLowerCase() === subject.toLowerCase()
-    );
-
-    if (subjectSchemes.length === 0) {
-      return NextResponse.json(
-        { error: `No active scheme found for subject: ${subject}` },
-        { status: 404 }
-      );
-    }
-
-    // Get the most recent scheme for this subject
-    const activeScheme = subjectSchemes.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0];
-
-    // Determine current week (use provided week or calculate)
-    const currentWeek = weekNumber ? parseInt(weekNumber) : getCurrentWeekFromScheme(activeScheme);
-
-    // Filter scheme rows for current week
-    const currentWeekRows = activeScheme.scheme_rows.filter(
-      (row) => row.week === currentWeek
-    );
-
-    if (currentWeekRows.length === 0) {
-      return NextResponse.json(
-        { error: `No activities found for week ${currentWeek}` },
-        { status: 404 }
-      );
-    }
-
-    // Extract unique strand and sub-strand from current week
-    const strand = currentWeekRows[0].strand;
-    const subStrand = currentWeekRows[0].subStrand;
-
-    // Build scheme context response
-    const schemeContext = {
-      id: activeScheme.id,
-      subject: activeScheme.subject,
-      grade_level: activeScheme.grade,
-      strand,
-      sub_strand: subStrand,
-      learning_objectives: extractLearningObjectives(currentWeekRows),
-      current_week_activities: currentWeekRows.map((row) => ({
-        week: row.week,
-        lesson: row.lesson,
-        activity_type: 'Learning Experience',
-        description: row.learningExperiences,
-        resources: parseResources(row.learningResources),
-        duration_minutes: 40, // Default lesson duration
-      })),
-      curriculum_ref: activeScheme.curriculum_ref,
-    };
-
-    return NextResponse.json(schemeContext);
-  } catch (error) {
-    console.error('Failed to fetch active scheme context:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * Get current week number from scheme
- * Uses the most recent week in the scheme as a heuristic
- */
-function getCurrentWeekFromScheme(scheme: any): number {
-  if (!scheme.scheme_rows || scheme.scheme_rows.length === 0) {
-    return 1;
-  }
-
-  // Get the maximum week number (assumes scheme is current)
-  const maxWeek = Math.max(...scheme.scheme_rows.map((r: any) => r.week));
-  
-  // Simple heuristic: assume we're in the middle of the scheme
-  // In production, this should use school calendar service
-  return Math.ceil(maxWeek / 2);
-}
-
-/**
- * Extract learning objectives from scheme rows
- */
-function extractLearningObjectives(rows: any[]): string[] {
-  const objectives = new Set<string>();
-  
-  rows.forEach((row) => {
-    if (row.specificLearningOutcome) {
-      objectives.add(row.specificLearningOutcome);
-    }
-  });
-
-  return Array.from(objectives);
-}
-
-/**
- * Parse resources string into array
- */
-function parseResources(resourcesStr: string): string[] {
-  if (!resourcesStr) return [];
-  
-  // Split by common delimiters
-  return resourcesStr
-    .split(/[,;]/)
-    .map((r) => r.trim())
-    .filter((r) => r.length > 0);
+  return NextResponse.json(
+    {
+      error: 'Scheme context is not available in this deployment',
+      detail:
+        'Reading a student\'s active scheme requires the class→scheme lookup in '
+        + 'backend/syncsenta-backend, which is not deployed. Schemes generated in the '
+        + 'teacher wizard are persisted by the Lesson Architect and are not yet joined '
+        + 'to a class.',
+      student_id: searchParams.get('student_id') ?? null,
+      subject: searchParams.get('subject') ?? null,
+      status: 'awaiting-backend',
+    },
+    { status: 503 },
+  );
 }

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -83,31 +83,98 @@ describe('the /api/v1 rewrite', () => {
   });
 });
 
-describe('surfaces still waiting on a deployed backend', () => {
-  // Tripwire, not a wish: these still call the `/api/v1` prefix that only a
-  // local `cargo run` answers, so they fail on Vercel until
-  // MVP_BACKEND_URL points the rewrite at a deployed service. If one of these
-  // stops matching, this list is stale - remove it and say so in the PR.
-  it.each([
-    'src/lib/teacher/scheme-v2-client.ts',
-    'src/lib/scheme-v2-client.ts',
-    'src/components/exam/ExamGeneratorDialog.tsx',
-    'src/components/exam/ExamRunner.tsx',
-    'src/components/scheme-wizard/steps/preview-step.tsx',
-    'src/components/scheme-wizard/lesson-plan-dialog.tsx',
-  ])('%s is still wired to /api/v1', (rel) => {
-    expect(source(rel)).toMatch(/\/api\/v1/);
+describe('the teacher generators are on deployed routes', () => {
+  // Each of these used to fetch `/api/v1/*`, which `next.config.js` rewrites to
+  // the Rust MVP backend. That process is deployed nowhere, so on Vercel every
+  // teacher-facing generator could only ever show "Failed to generate …".
+  it('the scheme wizard generates through /api/generate/scheme', () => {
+    expect(source('src/components/scheme-wizard/steps/preview-step.tsx'))
+      .toMatch(/['"`]\/api\/generate\/scheme['"`]/);
   });
 
-  // Deleted on 2026-09-27, not rewired: this 546-line legacy twin of the tutor
-  // was the surface `/student/chat/<subject>` rendered, so the subject link on
-  // the learner's home page reproduced the original "Connecting forever" bug
-  // after the real chat had been fixed. Nothing references it any more.
+  it('the lesson-plan dialog generates through /api/generate/lesson-plan', () => {
+    expect(source('src/components/scheme-wizard/lesson-plan-dialog.tsx'))
+      .toMatch(/['"`]\/api\/generate\/lesson-plan['"`]/);
+  });
+
+  it('the exam generator uses /api/generate/exam and marking uses /api/exams/mark', () => {
+    expect(source('src/components/exam/ExamGeneratorDialog.tsx'))
+      .toMatch(/['"`]\/api\/generate\/exam['"`]/);
+    expect(source('src/components/exam/ExamRunner.tsx'))
+      .toMatch(/['"`]\/api\/exams\/mark['"`]/);
+  });
+
+  it('the proxies send the teacher identity the Python models require', () => {
+    // Every Generate*Request in lesson_architect_api.py has a required
+    // `teacher_id`. A body without one is a 422, which the proxies used to read
+    // as "AI service unavailable" and answer with prescribed template rows.
+    for (const rel of [
+      'src/app/api/generate/scheme/route.ts',
+      'src/app/api/generate/lesson-plan/route.ts',
+      'src/app/api/generate/exam/route.ts',
+    ]) {
+      expect(source(rel), `${rel} must inject teacher_id`).toMatch(/teacher_id:/);
+    }
+  });
+
+  it('never invents assessment questions when the model is unavailable', () => {
+    // Scheme/lesson-plan proxies may degrade to prescribed rows because a
+    // teacher edits the draft; an exam is pupil-facing, so it must fail loudly.
+    const exam = source('src/app/api/generate/exam/route.ts');
+    expect(exam).not.toMatch(/prescribed/i);
+    expect(source('src/app/api/exams/mark/route.ts')).not.toMatch(/prescribed/i);
+  });
+});
+
+describe('nothing in src/ still calls the undeployed MVP backend', () => {
+  // Tripwire, not a wish: `/api/v1` only answers when a developer runs
+  // `cargo run` locally. `next.config.js` keeps the rewrite so setting
+  // MVP_BACKEND_URL can turn it all on later; no client may depend on it.
+  const offenders: string[] = [];
+
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(join(process.cwd(), dir), { withFileTypes: true })) {
+      const rel = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name === '.next') continue;
+        walk(rel);
+      } else if (/\.tsx?$/.test(entry.name)) {
+        if (/['"`]\/api\/v1\//.test(source(rel))) offenders.push(rel);
+      }
+    }
+  };
+  walk('src');
+
+  it('has zero /api/v1 call sites', () => {
+    expect(offenders).toEqual([]);
+  });
+
+  // Deleted on 2026-09-27, not rewired: this legacy twin of the tutor was the
+  // surface `/student/chat/<subject>` rendered, so the subject link on the
+  // learner's home page reproduced the original "Connecting forever" bug after
+  // the real chat had been fixed. The scheme-v2 cluster went for the same
+  // reason — it read `NEXT_PUBLIC_API_URL || http://localhost:8080` from the
+  // browser and nothing in `app/` imported it.
   it.each([
     'src/app/student/chat/chat-interface.tsx',
     'src/components/quiz/interactive-quiz-modal.tsx',
+    'src/components/scheme-library.tsx',
+    'src/components/scheme-wizard/export-scheme-dialog.tsx',
+    'src/components/scheme-wizard/save-scheme-button.tsx',
+    'src/lib/scheme-loader.ts',
+    'src/lib/scheme-v2-client.ts',
+    'src/lib/teacher/scheme-loader.ts',
+    'src/lib/teacher/scheme-v2-client.ts',
+    'src/lib/teacher/scheme-context-client.ts',
+    'src/app/api/schemes/v2/route.ts',
   ])('%s stays gone', (rel) => {
-    expect(existsSync(join(process.cwd(), rel))).toBe(false);
+    expect(existsSync(join(process.cwd(), rel)), `${rel} grew back`).toBe(false);
+  });
+
+  it('reports the scheme context route as unavailable rather than pretending', () => {
+    const route = source('src/app/api/schemes/active/route.ts');
+    expect(route).toMatch(/status: 'awaiting-backend'/);
+    expect(route).toMatch(/503/);
   });
 
   it('points the subject deep link at the one working tutor', () => {
