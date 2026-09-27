@@ -122,13 +122,33 @@ is needed.
   (as `Ascendra-1`, and see the provider note below before trusting it),
   Supabase for auth/Postgres/RLS. Not deployed anywhere: `backend/syncsenta-backend`
   (Rust, `/api/v1/mvp/*`), which several studio surfaces still call.
-- Studio gates, measured 2026-09-26 on `fix/render-build-and-student-surface`:
-  `npx tsc --noEmit` clean; vitest **434 passed, 17 skipped** across 61 files
+- Studio gates, measured 2026-09-27 on `fix/render-build-and-student-surface`:
+  `npx tsc --noEmit` clean; vitest **452 passed, 17 skipped** across 62 files
   (`npx vitest run --no-file-parallelism`; the `basic` reporter no longer exists in
-  Vitest 4). Earlier notes claiming 366 / 403 / 419 tests were stale. CI runs the
+  Vitest 4). Earlier notes claiming 366 / 403 / 419 / 434 tests were stale. CI runs the
   same suite on Node 22, matching local and Vercel — on Node 20 Supabase's client
   aborts every test file with "Node.js detected but native WebSocket not found",
   which is a runner artifact, not a code defect.
+- The learner home (`studio/src/app/student/page.tsx`) is now built from
+  `chat_sessions` and `profiles.total_points` via
+  `studio/src/lib/student/home-data.ts`. It used to print three hardcoded arrays
+  (homework with due dates, 85/72/68 progress bars, "2:00 PM — 3:00 PM" classes)
+  and fill its stats from `/api/test-personalization`.
+  `studio/src/lib/personalized-learning.ts` — which that endpoint, `/api/mwalimu`
+  and `ai/flows/orchestrator-agent.ts` all depend on — stores profiles, sessions
+  and progress in per-process `Map`s and then persists them with `localStorage`
+  inside a Node function, so on Vercel it starts empty on every invocation and
+  returns a name from `generateFriendlyName()`. Treat that whole engine as demo
+  scaffolding, not a data layer: nothing new should read learner state from it
+  until it is backed by the Supabase tables that already exist
+  (`chat_sessions`, `chat_messages`, `point_transactions`, `profiles`).
+- `supabase/migrations/001..005_*.sql` are committed as **absolute symlinks to
+  `/home/web4ke/codes/Ascendra/sql/studio_migrations/...`**, which exists on no
+  machine anyone here has. They are dangling, so a fresh clone cannot recreate
+  the core schema (`profiles`, `chat_sessions`, `point_transactions` are missing
+  from the repo's SQL entirely). Recover them by exporting schema from the live
+  Supabase project and committing real files; until then, do not treat
+  `supabase/migrations/` as reproducible.
 - 0 open pull requests (PR #15 merged 2026-09-26); 13 remote branches, most already
   merged or superseded — see
   `.kiro/specs/main-stability-and-branch-consolidation/branch-audit.md`
@@ -148,11 +168,21 @@ is needed.
     reports "Live monitoring is not connected" instead of spinning, and `/quiz`
     was moved off the dead prefix onto `/api/agents/assessment/*`, which
     `vercel.json` already proxies to Render. The remaining `/api/v1` callers
-    (schemes, lesson plans, exams, the interactive quiz modal,
-    `chat-interface.tsx`) are listed as a tripwire in
+    (schemes, lesson plans, exams) are listed as a tripwire in
     `studio/src/lib/__tests__/student-chat-transport.test.ts`;
     `MVP_BACKEND_URL` in `next.config.js` is the one switch that turns them all
     on once `backend/syncsenta-backend` is deployed somewhere.
+  - *Deleted rather than left behind (2026-09-27)* — `student/chat/chat-interface.tsx`
+    (546 lines) and `components/quiz/interactive-quiz-modal.tsx`. The subject
+    deep link `/student/chat/<subject>`, which the learner home pushes, rendered
+    that legacy twin, so it reproduced the original "Connecting forever" failure
+    right after the real tutor was fixed. Both URLs now render
+    `components/student/student-chat-view.tsx`, and `/api/classroom-compass`
+    has no caller left (kept deployed, documented). Likewise
+    `src/lib/auth.ts` (`signupUser()`/`getServerUser()`) and the orphaned
+    `/signup/form` page: they were the last writers of the
+    `userRole`/`userName`/`userEmail` cookie session that produced the blank
+    `/dashboard`, and nothing linked to that page anywhere in the repo.
   - *Why the route 502s* — the route no longer depends on one upstream:
     `resolveLlmTargets()` (`studio/src/lib/llm/provider-chain.ts`) tries
     `LLM_PROVIDER` first and any other configured provider as backup, and reports

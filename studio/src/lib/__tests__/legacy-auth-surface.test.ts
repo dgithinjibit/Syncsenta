@@ -134,6 +134,32 @@ describe('/api/set-auth-cookie cannot mint a role anonymously', () => {
   });
 });
 
+describe('nothing left can write the dead cookie session', () => {
+  /**
+   * `src/lib/auth.ts` held `signupUser()` (Firestore write + `userRole`/
+   * `userName`/`userEmail` cookies, returning '/dashboard' for every non-
+   * student) and `getServerUser()` (reads those cookies back). Its only caller
+   * was `/signup/form`, which no page, sidebar or redirect links to anywhere in
+   * the repo. Both were deleted on 2026-09-27 rather than left as a working
+   * invitation to re-create system B: sign up through that form and you got an
+   * identity the rest of the app ignores, which is how the blank `/dashboard`
+   * was produced in the first place.
+   */
+  it.each([
+    join('src', 'lib', 'auth.ts'),
+    join('src', 'app', 'signup', 'form', 'page.tsx'),
+  ])('%s stays deleted', (rel) => {
+    expect(existsSync(join(process.cwd(), rel)), `${rel} grew back`).toBe(false);
+  });
+
+  it('no module sets the userRole cookie any more', () => {
+    const offenders = allSourceFiles()
+      .filter((file) => /cookieStore\.set\(\s*['"]userRole['"]/.test(readFileSync(file, 'utf8')))
+      .map((file) => relative(process.cwd(), file));
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('client components do not read the legacy cookie session', () => {
   /**
    * `getServerUser()` is a 'use server' action that reconstructs an identity
