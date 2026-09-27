@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -11,173 +11,117 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   BookOpen,
   MessageCircle,
-  Calendar,
   Clock,
-  Users,
   Brain,
   Zap,
   ArrowRight,
-  Star,
-  TrendingUp,
-  Heart,
-  Target,
+  Flame,
+  Sparkles,
 } from 'lucide-react';
 import { StudentHeader } from '@/components/layout/student-header';
 import { InteractiveChallengePath } from '@/components/student/interactive-challenge-path';
 import { useAuth } from '@/hooks/use-auth';
+import { SUBJECT_REGISTRY } from '@/lib/chat/subject-session';
+import {
+  describeLastActive,
+  getStudentHomeData,
+  type StudentHomeData,
+} from '@/lib/student/home-data';
 
-interface StudentProfile {
-  id: string;
-  name: string;
-  grade: string;
-  preferredLanguage: 'english' | 'kiswahili' | 'mixed';
-  learningStyle: string;
-  interests: string[];
-  strengths: string[];
-  challenges: string[];
-  culturalContext: {
-    region: string;
-    culturalReferences: string[];
-  };
+const EMPTY_HOME: StudentHomeData = {
+  subjects: [],
+  streakDays: 0,
+  totalSessions: 0,
+  totalMessages: 0,
+  points: null,
+};
+
+/**
+ * `chat_sessions.subject` holds the slug (`mathematics`); the learner should
+ * read the curriculum name (`Mathematics`). Unknown slugs are tidied rather
+ * than dropped, because a session that exists is worth showing.
+ */
+function subjectLabel(slug: string): string {
+  const meta = SUBJECT_REGISTRY[slug];
+  if (meta) return meta.label;
+  return slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');
 }
 
-interface LearningProgress {
-  subject: string;
-  overallProgress: number;
-  streakDays: number;
-  totalSessions: number;
-  averageSessionTime: number;
-}
-
-const assignments = [
-  {
-    id: 1,
-    title: 'Mathematics — Algebra Practice',
-    due: 'Tomorrow, 11:59 PM',
-    status: { label: 'Urgent', variant: 'destructive' as const },
-  },
-  {
-    id: 2,
-    title: 'English — Essay Writing',
-    due: 'Friday, 11:59 PM',
-    status: { label: 'In Progress', variant: 'secondary' as const },
-  },
-  {
-    id: 3,
-    title: 'Science — Lab Report',
-    due: 'Next Monday, 11:59 PM',
-    status: { label: 'Not Started', variant: 'outline' as const },
-  },
-];
-
-const learningPath = [
-  { subject: 'Mathematics', progress: 85, current: 'Fractions', next: 'Ratios' },
-  { subject: 'English', progress: 72, current: 'Essay Writing', next: 'Comprehension' },
-  { subject: 'Science', progress: 68, current: 'Lab Methods', next: 'Observation' },
-];
-
-const todaysClasses = [
-  { subject: 'Mathematics', time: '2:00 PM — 3:00 PM' },
-  { subject: 'English Literature', time: '3:30 PM — 4:30 PM' },
-];
-
+/**
+ * The learner's own record.
+ *
+ * This page used to be demo content: a hardcoded `assignments` array ("due
+ * Tomorrow, 11:59 PM"), a `learningPath` with invented 85/72/68 percentages, a
+ * `todaysClasses` list with times nobody scheduled, and a KPI card asserting
+ * "3 active assignments, 2 due this week". The real-looking numbers came from
+ * `/api/test-personalization`, whose engine keeps profiles in per-process
+ * `Map`s and tries to persist them with `localStorage` inside a Vercel function
+ * — so every cold start returned a randomly generated friendly name and zero
+ * progress. Everything below now reads the Supabase tables the app genuinely
+ * writes (`chat_sessions`, `profiles.total_points`), and a learner with no
+ * history sees an empty page instead of someone else's timetable.
+ */
 export default function StudentDashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
-  const [studentName, setStudentName] = useState('Student');
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [learningProgress, setLearningProgress] = useState<LearningProgress[]>([]);
+  const { user, profile, loading: authLoading } = useAuth();
+  const [home, setHome] = useState<StudentHomeData>(EMPTY_HOME);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      setLoadFailed(false);
+      setHome(await getStudentHomeData(user.id));
+    } catch (error) {
+      // Say so. The old page swallowed the failure and kept rendering the demo
+      // arrays, which looked exactly like real progress.
+      console.error('Failed to load learner record:', error);
+      setLoadFailed(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('userName') || localStorage.getItem('studentName');
-    if (stored) setStudentName(stored.split(' ')[0]);
-    
-    // Load personalized learning data for the signed-in learner only.
     if (authLoading) return;
     if (!user) {
       setIsLoading(false);
       return;
     }
-    loadPersonalizedData();
-  }, [user, authLoading]);
+    void load();
+  }, [user, authLoading, load]);
 
-  const loadPersonalizedData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Get student profile — the API derives identity from the session
-      // cookie; no userId is sent (and none is trusted) from the client.
-      const profileResponse = await fetch('/api/test-personalization?action=profile', {
-        credentials: 'same-origin',
-      });
-      const profileData = await profileResponse.json();
-      
-      if (profileData.success) {
-        setProfile(profileData.profile);
-        setStudentName(profileData.profile.name);
-      }
+  const firstName = (profile?.full_name ?? 'Student').trim().split(' ')[0] || 'Student';
 
-      // Get learning progress for main subjects
-      const subjects = ['Mathematics', 'English', 'Science'];
-      const progressPromises = subjects.map(async (subject) => {
-        const response = await fetch(`/api/test-personalization?action=progress&subject=${subject}`, {
-          credentials: 'same-origin',
-        });
-        const data = await response.json();
-        return data.success ? { subject, ...data.progress } : null;
-      });
+  const goToSubject = (subject: string) => {
+    router.push(`/student/chat/${encodeURIComponent(subjectLabel(subject))}`);
+  };
 
-      const progressResults = await Promise.all(progressPromises);
-      setLearningProgress(progressResults.filter(Boolean) as LearningProgress[]);
-      
-    } catch (error) {
-      console.error('Failed to load personalized data:', error);
-    } finally {
-      setIsLoading(false);
+  const getGreeting = () => {
+    switch (profile?.language_preference) {
+      case 'kiswahili':
+        return `Habari, ${firstName}!`;
+      case 'mixed':
+        return `Karibu, ${firstName}!`;
+      default:
+        return `Welcome back, ${firstName}!`;
     }
   };
 
-  const goToTutor = (subject?: string) => {
-    if (subject) {
-      router.push(`/student/chat/${encodeURIComponent(subject)}`);
-    } else {
-      router.push('/student/journey');
+  const getMotivation = () => {
+    if (home.streakDays >= 7) return `A ${home.streakDays}-day streak — keep it going!`;
+    if (home.totalSessions === 0) return 'Your record starts with one question. Ask Mwalimu anything.';
+    if (home.totalMessages > 0) {
+      return `${home.totalMessages} questions worked through with your tutor so far.`;
     }
+    return 'Ready for today’s session?';
   };
 
-  const getPersonalizedGreeting = () => {
-    if (!profile) return `Karibu, ${studentName}`;
-    
-    const greetings = {
-      english: `Welcome back, ${profile.name}!`,
-      kiswahili: `Karibu tena, ${profile.name}!`,
-      mixed: `Karibu, ${profile.name}!`
-    };
-    
-    return greetings[profile.preferredLanguage] || greetings.mixed;
-  };
-
-  const getPersonalizedMotivation = () => {
-    if (!profile) return "Ready to learn with SyncSenta today?";
-    
-    const totalSessions = learningProgress.reduce((sum, p) => sum + p.totalSessions, 0);
-    const maxStreak = Math.max(...learningProgress.map(p => p.streakDays), 0);
-    
-    if (maxStreak > 7) {
-      return `Amazing ${maxStreak}-day streak! You're on fire! 🔥`;
-    } else if (totalSessions > 10) {
-      return `${totalSessions} learning sessions completed! Keep growing! 🌱`;
-    } else if (profile.interests.length > 0) {
-      return `Ready to explore ${profile.interests[0]} and more today?`;
-    }
-    
-    return "Let's discover something amazing together today!";
-  };
+  const mostRecent = home.subjects[0];
 
   if (isLoading) {
     return (
@@ -186,7 +130,7 @@ export default function StudentDashboardPage() {
         <main className="flex-1 p-6 flex items-center justify-center">
           <div className="text-center">
             <Brain className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Loading your personalized dashboard...</p>
+            <p className="text-muted-foreground">Loading your record...</p>
           </div>
         </main>
       </div>
@@ -202,27 +146,21 @@ export default function StudentDashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-headline">
-                {getPersonalizedGreeting()}
+                {getGreeting()}
               </h1>
-              <p className="text-muted-foreground">
-                {getPersonalizedMotivation()}
-              </p>
+              <p className="text-muted-foreground">{getMotivation()}</p>
               {profile && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="secondary" className="gap-1">
-                    <Heart className="h-3 w-3" />
-                    {profile.learningStyle} learner
-                  </Badge>
-                  <Badge variant="outline" className="gap-1">
-                    <Target className="h-3 w-3" />
-                    {profile.grade}
-                  </Badge>
-                  {profile.interests.slice(0, 2).map((interest) => (
-                    <Badge key={interest} variant="outline" className="gap-1">
-                      <Star className="h-3 w-3" />
-                      {interest}
+                  {profile.grade && <Badge variant="outline">{profile.grade}</Badge>}
+                  {(profile.subjects ?? []).slice(0, 3).map((subject) => (
+                    <Badge key={subject} variant="outline" className="gap-1">
+                      <BookOpen className="h-3 w-3" />
+                      {subject}
                     </Badge>
                   ))}
+                  {profile.school_name && (
+                    <Badge variant="secondary">{profile.school_name}</Badge>
+                  )}
                 </div>
               )}
             </div>
@@ -233,23 +171,40 @@ export default function StudentDashboardPage() {
               </Badge>
               <Badge variant="outline" className="gap-1">
                 <Clock className="h-3 w-3" />
-                Personalized
+                Your own record
               </Badge>
             </div>
           </div>
 
+          {loadFailed && (
+            <Card className="border-destructive">
+              <CardHeader>
+                <CardTitle className="text-base">Could not read your learning record</CardTitle>
+                <CardDescription>
+                  The numbers below are empty because Supabase did not answer, not
+                  because you have not worked. Check your connection and try again.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" size="sm" onClick={() => void load()}>
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Learning Sessions</CardTitle>
+                <CardTitle className="text-sm font-medium">Tutor Sessions</CardTitle>
                 <MessageCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {learningProgress.reduce((sum, p) => sum + p.totalSessions, 0)}
-                </div>
+                <div className="text-2xl font-bold">{home.totalSessions}</div>
                 <p className="text-xs text-muted-foreground">
-                  Avg {Math.round(learningProgress.reduce((sum, p) => sum + p.averageSessionTime, 0) / Math.max(learningProgress.length, 1))} min/session
+                  {home.totalMessages > 0
+                    ? `${home.totalMessages} messages worked through`
+                    : 'None recorded yet'}
                 </p>
               </CardContent>
             </Card>
@@ -257,96 +212,95 @@ export default function StudentDashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Learning Streak</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <Flame className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {Math.max(...learningProgress.map(p => p.streakDays), 0)}
-                </div>
+                <div className="text-2xl font-bold">{home.streakDays}</div>
                 <p className="text-xs text-muted-foreground">
-                  {Math.max(...learningProgress.map(p => p.streakDays), 0) > 0 ? 'days in a row!' : 'Start your streak today!'}
+                  {home.streakDays > 0 ? 'days in a row' : 'Start one today'}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Overall Progress</CardTitle>
-                <Brain className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Subjects Touched</CardTitle>
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {Math.round(learningProgress.reduce((sum, p) => sum + p.overallProgress, 0) / Math.max(learningProgress.length, 1))}%
-                </div>
-                <p className="text-xs text-muted-foreground">Across all subjects</p>
+                <div className="text-2xl font-bold">{home.subjects.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  {mostRecent
+                    ? `Most recent: ${subjectLabel(mostRecent.subject)}`
+                    : 'From your tutor history'}
+                </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Assignments</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">SyncSenta Points</CardTitle>
+                <Zap className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">3</div>
-                <p className="text-xs text-muted-foreground">2 due this week</p>
+                <div className="text-2xl font-bold">{home.points ?? '—'}</div>
+                <p className="text-xs text-muted-foreground">
+                  {home.points === null
+                    ? 'No points on your profile yet'
+                    : 'From work you have done'}
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          <InteractiveChallengePath
-            grade={profile?.grade || 'Grade 6'}
-          />
+          <InteractiveChallengePath grade={profile?.grade || 'Grade 6'} />
 
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Personalized Learning Path</CardTitle>
-                <CardDescription>AI-adapted curriculum based on your progress and interests</CardDescription>
+                <CardTitle>Where you are working</CardTitle>
+                <CardDescription>
+                  Subjects with a tutor session on your record, most recent first
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {learningProgress.length > 0 ? (
-                  learningProgress.map((progress) => (
+                {home.subjects.length > 0 ? (
+                  home.subjects.map((entry) => (
                     <button
-                      key={progress.subject}
-                      onClick={() => goToTutor(progress.subject)}
+                      key={entry.subject}
+                      onClick={() => goToSubject(entry.subject)}
                       className="w-full text-left rounded-lg p-4 border hover:bg-muted transition-colors"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h4 className="font-medium">{progress.subject}</h4>
+                          <h4 className="font-medium">{subjectLabel(entry.subject)}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {progress.totalSessions} sessions • {progress.streakDays} day streak
+                            {entry.sessions} session{entry.sessions === 1 ? '' : 's'} •{' '}
+                            {entry.messages} message{entry.messages === 1 ? '' : 's'}
                           </p>
                         </div>
-                        <Badge variant={progress.overallProgress > 70 ? 'default' : 'secondary'}>
-                          {progress.overallProgress}%
+                        <Badge variant="secondary">
+                          {describeLastActive(entry.lastActiveAt) ?? 'no activity yet'}
                         </Badge>
                       </div>
-                      <Progress value={progress.overallProgress} className="mb-2" />
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>
-                          {progress.overallProgress < 30 ? 'Building foundations' :
-                           progress.overallProgress < 70 ? 'Making good progress' :
-                           'Mastering concepts'}
-                        </span>
+                        <span>Open Mwalimu for this subject</span>
                         <ArrowRight className="h-3 w-3" />
                       </div>
                     </button>
                   ))
                 ) : (
-                  assignments.map((a) => (
-                    <div
-                      key={a.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div>
-                        <h4 className="font-medium">{a.title}</h4>
-                        <p className="text-sm text-muted-foreground">Due: {a.due}</p>
-                      </div>
-                      <Badge variant={a.status.variant}>{a.status.label}</Badge>
-                    </div>
-                  ))
+                  <div className="rounded-lg border border-dashed p-6 text-center space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      No tutor sessions on your record yet. Everything on this page
+                      comes from work you have actually done, so it starts empty —
+                      there is no demo homework behind it.
+                    </p>
+                    <Button onClick={() => router.push('/student/chat')}>
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Ask Mwalimu your first question
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -356,34 +310,6 @@ export default function StudentDashboardPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Brain className="h-5 w-5" />
-                    Learning Path
-                  </CardTitle>
-                  <CardDescription>AI-personalized curriculum</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {learningPath.map((p) => (
-                    <button
-                      key={p.subject}
-                      onClick={() => goToTutor(p.subject)}
-                      className="w-full text-left rounded-lg p-2 -mx-2 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="font-medium">{p.subject}</span>
-                        <span>{p.progress}%</span>
-                      </div>
-                      <Progress value={p.progress} />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Current: {p.current} → Next: {p.next}
-                      </p>
-                    </button>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5" />
                     Omega Claw Guided Tutor
                   </CardTitle>
                   <CardDescription>
@@ -391,10 +317,7 @@ export default function StudentDashboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Button
-                    className="w-full"
-                    onClick={() => router.push('/student/chat')}
-                  >
+                  <Button className="w-full" onClick={() => router.push('/student/chat')}>
                     <MessageCircle className="mr-2 h-4 w-4" />
                     Start Chat Session
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -411,18 +334,28 @@ export default function StudentDashboardPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Today&apos;s Classes</CardTitle>
+                  <CardTitle>Your subjects</CardTitle>
+                  <CardDescription>
+                    {profile?.subjects?.length
+                      ? 'From your school profile'
+                      : 'Not set on your profile yet'}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {todaysClasses.map((c) => (
-                    <div key={c.subject} className="flex items-center gap-3">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{c.subject}</p>
-                        <p className="text-sm text-muted-foreground">{c.time}</p>
-                      </div>
+                  {(profile?.subjects ?? []).length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(profile?.subjects ?? []).map((subject) => (
+                        <Badge key={subject} variant="outline">
+                          {subject}
+                        </Badge>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Your teacher has not linked you to a class list yet. The tutor
+                      works without one — ask it anything.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>
