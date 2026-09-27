@@ -123,9 +123,12 @@ is needed.
   Supabase for auth/Postgres/RLS. Not deployed anywhere: `backend/syncsenta-backend`
   (Rust, `/api/v1/mvp/*`), which several studio surfaces still call.
 - Studio gates, measured 2026-09-26 on `fix/render-build-and-student-surface`:
-  `npx tsc --noEmit` clean; vitest **419 passed, 17 skipped** across 61 files
+  `npx tsc --noEmit` clean; vitest **434 passed, 17 skipped** across 61 files
   (`npx vitest run --no-file-parallelism`; the `basic` reporter no longer exists in
-  Vitest 4). Earlier notes claiming 366 / 403 tests were stale.
+  Vitest 4). Earlier notes claiming 366 / 403 / 419 tests were stale. CI runs the
+  same suite on Node 22, matching local and Vercel — on Node 20 Supabase's client
+  aborts every test file with "Node.js detected but native WebSocket not found",
+  which is a runner artifact, not a code defect.
 - 0 open pull requests (PR #15 merged 2026-09-26); 13 remote branches, most already
   merged or superseded — see
   `.kiro/specs/main-stability-and-branch-consolidation/branch-audit.md`
