@@ -107,9 +107,17 @@ export async function middleware(request: NextRequest) {
     "'self'",
     'https://*.supabase.co',
     'wss://*.supabase.co',
-    'https://ascendra-1.onrender.com',
-    aiAgentsUrl,
+    // The tutor and the teacher live link talk to this host. It used to be
+    // listed unconditionally *and* followed by `aiAgentsUrl`, which on Vercel
+    // is the same value - a duplicate origin in every response header.
+    aiAgentsUrl || 'https://ascendra-1.onrender.com',
+    // NEXT_PUBLIC_BACKEND_WS_URL is metadata about a service that is not
+    // deployed yet; when it is set, the socket it names must survive the
+    // CSP or the teacher view fails in a way that looks like a UI bug.
+    process.env.NEXT_PUBLIC_BACKEND_WS_URL?.trim(),
     apiUrl,
+    // `MVP_BACKEND_URL` is a server-side rewrite target (next.config.js), so
+    // the browser only ever sees this origin and needs no entry here.
     isDev ? 'http://localhost:*' : null,
     isDev ? 'ws://localhost:*' : null,
   ]
@@ -118,7 +126,10 @@ export async function middleware(request: NextRequest) {
 
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com;
+    // Nothing in the app loads a script from a public CDN (verified by search:
+    // the only mention of jsdelivr/unpkg in the tree was this header), so
+    // allowing them widened the XSS surface for no benefit.
+    script-src 'self' 'unsafe-eval' 'unsafe-inline';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: https: blob:;
     font-src 'self' https://fonts.gstatic.com;
