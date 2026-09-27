@@ -84,8 +84,14 @@ export function PreviewStep() {
         teacherInputs,
       };
 
-      // Call backend API for scheme generation
-      const response = await fetch('/api/v1/schemes/generate', {
+      // Call the deployed generation proxy. `/api/v1/*` is rewritten to the
+      // Rust MVP backend, which is deployed nowhere — on Vercel every request
+      // under that prefix is a 404, so this wizard could never render a real
+      // scheme. `/api/generate/scheme` is a Next route handler that proxies to
+      // the Python Lesson Architect (ai-agents, on Render) and degrades to
+      // prescribed CBC rows with an explicit `fallback_reason` when the AI
+      // service is unreachable.
+      const response = await fetch('/api/generate/scheme', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,12 +100,19 @@ export function PreviewStep() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.message || 'Failed to generate scheme');
       }
 
       const data = await response.json();
-      setGeneratedScheme(data.scheme);
+      // The proxy returns the scheme at the top level ({ rows, title, ... }).
+      // `data.scheme` is kept for the Rust shape in case MVP_BACKEND_URL is set
+      // and that backend ever grows this endpoint.
+      const scheme = data?.rows ? data : data?.scheme;
+      if (!scheme?.rows?.length) {
+        throw new Error('The scheme generator returned no rows.');
+      }
+      setGeneratedScheme(scheme);
     } catch (error) {
       console.error('[PreviewStep] Generation error:', error);
       setGenerationError(
@@ -170,7 +183,7 @@ export function PreviewStep() {
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Sparkles className="h-4 w-4" />
-          <span>Powered by GPT-4o</span>
+          <span>SyncSenta Lesson Architect</span>
         </div>
       </div>
     );
@@ -214,17 +227,35 @@ export function PreviewStep() {
   }
 
   const rows = generatedScheme.rows;
+  const generatedByAi = generatedScheme.source === 'ai-agents';
 
   return (
     <div className="space-y-6">
-      {/* Success message */}
-      <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
-        <CheckCircle2 className="h-4 w-4 text-green-600" />
-        <AlertDescription className="text-green-800 dark:text-green-200">
-          <strong>Scheme Generated Successfully!</strong> Your CBC-aligned scheme of work is ready.
-          Review it below and export or save when ready.
-        </AlertDescription>
-      </Alert>
+      {/* Success message. When the AI service could not be reached the proxy
+          returns prescribed CBC template rows rather than an error, so say
+          which the teacher is looking at — a template that "Generated
+          Successfully" is how a fabricated scheme gets printed for a real
+          classroom. */}
+      {generatedByAi ? (
+        <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800 dark:text-green-200">
+            <strong>Scheme Generated Successfully!</strong> Your CBC-aligned scheme of work is ready.
+            Review it below and export or save when ready.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-900 dark:text-amber-200">
+            <strong>Template scheme.</strong>{' '}
+            {generatedScheme.fallback_reason ||
+              'The AI service was unavailable, so these are the standard CBC template rows.'}{' '}
+            They are structurally correct but written generically — review and edit each
+            strand before printing.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {generatedScheme.curriculum && (
         <Card className="border-primary/30 bg-primary/5">

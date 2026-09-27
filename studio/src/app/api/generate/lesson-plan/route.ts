@@ -5,6 +5,9 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 export const runtime = 'nodejs';
 
 type LessonPlanRequest = {
+  teacher_id?: string;
+  week?: number;
+  lesson?: number;
   grade?: string;
   subject?: string;
   term?: string;
@@ -96,16 +99,31 @@ export async function POST(req: NextRequest) {
   };
   if (user?.id) headers['X-Forwarded-User'] = user.id;
 
+  // GenerateLessonPlanRequest requires teacher_id, week and lesson. Callers
+  // that only have a SchemeRow (the wizard dialog, for one) omit them, and a
+  // missing required field is a 422 that used to be reported to the teacher as
+  // "AI service returned an unavailable response". Fill them in here, and
+  // prefer the session over any teacher_id the client chose to send.
+  const upstreamPayload = {
+    ...body,
+    teacher_id: user?.id ?? body.teacher_id ?? 'teacher_demo',
+    week: Number.isFinite(body.week) ? body.week : 1,
+    lesson: Number.isFinite(body.lesson) ? body.lesson : 1,
+  };
+
   try {
     const res = await fetch(target, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body),
+      body: JSON.stringify(upstreamPayload),
       signal: AbortSignal.timeout(8_000),
     });
 
     if (!res.ok) {
-      return Response.json(prescribedLessonPlan(body, 'AI service returned an unavailable response.'));
+      const reason = res.status === 404
+        ? 'The AI service does not expose lesson plans at /lesson-architect/generate-lesson-plan.'
+        : `AI service returned ${res.status}.`;
+      return Response.json(prescribedLessonPlan(body, reason));
     }
 
     const text = await res.text();
