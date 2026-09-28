@@ -122,8 +122,8 @@ is needed.
   (as `Ascendra-1`, and see the provider note below before trusting it),
   Supabase for auth/Postgres/RLS. Not deployed anywhere: `backend/syncsenta-backend`
   (Rust, `/api/v1/mvp/*`). As of 2026-09-27 nothing under `studio/src` calls it.
-- Studio gates, measured 2026-09-27 on `fix/render-build-and-student-surface`:
-  `npx tsc --noEmit` clean; vitest **470 passed, 17 skipped** across 64 files
+- Studio gates, measured 2026-09-28 on `fix/render-build-and-student-surface`:
+  `npx tsc --noEmit` clean; vitest **480 passed, 17 skipped** across 64 files
   (`npx vitest run --no-file-parallelism`; the `basic` reporter no longer exists in
   Vitest 4). Earlier notes claiming 366 / 403 / 419 / 434 tests were stale. CI runs the
   same suite on Node 22, matching local and Vercel — on Node 20 Supabase's client
@@ -222,6 +222,18 @@ is needed.
     re-verified (TLS failures from this machine), so `gemini-3.6-flash` is left alone:
     unproven, not disproven. Still needed from the account holder: a working
     `GROQ_API_KEY` and a second provider key in the Vercel project.
+  - *Live proof of what production is doing right now (2026-09-28)* — signed in
+    through `/api/auth/demo-login?role=student` with `curl` (it sets a real
+    `sb-tumikgwhrbvirpjswlzh-auth-token` cookie and lands on `/student?demo=1`) and
+    posted one turn to `https://sentastudio.vercel.app/api/chat`. Production answers
+    **502 `Upstream model error: groq/llama-3.3-70b-versatile: 404 model_not_found`,
+    `providers_tried: ["groq"]`**. Two things follow. The Groq credential in the
+    Vercel project authenticates — a bad key gives 401, not a model 404 — but
+    production is running a build from before the default became `qwen/qwen3.8-27b`,
+    so the tutor is broken until this branch deploys. And `providers_tried` lists
+    one provider, so no Gemini backup key is set: the chain has nothing to fall
+    back to. If the 502 survives the deploy, `GROQ_MODEL` is pinned to the dead id
+    in the Vercel project settings and has to be changed there, not in code.
 - The deployed `ai-agents/` service is healthy and useless at the same time.
   `https://ascendra-1.onrender.com/healthz` answers 200, and its OpenAPI showed
   only four routes (`/healthz`, `/agents/chat`, `/agents/assessment/quiz`,
@@ -274,10 +286,35 @@ is needed.
   have started storing children's consent records in a retired database with no
   reviewed access policy. `persistTrustRecord()` now returns `persisted: false`
   honestly. Durable trust records need Supabase tables plus RLS policies — a
-  migration the account holder owns, not a code fix. Still open in the
-  `(main)/dashboard/**` audit: the now-unreferenced `getServerUser()`/`signupUser()`
-  actions in `lib/auth.ts`, and the sidebar's own links to `/dashboard`, which now
-  redirect instead of rendering.
+  migration the account holder owns, not a code fix. Closed on 2026-09-28 in the
+  same shell: `lib/auth.ts` and `/signup/form` are deleted (see the student-chat
+  bullet), `(main)/layout.tsx` no longer resolves a role from the `userRole`
+  cookie it could never read, the sidebar's `/dashboard` items are replaced by one
+  Home item derived from `getRoleHome()`, and `AppSidebar`/`/dashboard/reports`
+  now accept the role spellings the deployed `profiles.role` column can hold
+  (`head`, `admin`) instead of only the frontend's `school_head`/`county_officer` —
+  which had silently given a signed-in head an empty nav and the teacher view.
+- The legacy local-storage session is gone too (2026-09-28). `AppHeader` and
+  `StudentHeader` filled the account menu from `localStorage.userName`/`userEmail`,
+  defaulting to **"User / user@example.com" for every signed-in person**, and
+  their "Log out" was a link to `/login` — an alias for `/auth/signin` that leaves
+  the Supabase session alive, so a learner who clicked it was signed in and looking
+  at the sign-in form at once. `ProfileDialog` was the only writer of those keys:
+  saving a name wrote the device and never touched `profiles.full_name`, which
+  every server handler reads. All three now take identity from `useAuth()` and the
+  dialog calls `updateProfile()`. Five more components (the Jitsi room display
+  name, county comms sender, school-head announcement sender, the legacy lesson-plan
+  dialog, `/student/learn_by_making`) were reading the same absent keys and getting
+  their fallback label; they use the profile row too. The avatar picker is deleted
+  rather than faked — a base64 data URL in `profiles.avatar_url` would put
+  megabytes in a column every auth path reads, and this project has no Supabase
+  Storage bucket or policies yet, so durable avatars are a migration the account
+  holder owns. `legacy-auth-surface.test.ts` fails on any `localStorage` read or
+  write of `userName`/`userEmail`/`userAvatar`/`studentName`/`userRole`, on a
+  header that links to `/login` instead of calling `signOut()`, and on the nine
+  unreferenced legacy dashboards (`components/dashboards/{teacher,county-officer,
+  school-head,school-admin,national-admin,parent}-dashboard.tsx`,
+  `components/gamification/*`, `digital-attendance-register.tsx`) growing back.
 - Laya System-1 affect router exists as a gated, unadopted PoC
   (`ai-agents/src/syncsenta_agents/decisions/`, `LAYA_AFFECT_ENABLED` off by
   default). CPU latency and Kiswahili/Sheng accuracy are deliberately **unmeasured**:
