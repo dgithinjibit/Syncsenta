@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { User, ArrowLeft, LogOut, Settings, Video } from 'lucide-react';
 import ProfileDialog from './profile-dialog';
+import { useAuth } from '@/hooks/use-auth';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,23 +26,26 @@ interface StudentHeaderProps {
 
 export function StudentHeader({ showBackButton, onBack, showVideoCallButton = false, onJoinVideoCall }: StudentHeaderProps) {
   const [isProfileOpen, setProfileOpen] = useState(false);
-  const [studentFirstName, setStudentFirstName] = useState('Student');
-  const [studentAvatar, setStudentAvatar] = useState<string | null>(null);
   const router = useRouter();
+  // The learner's name and avatar come from the Supabase session and its
+  // `profiles` row. This used to read `localStorage.studentName` and
+  // `localStorage.userAvatar`, which the Supabase sign-in flow never writes, so
+  // the menu showed "Student" for a signed-in learner; and "Log out" was
+  // `router.push('/login')`, which forwards to the sign-in form while keeping
+  // the session alive — the learner was signed in and looking at the sign-in
+  // page at the same time.
+  const { user, profile, loading, signOut } = useAuth();
 
-  useEffect(() => {
-    const name = localStorage.getItem('studentName');
-    const avatar = localStorage.getItem('userAvatar');
-    if (name) {
-        setStudentFirstName(name.split(' ')[0]);
-    }
-    if (avatar) {
-        setStudentAvatar(avatar);
-    }
-  }, []);
+  const fullName = profile?.full_name ?? user?.email ?? 'Student';
+  const firstName = fullName.split(' ')[0];
+  const avatarUrl = profile?.avatar_url ?? user?.user_metadata?.avatar_url ?? null;
 
-  const handleLogout = () => {
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } finally {
+      router.replace('/auth/signin');
+    }
   };
 
   return (
@@ -75,10 +79,11 @@ export function StudentHeader({ showBackButton, onBack, showVideoCallButton = fa
                          <Button
                             variant="outline"
                             className="flex items-center gap-2 rounded-full h-12 px-4 bg-background/80 border-border text-foreground hover:bg-muted hover:border-border/80"
+                            disabled={loading}
                           >
                             <Avatar className="h-8 w-8">
-                               <AvatarImage src={studentAvatar || undefined} alt="Profile Picture" />
-                               <AvatarFallback>{studentFirstName.charAt(0)}</AvatarFallback>
+                               <AvatarImage src={avatarUrl || undefined} alt="Profile Picture" />
+                               <AvatarFallback>{firstName.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <span className="hidden sm:inline">Profile</span>
                           </Button>
@@ -90,7 +95,7 @@ export function StudentHeader({ showBackButton, onBack, showVideoCallButton = fa
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Profile Settings</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleLogout}>
+                        <DropdownMenuItem onClick={() => void handleLogout()}>
                            <LogOut className="mr-2 h-4 w-4" />
                            <span>Log out</span>
                         </DropdownMenuItem>

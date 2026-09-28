@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PlusCircle, Megaphone, Trash2, Send } from 'lucide-react';
 import { AddCommunicationDialog } from '../add-communication-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import type { Communication } from '@/lib/types';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
@@ -20,6 +21,9 @@ export function CountyCommunications({ initialCommunications }: CountyCommunicat
   const [communications, setCommunications] = useState<Communication[]>(initialCommunications);
   const [isAddCommDialogOpen, setAddCommDialogOpen] = useState(false);
   const { toast } = useToast();
+  // Signed comms carry the officer's name from their `profiles` row; this used
+  // to read `localStorage.userName`, a key nothing writes any more.
+  const { profile } = useAuth();
 
   useEffect(() => {
     setCommunications(initialCommunications);
@@ -30,7 +34,7 @@ export function CountyCommunications({ initialCommunications }: CountyCommunicat
   };
 
   const handleAddCommunication = (newComm: Omit<Communication, 'id' | 'date' | 'acknowledged'>) => {
-    const countyOfficerName = localStorage.getItem('userName') || 'County Officer';
+    const countyOfficerName = profile?.full_name ?? 'County Officer';
     const communicationToAdd: Communication = {
       ...newComm,
       id: `comm_${Date.now()}`,

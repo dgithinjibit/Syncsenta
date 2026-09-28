@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Copy, Save, Sparkles, Send } from "lucide-react";
 import { generateLessonPlan, GenerateLessonPlanInput } from "@/ai/flows/generate-lesson-plan";
 import { improveLessonPlan } from "@/ai/flows/improve-lesson-plan";
@@ -40,6 +41,10 @@ export default function GenerateLessonPlanDialog({ open, onOpenChange, onResourc
   const [currentTopic, setCurrentTopic] = useState("");
   const [improvementRequest, setImprovementRequest] = useState("");
   const { toast } = useToast();
+  // Generated plans are headed with the teacher's name from their `profiles`
+  // row. This read `localStorage.userName`, which nothing writes any more, so
+  // every plan said "Teacher".
+  const { profile } = useAuth();
 
   useEffect(() => {
     if (open && schemeOfWorkContext) {
@@ -111,7 +116,7 @@ export default function GenerateLessonPlanDialog({ open, onOpenChange, onResourc
     setGeneratedPlan("");
 
     let data: GenerateLessonPlanInput;
-    const teacherName = localStorage.getItem('userName') || 'Teacher';
+    const teacherName = profile?.full_name ?? 'Teacher';
 
     if (schemeContext) {
         data = {

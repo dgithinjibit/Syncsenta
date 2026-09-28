@@ -1,21 +1,26 @@
 import type { ReactNode } from "react";
-import { cookies } from "next/headers";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import Link from "next/link";
-import type { UserRole } from "@/lib/types";
 
+/**
+ * The legacy `/dashboard/**` shell: sidebar, header, footer around the
+ * county and school screens that have no equivalent in the role homes yet.
+ *
+ * This layout used to read a `userRole` cookie and render bare `children` for
+ * students. Nothing writes that cookie any more — the Firebase-era
+ * `signupUser()` action and `/api/set-auth-cookie` were the only writers and
+ * both are deleted — so the read always yielded `undefined` and the student
+ * branch was dead code that described a session this app no longer has.
+ * Removing it also removes the last `userRole` reference in `src/`, which is
+ * what let the blank `/dashboard` bug come back whenever the cookie was
+ * mentioned. Learners are kept out of this shell by `/dashboard` itself, which
+ * redirects every role to its real home (`getRoleHome()`), and by
+ * `middleware.ts`; `AppSidebar` renders no nav for a role whose workspace lives
+ * outside the shell.
+ */
 export default function MainLayout({ children }: { children: ReactNode }) {
-  const cookieStore = cookies();
-  const role = cookieStore.get('userRole')?.value as UserRole | undefined;
-
-  if (role === 'student') {
-    // For students, render only the children without the main dashboard layout
-    return <>{children}</>;
-  }
-
-  // For all other roles, render the full dashboard layout with sidebar and header
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -31,3 +36,4 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+
