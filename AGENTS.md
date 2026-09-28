@@ -179,19 +179,58 @@ is needed.
   committed as **absolute symlinks to
   `/home/web4ke/codes/Ascendra/sql/studio_migrations/...`** — dangling on every
   machine anyone here has, so `001_core_schema` … `005_camera_frames` are unreadable.
-  The other 35 are real files; `20260827000001_syncsenta_live_foundation.sql` does
-  create `profiles`, `students`, `teacher_student_assignments`,
-  `learner_consents`, `learning_evidence` and their RLS policies, so the core
-  learner tables are *not* missing from the repo (an earlier note claimed they
-  were). What is genuinely missing everywhere in the repo's SQL is
-  `point_transactions` — grep finds no DDL for it, while
-  `studio/src/lib/chat/subject-session.ts` reads it and
-  `studio/src/lib/gamification/points-system.ts` writes it, so the table exists
-  only in the live project. `backend/syncsenta-backend/migrations/` is a separate, parallel
-  sqlx history (8 files, `20260426000001` … `20260501000008`) that creates
-  `chat_sessions` and its own RLS/seed pass. Before the Rust backend goes
-  anywhere, one of those two histories has to become authoritative and the
-  symlinks deleted; until then do not treat either directory as reproducible.
+  A sixth, `ai-agents/src/syncsenta_agents/db/supabase_production_schema.sql`,
+  links to the same dead home directory: the file named "production schema" is a
+  rumour about a file. The other 35 are real; `20260827000001_syncsenta_live_foundation.sql`
+  creates `profiles`, `students`, `teacher_student_assignments`, `learner_consents`,
+  `learning_evidence` and their RLS policies, so the core learner tables are *not*
+  missing from the repo (an earlier note claimed they were).
+  `backend/syncsenta-backend/migrations/` is a separate, parallel sqlx history
+  (8 files, `20260426000001` … `20260501000008`) that creates `chat_sessions` and
+  its own RLS/seed pass.
+- Measured gap, production call sites only: **code queries 49 tables; 21 of them had
+  no `CREATE TABLE` anywhere in the readable repo SQL on 2026-09-28** —
+  `point_transactions`,
+  `learning_progress`, `chat_messages`, `teacher_students`, `teacher_interventions`,
+  `daily_activity`, `achievements`, `agent_traces`, `agent_keys`, `api_usage`,
+  `camera_frames`, `omega_decisions`, `omega_scaffolding_events`, `referrals`,
+  `student_alerts`, `teacher_grade_assignments`, `teacher_subject_assignments`,
+  `user_profiles`, `vision_submissions`, `voice_conversations`, `voice_messages`.
+  They existed only in the live project — and reading the live project, not the
+  repo's own claims, is what changed this paragraph: the seven CSVs came back the
+  same day. Production held **26 public tables, all with RLS enabled**, none of the
+  21 above among them, and `_sqlx_migrations` does not exist there at all, so the
+  Rust backend's sqlx history has never been run against this project. Then
+  `supabase/migrations_live/20260928000100_omega_memory_layer.sql` was applied to
+  production, which created `learning_progress`, `chat_messages`, `daily_activity`,
+  `achievements`, `api_usage`, `omega_scaffolding_events` (plus `chat_sessions` and
+  `daily_quotas`) with forced RLS and owner-write policies: **production is now 34
+  tables and 15 of the original 21 are still absent from it.** Every one of those 15
+  call sites is a runtime PostgREST "Could not find the table" error waiting for a
+  learner to hit it — `point_transactions` and `teacher_students` included, which the
+  learner home and the teacher rosters read.
+  `studio/src/lib/supabase/types.ts` claims to
+  be auto-generated but 29 of its entries are a hand-written `LegacyTable` stub of
+  `Record<string, any>`, which is how a column rename stops being a compile error.
+  `omega_scaffolding_events` has neither DDL nor a type entry.
+  The decision is written down in
+  [`docs/architecture/decision-single-schema-history.md`](docs/architecture/decision-single-schema-history.md):
+  one history, applied by the Rust backend, with the pool setting
+  `request.jwt.claims` per request so RLS keeps meaning
+  something. `supabase/export_live_schema.sql` is the read-only SQL-editor script
+  that captures what the live database actually holds, and
+  `supabase/migrations_live/` is what it produced — read that directory, not
+  `supabase/migrations/`, for what is really running.
+  `studio/src/lib/__tests__/schema-coverage.test.ts` is the local gate: it walks
+  `.from('…')` call sites (ignoring test files, which are full of fixture names)
+  against the baseline, holds an allowlist of the tables that may only shrink, and
+  pins the six dangling symlinks so a seventh cannot creep
+  in. Checked red by dropping in a file that queried `zzz_ghost_table`.
+  **That gate is not green yet and is still untracked:** it reports 38 gaps against
+  the 21-name allowlist, because the list was written before the export and its
+  regex over-collects. Re-baselining it against `supabase/migrations_live/` is the
+  remaining work; until then treat its numbers as a measurement in progress, and do
+  not read the suite as green because of it.
 - PR #17 `fix/render-build-and-student-surface` was **squash-merged into `main` as
   `328344b` on 2026-09-28**, which means the branch's own commits are not ancestors
   of `main` and `git rev-list origin/main..HEAD` overcounts by all of them; measure
