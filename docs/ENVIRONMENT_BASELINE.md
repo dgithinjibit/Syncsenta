@@ -117,8 +117,10 @@ options, and they are not symmetric:
    then the variables. This is the option consistent with Supabase-as-source-of-truth.
 
 Recommendation: **2**, but it is a real migration, not a rename, and it should
-be its own task rather than a side effect of an env cleanup. Until it is done,
-list these seven as *"currently load-bearing, deliberately on the way out"*.
+be its own task rather than a side effect of an env cleanup. Measured against
+the live project (see *The real slate* below), **none of these seven variables
+is set**, so option 1 is already off the table and these fourteen files are
+running on an undefined config today.
 
 ---
 
@@ -178,6 +180,78 @@ learner — which is the failure this document exists to prevent.
 
 ---
 
+## The real slate, and how it differs (measured 2026-09-28)
+
+`vercel env ls --project sentastudio` returns **seven** variables. Everything
+above was derived from code; this is what is actually deployed.
+
+| Set in Vercel | Environments | Age | Verdict |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Prod, Preview | 132d | correct |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Prod, Preview | 132d | correct |
+| `SUPABASE_SERVICE_ROLE_KEY` | Prod, Preview, Dev | 26d | correct, but see the note below |
+| `GROQ_API_KEY` | Prod, Preview | 147d | correct |
+| `GROQ_MODEL` | **Production only** | 4h | correct value, needs a redeploy to apply |
+| `NEXT_PUBLIC_AI_AGENTS_URL` | Prod, Preview | 144d | correct |
+| `NEXT_PUBLIC_BACKEND_WS_URL` | Prod, Preview | 144d | **stale — remove** |
+
+### Finding 1 — the tutor still has no fallback
+
+`GEMINI_API_KEY` is **not set in any environment.** `provider-chain.ts` builds
+its fallback list from whichever keys exist, so production currently gets a
+one-element chain: one provider, no fallback, and a 502 straight to the learner
+when that provider hiccups. This is precisely the failure that darkened chat on
+2026-09-26, written into the code as a fix and then defeated by the config.
+The code is not the constraint here; the missing variable is.
+
+### Finding 2 — a stale variable turns an honest guard into a lie
+
+`teacher-dashboard.tsx` decides whether to say "not configured" with:
+
+```ts
+const LIVE_BACKEND_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_BACKEND_WS_URL);
+```
+
+`NEXT_PUBLIC_BACKEND_WS_URL` **is** set, and the service it names —
+`backend/syncsenta-backend` — is deployed nowhere. So the component believes it
+is live, skips its own unavailable message, and opens a WebSocket at a host that
+will never answer. That is the Omega Claw loopback bug again, one layer up: not
+a bad default in code this time, but a bad value in config, which no amount of
+code review would have caught.
+
+**Remove it**, and the guard does the right thing on its own.
+
+### Finding 3 — every Firebase surface is silently broken
+
+No `NEXT_PUBLIC_FIREBASE_*` variable exists in any environment. Combined with
+`app/layout.tsx` importing Firebase and `initializeApp()` tolerating an
+all-`undefined` config, the consequence is that the fourteen Firebase files —
+the curriculum page, both learning-lab pages, `api/seed`, and the six generator
+dialogs — initialise without error and fail on first use. Nothing about the
+deployment makes this visible. This upgrades the Firebase decision in section E
+from "cleanup" to "known-broken surface", and it argues for option 2: delete the
+import, then the consumers.
+
+### What is clean
+
+`SYNCSENTA_BACKEND_URL` is absent, which is correct: Omega Claw answers from
+the TypeScript rule pack until Rust is reachable. And **none** of the six
+category-C bypass flags is set in any environment — `SYNCSENTA_ALLOW_DEV_CHAT`,
+`NEXT_PUBLIC_AUTH_DEMO_BYPASS`, `SYNC_SENTA_USE_MOCK_AUTH`, `REQUIRE_MOCK_AUTH`,
+`SYNC_SENTA_ALLOW_SYNTHETIC_DATA` and `SYNC_SENTA_ENABLE_BIOMETRIC_PROCESSING`
+are all genuinely absent. The absence has to be *maintained*, not just observed;
+nothing currently stops a future deploy from setting them.
+
+### Still unread
+
+Render's live environment, because there is no Render token on this machine and
+the dashboard session is not one I can drive from the CLI. `GROQ_MODEL` in
+production was set four hours ago and Vercel applies environment changes at
+deploy time, so **production chat will keep using the retired model id until
+something triggers a redeploy** — the push in task #19 is what closes that.
+
+---
+
 ## What is verified and what is not
 
 **Verified from code on this branch:** every variable name above, which file
@@ -186,12 +260,10 @@ reads it, and the defaults in `provider-chain.ts` (`DEFAULT_MODELS`),
 (`LIVE_BACKEND_CONFIGURED`). The `qwen/qwen3.8-27b` choice was confirmed
 against a live key on 2026-09-27.
 
-**Not verified — and this is the gap that matters:** what is *actually saved*
-in the Vercel project and in Render's dashboard right now. Reading them needs
-`vercel env ls`, which is not authenticated from this machine, and the browser
-session does not carry a Vercel login. So this document says what the slate
-**should** be; it has not yet diffed that against what it **is**.
+**Verified from the deployment:** the seven variables Vercel actually has, their
+environments and their age, via `vercel env ls` authenticated as
+`dgithinjibit` on 2026-09-28.
 
-`gemini-3.6-flash` is explicitly a guess. Render has not redeployed from our
+**Not verified:** Render's live values. Render has not redeployed from our
 branch — `/healthz` still omits the `lesson_architect` field added in `a79c53e`
 — so treat every Render value as "as designed", not "as running".
