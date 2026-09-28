@@ -18,8 +18,18 @@ const M = { GEMINI_API_KEY: 'gm-live' };
 describe('resolveLlmTargets', () => {
   it('defaults to groq and offers nothing else when only groq is configured', () => {
     expect(resolveLlmTargets({ ...G })).toEqual([
-      { provider: 'groq', apiKey: 'gk-live', model: 'llama-3.3-70b-versatile' },
+      { provider: 'groq', apiKey: 'gk-live', model: 'qwen/qwen3.8-27b' },
     ]);
+  });
+
+  it('does not default to a model the account cannot serve', () => {
+    // `llama-3.3-70b-versatile` answers 404 model_not_found on every usable key
+    // in this account as of 2026-09-27, so leaving it as the default would mean
+    // a configured key still produced a dead tutor.
+    const [target] = resolveLlmTargets({ ...G });
+    expect(target.model).not.toBe('llama-3.3-70b-versatile');
+    expect(resolveLlmTargets({ ...M, LLM_PROVIDER: 'groq', GROQ_API_KEY: 'gk-live' })[0].model)
+      .toBe('qwen/qwen3.8-27b');
   });
 
   it('puts the requested provider first and the other one behind it', () => {

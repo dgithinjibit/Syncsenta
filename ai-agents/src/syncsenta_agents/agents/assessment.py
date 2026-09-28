@@ -1,7 +1,8 @@
 """Assessment & Feedback Agent (Agent 4).
 
 A CrewAI-style multi-step agent built on a swappable LLM provider so it can run
-offline (mobile / Pi) with stubbed inference and online with Ollama (gemma_2b).
+offline (mobile / Pi) with stubbed inference, on a laptop with Ollama
+(gemma_2b), or on a hosted provider such as Groq where no local daemon exists.
 
 Pipeline:
     Generator  -> produces quiz aligned to CBC competency
@@ -12,6 +13,7 @@ Pipeline:
 from __future__ import annotations
 
 import json
+import os
 import re
 import uuid
 from dataclasses import dataclass
@@ -20,6 +22,7 @@ from typing import Any, Dict, List, Optional, Protocol
 from ..core.config import config
 from ..core.exceptions import AgentError
 from ..core.logging import AgentLogger
+from ..inference.provider_choice import resolve_llm_provider
 from ..core.models import (
     CompetencyScore,
     GradedAnswer,
@@ -63,6 +66,40 @@ class OllamaLLMProvider:
 
         full = f"[SYSTEM]\n{system}\n\n[USER]\n{prompt}" if system else prompt
         return await asyncio.to_thread(self._llm.invoke, full)
+
+
+class GroqLLMProvider:
+    """Groq-hosted model, for a deployment that has no local Ollama daemon.
+
+    Render's `Ascendra-1` runs this service with no Ollama on the box, so an
+    `OllamaLLMProvider`-only agent can never answer: `POST
+    /agents/assessment/quiz` returned HTTP 500 on 2026-09-26 for exactly this
+    reason (`Connection refused` on `localhost:11434`), while `/healthz` kept
+    reporting ok. Reuses `inference/groq_client.GroqClient`, which the analysis
+    and intervention agents already use.
+    """
+
+    def __init__(self, model: str | None = None) -> None:
+        from ..inference.groq_client import GroqClient  # lazy: keeps tests light
+
+        # Raises ValueError without GROQ_API_KEY, so only construct this
+        # provider once a key is known to exist.
+        self._client = GroqClient(model=model)
+
+    async def generate(self, prompt: str, *, system: str | None = None) -> str:
+        if self._client.session is None:
+            # One long-lived aiohttp session per service, not per request.
+            await self._client.initialize()
+
+        messages: List[Dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        result = await self._client.chat_completion(messages, temperature=0.2)
+        if not result.response:
+            raise AgentError("Groq returned an empty response")
+        return result.response
 
 
 # ---------------------------------------------------------------------------
@@ -182,8 +219,19 @@ class AssessmentAgent:
     # --- LLM lazy init ----------------------------------------------------
 
     def _llm_provider(self) -> LLMProvider:
+        # Hard-coding Ollama here meant the deployed service could not answer
+        # at all; the rule lives in inference/provider_choice.py.
         if self._llm is None:
-            self._llm = OllamaLLMProvider()
+            provider = resolve_llm_provider(os.environ)
+            if provider == "groq":
+                self._llm = GroqLLMProvider()
+            elif provider == "ollama":
+                self._llm = OllamaLLMProvider()
+            else:
+                raise AgentError(
+                    f"The assessment agent has no {provider!r} provider. "
+                    "Set LLM_PROVIDER=groq with a GROQ_API_KEY, or run Ollama locally."
+                )
         return self._llm
 
     # --- Orchestrator entrypoint -----------------------------------------

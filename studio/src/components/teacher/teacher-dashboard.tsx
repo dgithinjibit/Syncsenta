@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, Loader2, Users, User } from 'lucide-react';
+import { CheckCircle2, Loader2, Users, User, CircleSlash } from 'lucide-react';
 import { StudentList } from './student-list';
 import { ChatHistory } from './chat-history';
 import { AgentActivity } from './agent-activity';
@@ -23,6 +23,23 @@ interface Student {
   progress: number;
   last_active: string;
 }
+
+/**
+ * Where the live-monitoring backend is reached.
+ *
+ * Both the roster and the socket belong to `backend/syncsenta-backend` (Rust,
+ * `/api/v1/mvp/*`), which is not deployed anywhere. `next.config.js` rewrites
+ * `/api/v1/*` to `http://localhost:8080`, so on Vercel the roster 404s and the
+ * socket has no listener. Setting `NEXT_PUBLIC_BACKEND_API_URL` /
+ * `NEXT_PUBLIC_BACKEND_WS_URL` is what turns this view on; until then it says
+ * so instead of pretending to connect.
+ */
+const MVP_API_BASE = (process.env.NEXT_PUBLIC_BACKEND_API_URL || '/api/v1/mvp').replace(
+  /\/$/,
+  ''
+);
+const DASHBOARD_WS_TEACHER_PATH = '/dashboard/ws/teacher';
+const LIVE_BACKEND_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_BACKEND_WS_URL);
 
 interface Message {
   id: string;
@@ -93,30 +110,31 @@ export function TeacherDashboard() {
   const [agentActivities, setAgentActivities] = useState<AgentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
+  const [rosterError, setRosterError] = useState<string | null>(null);
 
   // WebSocket connection
   useEffect(() => {
-    // WebSocket must connect directly to backend (Next.js rewrites don't support WS)
-    // Use environment variable for backend URL, or construct from current location
-    const getWebSocketUrl = () => {
-      // If NEXT_PUBLIC_BACKEND_WS_URL is set, use it
-      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_BACKEND_WS_URL) {
-        return `${process.env.NEXT_PUBLIC_BACKEND_WS_URL.replace(/\/$/, '')}/dashboard/ws/teacher`;
-      }
-      
-      // Otherwise, construct from current location
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.hostname === 'localhost' 
-        ? 'localhost:8080' 
-        : window.location.host.replace('-5173', '-8080'); // Codespaces port forwarding pattern
-      return `${protocol}//${host}/api/v1/mvp/ws`;
-    };
-    
-    const wsUrl = getWebSocketUrl();
+    // Next.js rewrites do not proxy WebSockets, so the socket must be given a
+    // real origin. When it has none, stop: the old code built
+    // `wss://<current-host>/api/v1/mvp/ws` - a port nothing listens to on
+    // Vercel - and then retried every 3 seconds forever, which kept the badge
+    // on "Connecting" and burned battery on the low-spec Chromebooks this
+    // project targets.
+    const wsBase = process.env.NEXT_PUBLIC_BACKEND_WS_URL;
+    if (!wsBase) {
+      setWsConnected(false);
+      return;
+    }
+
+    const wsUrl = `${wsBase.replace(/\/$/, '')}${DASHBOARD_WS_TEACHER_PATH}`;
+
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let closed = false;
 
     const connectWebSocket = () => {
       try {
-        const ws = new WebSocket(wsUrl);
+        ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
           console.log('[TeacherDashboard] WebSocket connected');
@@ -171,17 +189,24 @@ export function TeacherDashboard() {
         };
 
         ws.onclose = () => {
-          console.log('[TeacherDashboard] WebSocket closed, reconnecting...');
           setWsConnected(false);
-          setTimeout(connectWebSocket, 3000);
+          if (closed) return;
+          console.log('[TeacherDashboard] WebSocket closed, reconnecting...');
+          reconnectTimer = setTimeout(connectWebSocket, 3000);
         };
       } catch (err) {
         console.error('[TeacherDashboard] Failed to connect WebSocket:', err);
-        setTimeout(connectWebSocket, 3000);
+        if (!closed) reconnectTimer = setTimeout(connectWebSocket, 3000);
       }
     };
 
     connectWebSocket();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      ws?.close();
+    };
   }, [selectedStudent]);
 
   // Load students
@@ -189,18 +214,24 @@ export function TeacherDashboard() {
     const loadStudents = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/v1/mvp/students');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.students && Array.isArray(data.students)) {
-            setStudents(data.students);
-          }
+        const response = await fetch(`${MVP_API_BASE}/students`);
+        if (!response.ok) {
+          // A 404 here is the expected answer on Vercel until the Rust service
+          // is deployed; say which service is missing rather than "try again".
+          setRosterError(`HTTP ${response.status}`);
+          return;
+        }
+        const data = await response.json();
+        if (data.students && Array.isArray(data.students)) {
+          setStudents(data.students);
+          setRosterError(null);
         }
       } catch (err) {
         console.error('[TeacherDashboard] Failed to load students:', err);
+        setRosterError('unreachable');
         toast({
-          title: 'Error',
-          description: 'Failed to load students',
+          title: 'Live monitoring is not connected',
+          description: 'The student roster comes from the SyncSenta API service, which is not reachable.',
           variant: 'destructive',
         });
       } finally {
@@ -214,7 +245,7 @@ export function TeacherDashboard() {
   // Load student messages
   const loadStudentMessages = useCallback(async (studentId: string) => {
     try {
-      const response = await fetch(`/api/v1/mvp/students/${studentId}/messages`);
+      const response = await fetch(`${MVP_API_BASE}/students/${studentId}/messages`);
       if (response.ok) {
         const data = await response.json();
         if (data.messages && Array.isArray(data.messages)) {
@@ -240,7 +271,7 @@ export function TeacherDashboard() {
     if (!selectedStudent) return;
 
     try {
-      const response = await fetch(`/api/v1/mvp/teachers/messages/${selectedStudent.id}`, {
+      const response = await fetch(`${MVP_API_BASE}/teachers/messages/${selectedStudent.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
@@ -305,10 +336,15 @@ export function TeacherDashboard() {
                     <CheckCircle2 className="h-3 w-3" />
                     Live
                   </>
-                ) : (
+                ) : LIVE_BACKEND_CONFIGURED ? (
                   <>
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    Connecting
+                    Reconnecting
+                  </>
+                ) : (
+                  <>
+                    <CircleSlash className="h-3 w-3" />
+                    Live monitoring off
                   </>
                 )}
               </Badge>
@@ -322,6 +358,36 @@ export function TeacherDashboard() {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-6">
+        {students.length === 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CircleSlash className="h-5 w-5" />
+                Live monitoring is not connected
+              </CardTitle>
+              <CardDescription>
+                No students to show, because the service that answers this view is not
+                reachable from here.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                The roster, the chat transcripts and the agent feed come from the
+                SyncSenta API service (<code>/api/v1/mvp</code>). That service is not
+                deployed yet, and <code>next.config.js</code> sends
+                <code> /api/v1/*</code> to <code>http://localhost:8080</code>, so from
+                Vercel every request fails{rosterError ? ` (last attempt: ${rosterError})` : ''}.
+              </p>
+              <p>
+                Everything else you can reach from here - signing in, the Mwalimu
+                tutor and the other Next.js API routes - is unaffected. Fixing this
+                view means deploying that service and pointing
+                <code> NEXT_PUBLIC_BACKEND_API_URL</code> and
+                <code> NEXT_PUBLIC_BACKEND_WS_URL</code> at it.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid gap-6 lg:grid-cols-4">
           {/* Student List */}
           <div className="lg:col-span-1">
@@ -420,6 +486,7 @@ export function TeacherDashboard() {
             )}
           </div>
         </div>
+        )}
       </main>
     </div>
   );

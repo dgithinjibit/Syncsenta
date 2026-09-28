@@ -25,6 +25,7 @@ from ..core.models import (
 from ..core.config import config
 from ..core.logging import AgentLogger
 from ..core.exceptions import AgentError, OrchestratorError
+from ..inference.provider_choice import build_analysis_llm
 
 
 class RoutingDecision(str, Enum):
@@ -64,11 +65,19 @@ class LangGraphOrchestrator:
         self.agent_registry: Dict[str, Any] = {}
         self.conversation_contexts: Dict[str, ConversationContext] = {}
         
-        # Initialize Ollama client for request analysis
-        self.analysis_llm = Ollama(
-            model=config.ollama_models["phi3_mini"],
-            base_url=config.ollama_base_url,
-            temperature=0.3
+        # The LLM this orchestrator analyses and synthesizes with. This used to
+        # be `Ollama(...)` unconditionally, which made every hosted deployment
+        # unable to answer: `POST /agents/chat` on Render returned HTTP 200 with
+        # {"success": false, "error": "Synthesis failed: ... localhost:11434 ...
+        # Connection refused"} while /healthz reported ok. The rule now follows
+        # the credential that actually exists - see inference/provider_choice.py.
+        self.analysis_llm = build_analysis_llm(
+            temperature=0.3,
+            ollama_factory=lambda: Ollama(
+                model=config.ollama_models["phi3_mini"],
+                base_url=config.ollama_base_url,
+                temperature=0.3,
+            ),
         )
         
         self._setup_workflow()
