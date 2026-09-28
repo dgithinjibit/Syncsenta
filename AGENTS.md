@@ -110,7 +110,7 @@ is needed.
 | `.kiro/specs/main-stability-and-branch-consolidation/` | Current stability spec + branch audit |
 | `backend/syncsenta-backend/src/` | Rust Axum API |
 | `studio/src/` | Next.js application — the deployed web frontend |
-| `studio/src/lib/omega/` | Omega adaptive tutoring decision engine |
+| `studio/src/lib/omega-agent/` | Omega adaptive tutoring decision engine, and the TypeScript mirror of the Omega Claw rule pack |
 | `rust-core/` | Adaptive policy source of truth |
 | `docs/architecture/laya-decision-router.md` | Where an open-weight decision model may and may not sit in the tutoring loop |
 | `docs/README.md` | Which documentation is authoritative |
@@ -121,9 +121,36 @@ is needed.
 - Deployed: `studio/` on Vercel (sentastudio.vercel.app), `ai-agents/` on Render
   (as `Ascendra-1`, and see the provider note below before trusting it),
   Supabase for auth/Postgres/RLS. Not deployed anywhere: `backend/syncsenta-backend`
-  (Rust, `/api/v1/mvp/*`). As of 2026-09-27 nothing under `studio/src` calls it.
+  (Rust, `/api/v1/mvp/*`). As of 2026-09-28 nothing under `studio/src` calls it
+  unconditionally — the one remaining caller is the Omega Claw proxy, which now
+  treats `SYNCSENTA_BACKEND_URL` as an opt-in override instead of a default (see
+  the Omega Claw bullet below).
+- **Omega Claw was dark in production, and the pedagogy was the casualty.** The
+  student challenge path is driven by a MeTTa rule pack
+  (`backend/syncsenta-backend/data/omega_claw_rules.metta` + the
+  `OmegaClawRules` façade in `src/metta_core/omega_claw.rs`) that grades scope,
+  hint level and whether a learner may advance. `studio/src/app/api/omega-claw/*`
+  was a pure proxy onto `${SYNCSENTA_BACKEND_URL ||
+  'http://127.0.0.1:8080/api/v1'}/omega-claw/…` — and that service is deployed
+  nowhere, so on Vercel the default resolved to the function's own loopback
+  address. Re-measured 2026-09-28: both endpoints answer
+  `503 {"error":"Omega Claw backend is unavailable","backend":"http://127.0.0.1:8080/api/v1"}`.
+  The learner always saw the component's hardcoded fallback strings; the hint
+  ladder, the `scaffold-retry` / `celebrate-transfer` distinction and the
+  "no transfer without an explanation" rule never fired. The rules are now
+  evaluated in `studio/src/lib/omega-agent/omega-claw-rules.ts` (a mirror with an
+  alarm: `omega-claw-rules.test.ts` parses the `.metta` file and fails if the two
+  packs disagree, and was checked red by editing a row); `omega-claw-api.ts`
+  forwards to Rust only when `SYNCSENTA_BACKEND_URL` is explicitly set, and
+  enforces a Supabase session itself when it answers locally, because the Rust
+  `AuthUser` middleware is not there to do it. Two follow-ups stay open in the
+  component itself: `interactive-challenge-path.tsx` hardcodes three challenge
+  nodes whose ids are not the approved `(omega-claw-activity …)` rows, and prints
+  the raw symbol (`Guided hint 1: notice`) where the rule pack means a scaffold
+  stage — the API now also returns learner-facing `hintMessage` /
+  `nextActionMessage` strings for it to use.
 - Studio gates, measured 2026-09-28 on `fix/render-build-and-student-surface`:
-  `npx tsc --noEmit` clean; vitest **480 passed, 17 skipped** across 64 files
+  `npx tsc --noEmit` clean; vitest **519 passed, 17 skipped** across 66 files
   (`npx vitest run --no-file-parallelism`; the `basic` reporter no longer exists in
   Vitest 4). Earlier notes claiming 366 / 403 / 419 / 434 tests were stale. CI runs the
   same suite on Node 22, matching local and Vercel — on Node 20 Supabase's client
