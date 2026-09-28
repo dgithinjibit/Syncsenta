@@ -174,13 +174,24 @@ is needed.
   scaffolding, not a data layer: nothing new should read learner state from it
   until it is backed by the Supabase tables that already exist
   (`chat_sessions`, `chat_messages`, `point_transactions`, `profiles`).
-- `supabase/migrations/001..005_*.sql` are committed as **absolute symlinks to
-  `/home/web4ke/codes/Ascendra/sql/studio_migrations/...`**, which exists on no
-  machine anyone here has. They are dangling, so a fresh clone cannot recreate
-  the core schema (`profiles`, `chat_sessions`, `point_transactions` are missing
-  from the repo's SQL entirely). Recover them by exporting schema from the live
-  Supabase project and committing real files; until then, do not treat
-  `supabase/migrations/` as reproducible.
+- Schema lives in **two** migration histories, and a fresh clone can reproduce
+  neither completely. `supabase/migrations/` holds 40 files, of which five are
+  committed as **absolute symlinks to
+  `/home/web4ke/codes/Ascendra/sql/studio_migrations/...`** — dangling on every
+  machine anyone here has, so `001_core_schema` … `005_camera_frames` are unreadable.
+  The other 35 are real files; `20260827000001_syncsenta_live_foundation.sql` does
+  create `profiles`, `students`, `teacher_student_assignments`,
+  `learner_consents`, `learning_evidence` and their RLS policies, so the core
+  learner tables are *not* missing from the repo (an earlier note claimed they
+  were). What is genuinely missing everywhere in the repo's SQL is
+  `point_transactions` — grep finds no DDL for it, while
+  `studio/src/lib/chat/subject-session.ts` reads it and
+  `studio/src/lib/gamification/points-system.ts` writes it, so the table exists
+  only in the live project. `backend/syncsenta-backend/migrations/` is a separate, parallel
+  sqlx history (8 files, `20260426000001` … `20260501000008`) that creates
+  `chat_sessions` and its own RLS/seed pass. Before the Rust backend goes
+  anywhere, one of those two histories has to become authoritative and the
+  symlinks deleted; until then do not treat either directory as reproducible.
 - PR #17 `fix/render-build-and-student-surface` was **squash-merged into `main` as
   `328344b` on 2026-09-28**, which means the branch's own commits are not ancestors
   of `main` and `git rev-list origin/main..HEAD` overcounts by all of them; measure
