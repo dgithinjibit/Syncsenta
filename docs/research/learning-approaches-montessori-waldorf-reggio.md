@@ -239,20 +239,30 @@ Concretely, the change set is:
 2. ✅ The prose lists in `docs/curriculum/OMEGA_CLAW_CURRICULUM.md` and
    `docs/curriculum/AI_BLOCKCHAIN_CURRICULUM_ROADMAP.md`, which both said
    "Suzuki-inspired… Kumon-inspired…" and would have become wrong if left alone.
-3. ⏳ A **course-neutral pedagogy registry**. Today the only machine-readable
-   pedagogy lives in the `adaptations[]` + `sources[]` arrays of
-   `studio/src/curriculum/omega-claw-ai-blockchain.ts` — a file named for one
-   course. Seven approaches cannot live there; the registry moves to its own
-   module and the AI/blockchain course reads it. (Same "one source of truth"
-   problem already tracked for the role field.)
-4. ⏳ The tutor prompt: `studio/src/lib/mwalimu-pipeline.ts:291` emits
-   `# PEDAGOGY CONSTRAINT (from MeTTa Suzuki/Kumon rules)` — a hardcoded label
-   that will lie the moment a third approach shapes a reply. It must be generated
-   from the registry, boundary lines included, or the approaches are decoration.
-5. ⏳ The age posture the two hybrids depend on: one pure, tested function mapping
-   grade → Montessori plane → `{sessionCap, offlineActivityRequired,
-   learnerFacingRewardSurface}`. That single function is what makes Frictions 1
-   and 2 real instead of aspirational.
+3. ✅ A **course-neutral pedagogy registry**: `studio/src/curriculum/pedagogy.ts`
+   now holds all seven approaches as `adaptations[]` + `excludedPositions[]` +
+   `sources[]`, and `studio/src/curriculum/omega-claw-ai-blockchain.ts` reads it
+   instead of owning it. The AI/blockchain course had become the only machine-
+   readable place the platform's pedagogy was written down, which is the same
+   "one source of truth" problem already tracked for the role field.
+4. ✅ The tutor prompts. Two paths build a learner system prompt, and the first
+   pass of this work only knew about one of them: `lib/mwalimu-pipeline.ts`
+   emitted `# PEDAGOGY CONSTRAINT (from MeTTa Suzuki/Kumon rules)` — a hardcoded
+   label that would lie the moment a third approach shaped a reply — while the
+   student tutor students actually reach in production is `app/api/chat/route.ts`,
+   which composes its own prompt and never called the pipeline. Both now append
+   `formatPedagogyConstraintBlock()` and the stage posture, and neither does it
+   behind a network call: an approach that only appears in the prompt when the
+   Rust MeTTa service answers is decoration. The MeTTa block was renamed
+   `# MASTERY BAND CONSTRAINT (from MeTTa rules)` so the two headers do not claim
+   the same authority.
+5. ✅ The age posture the two hybrids depend on:
+   `studio/src/curriculum/learning-planes.ts` maps grade → Montessori plane →
+   `{sessionCapMinutes, offlineActivityRequired, learnerFacingRewardSurface}`, as
+   one pure, tested function. That single function is what makes Frictions 1 and
+   2 real instead of aspirational: PP1-PP2 get a 15-minute cap and a required
+   offline activity, mastery language leads through Grade 6, and points may lead
+   from Grade 7 upward.
 6. ⏳ The MeTTa rule pack — only for what is mechanically checkable (e.g. "offer a
    bounded choice and record which was taken"; "one subject dwelled with per
    block"). Note the constraint in `omega-claw-rules.test.ts`: the TypeScript

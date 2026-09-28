@@ -1,80 +1,18 @@
 /**
  * Omega Claw curriculum guardrail and Grade 6 introductory pathway.
  *
- * The pedagogy below adapts useful principles from several established
- * approaches; it does not claim that Suzuki or Kumon is being reproduced
- * outside its original context.
+ * The platform's pedagogy registry used to live in this file, which made an
+ * AI/blockchain course the only place the whole product's learning approaches
+ * were written down. It now lives in ./pedagogy.ts and is read from here; the
+ * `pedagogyBoundaries` line below is what keeps that read honest, since a
+ * boundary the model never sees cannot constrain the lesson it writes.
  */
+import { pedagogyAdaptations } from "./pedagogy";
+
 export const OMEGA_CLAW_CURRICULUM_GRADE = "g6" as const;
 
-export const omegaClawPedagogy = {
-  purpose:
-    "Develop curiosity, sound judgement, communication, collaboration, and responsible digital citizenship through a gentle introduction to AI and blockchain.",
-  adaptations: [
-    {
-      name: "Suzuki-inspired learning environment",
-      source: "International Suzuki Association",
-      principles: [
-        "Assume every learner can grow when the environment is nurturing and expectations are clear.",
-        "Begin with listening, observing, imitation, and familiar language before introducing technical vocabulary.",
-        "Use encouragement, caregiver partnership, group learning, and reflection on character before technical performance.",
-      ],
-      boundary:
-        "Use these whole-child and environment principles; do not turn Omega Claw into music instruction or claim Suzuki certification.",
-    },
-    {
-      name: "Kumon-inspired progression",
-      source: "Kumon: How Kumon Works",
-      principles: [
-        "Start with a short, low-stakes diagnostic conversation or activity rather than assuming the same starting point for every learner.",
-        "Break ideas into small, connected steps and check understanding before adding a new concept.",
-        "Provide short independent practice, immediate feedback, and visible progress toward mastery.",
-      ],
-      boundary:
-        "Use flexible practice and teacher judgement; do not use worksheet volume, competition, or acceleration as the goal.",
-    },
-    {
-      name: "Universal Design for Learning",
-      source: "CAST UDL Guidelines 3.0",
-      principles: [
-        "Offer multiple ways to engage: choice, relevance, collaboration, play, and a manageable level of challenge.",
-        "Offer multiple ways to access ideas: spoken explanation, simple text, diagrams, physical examples, and local scenarios.",
-        "Offer multiple ways to show learning: speaking, drawing, building, writing, role-play, or a short presentation.",
-      ],
-      boundary:
-        "Accessibility is part of the lesson design, not a later accommodation added only after a learner struggles.",
-    },
-    {
-      name: "Project-based inquiry",
-      source: "PBLWorks Gold Standard PBL",
-      principles: [
-        "Frame learning around an age-appropriate community question or challenge.",
-        "Give learners bounded voice and choice over examples, roles, materials, and the form of their product.",
-        "Use reflection, feedback, revision, and a small public or classroom-facing product to make learning meaningful.",
-      ],
-      boundary:
-        "Projects remain teacher-guided and low-risk; learners do not deploy systems, collect sensitive data, or make financial decisions.",
-    },
-  ],
-  sources: [
-    {
-      title: "International Suzuki Association: The Suzuki Method",
-      url: "https://internationalsuzuki.org/method",
-    },
-    {
-      title: "Kumon: How Kumon Works",
-      url: "https://www.kumon.com/how-kumon-works",
-    },
-    {
-      title: "CAST: Universal Design for Learning Guidelines 3.0",
-      url: "https://udlguidelines.cast.org/",
-    },
-    {
-      title: "PBLWorks: Gold Standard Project Design Elements",
-      url: "https://www.pblworks.org/gold-standard/pbl-project-design",
-    },
-  ],
-} as const;
+const PEDAGOGY_NAMES = pedagogyAdaptations.map((adaptation) => adaptation.name).join("; ");
+const PEDAGOGY_BOUNDARIES = pedagogyAdaptations.map((adaptation) => adaptation.boundary).join(" ");
 
 export const omegaClawIntroductoryCurriculum = {
   grade: "Grade 6",
@@ -92,6 +30,9 @@ export const omegaClawIntroductoryCurriculum = {
     "Begin with listening, stories, examples, and imitation before introducing new terms or diagrams.",
     "Use a short diagnostic to choose a starting point, then move in small steps with mastery checks.",
     "Give learners choices in how they respond while keeping the learning goal constant.",
+    "Let the learner choose the order and mode of work inside the lesson's goal, and pace a concept by their understanding rather than by the cohort's calendar.",
+    "Stay with one subject for the length of a lesson block, and give the story, image or concrete example before the term or the symbol.",
+    "Treat a drawing, model, role-play, recording or spoken explanation as equal evidence of the same understanding as a written answer.",
     "Do not introduce this pathway to PP1–Grade 5 learners.",
   ],
   prerequisites: [
@@ -446,6 +387,8 @@ export const omegaClawSeniorCurriculum = {
     "Use small, mastery-checked exercises before independent implementation; allow extension only after core understanding is demonstrated.",
     "Offer multiple ways to access and demonstrate learning, including diagrams, code, oral explanation, spreadsheets, paper simulations, and presentations.",
     "Use project-based inquiry for authentic application, with learner choice bounded by safety, privacy, feasibility, and teacher approval.",
+    "Dwell with one subject through a coherent block before widening, and present the concrete case, story or demonstration before the abstraction it supports.",
+    "Let students choose the ordering and form of their work within a brief, and treat a working demonstration, design document, or oral defence as evidence of equal standing to a written report.",
     "Require peer or teacher critique, revision, and a written reflection before a project is marked complete.",
   ],
   assessment: {
@@ -516,6 +459,8 @@ export function getOmegaClawTeacherCurriculumContext(
       "Use introduction-only, conceptual, teacher-guided content.",
       `Learning outcomes: ${omegaClawIntroductoryCurriculum.learningOutcomes.join("; ")}`,
       `Safety boundaries: ${omegaClawIntroductoryCurriculum.guardrails.join("; ")}`,
+      `Pedagogy: ${PEDAGOGY_NAMES}`,
+      `Pedagogy boundaries: ${PEDAGOGY_BOUNDARIES}`,
     ].join("\n");
   }
 
@@ -529,6 +474,8 @@ export function getOmegaClawTeacherCurriculumContext(
       "Use in-depth, supervised Senior School content with evidence, ethics, privacy, accessibility, and human review.",
       stage ? `Stage theme: ${stage.theme}\nLearning outcomes: ${stage.outcomes.join("; ")}\nModules: ${stage.modules.join("; ")}\nSuggested projects: ${stage.projects.join("; ")}` : "Use the appropriate Grade 10–12 progression stage from the curriculum guide.",
       `Safety boundaries: ${omegaClawSeniorCurriculum.seniorGuardrails.join("; ")}`,
+      `Pedagogy: ${PEDAGOGY_NAMES}`,
+      `Pedagogy boundaries: ${PEDAGOGY_BOUNDARIES}`,
     ].join("\n");
   }
 

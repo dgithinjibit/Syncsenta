@@ -29,6 +29,8 @@ import {
   type EmotionalState,
 } from './emotional-intelligence';
 import { buildSocraticGuidancePrompt } from './socratic-guidance';
+import { formatPedagogyConstraintBlock } from '../curriculum/pedagogy';
+import { formatPlanePostureLine } from '../curriculum/learning-planes';
 
 export interface MwalimuTurnInput {
   userId: string;
@@ -107,7 +109,7 @@ export async function runMwalimuTurn(input: MwalimuTurnInput): Promise<MwalimuTu
     currentMessage: input.currentMessage,
     history: input.history,
   });
-  const systemPrompt = composeSystemPrompt(personalizedPrompt, cbcContext, schemeContext, pedagogy, socraticGuidance);
+  const systemPrompt = composeSystemPrompt(personalizedPrompt, cbcContext, schemeContext, pedagogy, socraticGuidance, input.grade);
 
   // 5. Generate via the multi-provider client (Groq → AISA → fallback).
   const messages = [
@@ -202,7 +204,7 @@ export async function* runMwalimuTurnStream(
     currentMessage: input.currentMessage,
     history: input.history,
   });
-  const systemPrompt = composeSystemPrompt(personalizedPrompt, cbcContext, schemeContext, pedagogy, socraticGuidance);
+  const systemPrompt = composeSystemPrompt(personalizedPrompt, cbcContext, schemeContext, pedagogy, socraticGuidance, input.grade);
 
   const messages = [
     { role: 'system' as const, content: systemPrompt },
@@ -280,16 +282,22 @@ function composeSystemPrompt(
   schemeContext: string,
   pedagogy: MettaPedagogy | null,
   socraticGuidance: string,
+  grade: string,
 ): string {
   const parts: string[] = [base, socraticGuidance];
   if (schemeContext) parts.push(schemeContext); // Scheme context first (most specific)
   if (cbcContext) parts.push(cbcContext); // CBC context second (general curriculum)
+  // Registry and stage posture come before MeTTa and regardless of whether MeTTa
+  // is reachable: they are the platform's own commitments, and the mastery band
+  // only tunes difficulty inside them.
+  parts.push(formatPedagogyConstraintBlock());
+  parts.push(formatPlanePostureLine(grade));
   if (pedagogy) parts.push(formatPedagogyConstraint(pedagogy));
   return parts.join('\n\n');
 }
 
 function formatPedagogyConstraint(p: MettaPedagogy): string {
-  return `# PEDAGOGY CONSTRAINT (from MeTTa Suzuki/Kumon rules)
+  return `# MASTERY BAND CONSTRAINT (from MeTTa rules)
 Student is currently in mastery band: ${p.band} (${p.feedback_tag}).
 Next action mandated by symbolic reasoning: ${p.next_action}.
 Suggested practice cadence: ${p.practice_minutes_per_day} min/day, ${p.questions_per_session} questions/session, ${p.cycle_days}-day cycle.

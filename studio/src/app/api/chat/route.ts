@@ -62,6 +62,8 @@ import type { Database } from '@/lib/supabase/types';
 import { addChatMessage } from '@/lib/chat/chat-history-supabase';
 import { updateDailyActivity, updateLearningProgress } from '@/lib/progress/progress-tracking';
 import { getLearningTrack } from '@/lib/learning-track-policy';
+import { formatPedagogyConstraintBlock } from '@/curriculum/pedagogy';
+import { formatPlanePostureLine } from '@/curriculum/learning-planes';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -458,6 +460,13 @@ export async function POST(req: NextRequest) {
     (req as any).__currentMasteryPct = currentMasteryPct;
   }
 
+  // The pedagogy registry and the learner's stage posture are appended to every
+  // learner turn, on both modes, and never behind a network call: an approach
+  // that only reaches the prompt when the MeTTa service answers is decoration.
+  // The stage posture is what makes the two recorded hybrids (Waldorf's screen
+  // limits, Montessori/Reggio's rejection of points) observable in a reply.
+  systemPrompt += `\n\n${formatPedagogyConstraintBlock()}`;
+  systemPrompt += `\n\n${formatPlanePostureLine(verifiedGrade)}`;
   systemPrompt += `\nMeTTa student-turn boundary: ${mettaTurnStatus}. Omega policy decision remains authoritative.`;
 
   // ── Build message array ─────────────────────────────────────────────────────
