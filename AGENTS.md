@@ -150,12 +150,17 @@ is needed.
   stage — the API now also returns learner-facing `hintMessage` /
   `nextActionMessage` strings for it to use.
 - Studio gates, measured 2026-09-28 on `fix/render-build-and-student-surface`:
-  `npx tsc --noEmit` clean; vitest **519 passed, 17 skipped** across 66 files
+  `npx tsc --noEmit` clean; vitest **522 passed, 17 skipped** across 67 files
   (`npx vitest run --no-file-parallelism`; the `basic` reporter no longer exists in
-  Vitest 4). Earlier notes claiming 366 / 403 / 419 / 434 tests were stale. CI runs the
-  same suite on Node 22, matching local and Vercel — on Node 20 Supabase's client
-  aborts every test file with "Node.js detected but native WebSocket not found",
-  which is a runner artifact, not a code defect.
+  Vitest 4). Earlier notes claiming 366 / 403 / 419 / 434 tests were stale. Neither
+  gate catches a bad `route.ts` export — only `next build` does, and it costs a
+  Vercel deployment to find out, so `studio/src/lib/__tests__/route-exports.test.ts`
+  now enforces Next's route-export allowlist locally.
+  CI still runs the suite on **Node 20**, where Supabase's client aborts every test
+  file with "Node.js detected but native WebSocket not found" — a runner artifact,
+  not a code defect. The Node 22 fix is committed on the local branch
+  `ci-node22-pending` and cannot be pushed until the `gh` token carries the
+  `workflow` scope, because it edits `.github/workflows/studio-gates.yml`.
 - The learner home (`studio/src/app/student/page.tsx`) is now built from
   `chat_sessions` and `profiles.total_points` via
   `studio/src/lib/student/home-data.ts`. It used to print three hardcoded arrays
@@ -176,13 +181,23 @@ is needed.
   from the repo's SQL entirely). Recover them by exporting schema from the live
   Supabase project and committing real files; until then, do not treat
   `supabase/migrations/` as reproducible.
-- 1 open pull request: #17 `fix/render-build-and-student-surface` (student chat,
-  teacher live view, quiz, plus the `/api/v1` removal below). It cannot be pushed
-  from this laptop yet: four commits touch `.github/workflows/*` and the current
-  `gh` token has no `workflow` scope. Run `gh auth refresh -s workflow` (or edit
-  `node-version` in the GitHub web UI), then push. 13 remote branches, most already
+- PR #17 `fix/render-build-and-student-surface` was **squash-merged into `main` as
+  `328344b` on 2026-09-28**, which means the branch's own commits are not ancestors
+  of `main` and `git rev-list origin/main..HEAD` overcounts by all of them; measure
+  the real delta with `git diff origin/main HEAD`. The same branch now carries the
+  next round as PR #18, merged with `main` locally to settle the five files the
+  squash collided with (`AGENTS.md`, `student/chat/page.tsx`,
+  `teacher-dashboard.tsx`, `student-chat-transport.test.ts`, and the deleted
+  `signup/form` page). 13 remote branches, most already
   merged or superseded — see
   `.kiro/specs/main-stability-and-branch-consolidation/branch-audit.md`
+- Two deploy targets fail on PR #18 and neither is the studio. Vercel's preview
+  build stopped at `Checking validity of types` on one route-export error (fixed
+  above). Netlify's `syncsenta` site — retired from the repo by `4c6e3c5` but still
+  linked to the GitHub app — reports failed *Header rules / Redirect rules / Pages
+  changed* for a configuration file that no longer exists in the tree. `main` is
+  not protected, so neither blocks a merge; unlinking Netlify is a click in its
+  dashboard, not a repo change.
 - Student chat: two separate failures, now both understood.
   - *Why the learner saw "Connecting" forever* — not a placeholder. The student tutor
     (`studio/src/components/student/mwalimu-chat.tsx`) was wired to the Rust MVP API

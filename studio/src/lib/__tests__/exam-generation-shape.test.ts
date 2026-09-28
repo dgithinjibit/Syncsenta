@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toLessonArchitectAllocation } from '@/app/api/generate/exam/route';
+import { toLessonArchitectAllocation } from '@/lib/exam-allocation';
 import { extractJson } from '@/lib/llm/complete-with-fallback';
 
 /**
