@@ -6,7 +6,18 @@
  */
 
 import { supabase } from '../supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../supabase/types';
+
+/**
+ * Every function here defaults to the browser singleton, which is correct in a
+ * client component and *wrong* in a route handler: `createBrowserClient()` has
+ * no cookie jar on the server, so it reaches PostgREST as `anon` and the owner
+ * policies on `learning_progress` / `daily_activity` reject the write. Server
+ * callers must pass their request-scoped client — see
+ * `src/lib/__tests__/server-route-supabase-client.test.ts`.
+ */
+type ProgressClient = SupabaseClient<Database>;
 
 type LearningProgress = Database['public']['Tables']['learning_progress']['Row'];
 type DailyActivity = Database['public']['Tables']['daily_activity']['Row'];
@@ -54,10 +65,11 @@ export async function updateLearningProgress(
     questionsAnswered?: number;
     correctAnswers?: number;
     timeSpentMinutes?: number;
-  }
+  },
+  client: ProgressClient = supabase
 ): Promise<void> {
   // Check if progress record exists
-  const existingRes = await supabase
+  const existingRes = await client
     .from('learning_progress')
     .select('*')
     .eq('user_id', userId)
@@ -82,7 +94,7 @@ export async function updateLearningProgress(
     // Determine mastery level
     const masteryLevel = calculateMasteryLevel(progressPercentage, newQuestionsAnswered);
 
-    const { error } = await supabase
+    const { error } = await client
       .from('learning_progress')
       .update({
         questions_asked: newQuestionsAsked,
@@ -106,7 +118,7 @@ export async function updateLearningProgress(
       await awardAchievement(userId, 'competency_mastered', {
         competencyCode,
         competencyName: updates.competencyName,
-      });
+      }, client);
     }
   } else {
     // Create new record
@@ -114,7 +126,7 @@ export async function updateLearningProgress(
       ? Math.round((updates.correctAnswers / updates.questionsAnswered) * 100)
       : 0;
 
-    const { error } = await supabase
+    const { error } = await client
       .from('learning_progress')
       .insert({
         user_id: userId,
@@ -198,12 +210,13 @@ export async function updateDailyActivity(
     sessionsStarted?: number;
     timeSpentMinutes?: number;
     subjectsPracticed?: string[];
-  }
+  },
+  client: ProgressClient = supabase
 ): Promise<void> {
   const today = new Date().toISOString().split('T')[0];
 
   // Check if record exists for today
-  const existingRes = await supabase
+  const existingRes = await client
     .from('daily_activity')
     .select('*')
     .eq('user_id', userId)
@@ -217,7 +230,7 @@ export async function updateDailyActivity(
       ? Array.from(new Set([...(existing.subjects_practiced || []), ...updates.subjectsPracticed]))
       : existing.subjects_practiced;
 
-    const updRes = await supabase
+    const updRes = await client
         .from('daily_activity')
         .update({
           messages_sent: (existing?.messages_sent || 0) + (updates.messagesSent || 0),
@@ -232,10 +245,10 @@ export async function updateDailyActivity(
     if (error) throw error;
   } else {
     // Calculate streak
-    const streak = await calculateStreak(userId);
+    const streak = await calculateStreak(userId, client);
 
     // Create new record
-    const insertRes = await supabase
+    const insertRes = await client
       .from('daily_activity')
       .insert({
         user_id: userId,
@@ -252,11 +265,11 @@ export async function updateDailyActivity(
 
     // Check for streak achievements
     if (streak === 7) {
-      await awardAchievement(userId, 'streak_7', { streak: 7 });
+      await awardAchievement(userId, 'streak_7', { streak: 7 }, client);
     } else if (streak === 30) {
-      await awardAchievement(userId, 'streak_30', { streak: 30 });
+      await awardAchievement(userId, 'streak_30', { streak: 30 }, client);
     } else if (streak === 100) {
-      await awardAchievement(userId, 'streak_100', { streak: 100 });
+      await awardAchievement(userId, 'streak_100', { streak: 100 }, client);
     }
   }
 }
@@ -264,8 +277,11 @@ export async function updateDailyActivity(
 /**
  * Calculate current streak
  */
-async function calculateStreak(userId: string): Promise<number> {
-  const streakRes = await supabase
+async function calculateStreak(
+  userId: string,
+  client: ProgressClient = supabase
+): Promise<number> {
+  const streakRes = await client
     .from('daily_activity')
     .select('activity_date, daily_streak')
     .eq('user_id', userId)
@@ -298,10 +314,11 @@ async function calculateStreak(userId: string): Promise<number> {
 export async function awardAchievement(
   userId: string,
   achievementType: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
+  client: ProgressClient = supabase
 ): Promise<void> {
   // Check if achievement already awarded
-  const existingRes = await supabase
+  const existingRes = await client
     .from('achievements')
     .select('id')
     .eq('user_id', userId)
@@ -313,7 +330,7 @@ export async function awardAchievement(
   // Get achievement details
   const achievementDetails = getAchievementDetails(achievementType, metadata);
 
-  const insertRes = await supabase
+  const insertRes = await client
     .from('achievements')
     .insert({
       user_id: userId,

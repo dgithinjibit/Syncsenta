@@ -58,6 +58,7 @@ import { getLearningSession, updateLearningSession } from '@/lib/session/session
 import type { LearningSession } from '@/lib/session/session-persistence';
 import { checkChatRateLimit } from '@/lib/session/rate-limit-upstash';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import type { Database } from '@/lib/supabase/types';
 import { addChatMessage } from '@/lib/chat/chat-history-supabase';
 import { updateDailyActivity, updateLearningProgress } from '@/lib/progress/progress-tracking';
 import { getLearningTrack } from '@/lib/learning-track-policy';
@@ -172,7 +173,7 @@ export async function POST(req: NextRequest) {
   }
 
   const cookieStore = await cookies();
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (cookiesToSet) => {
@@ -377,7 +378,7 @@ export async function POST(req: NextRequest) {
 
   // Save user message
   if (sessionId && !isDevChat) {
-    try { await addChatMessage(sessionId, user.id, 'user', body.message); }
+    try { await addChatMessage(sessionId, user.id, 'user', body.message, undefined, supabase); }
     catch (err) { console.error('[/api/chat] Failed to save user message:', err); }
   }
 
@@ -575,7 +576,7 @@ export async function POST(req: NextRequest) {
         const latencyMs = Date.now() - startTime;
 
         if (sessionId && !isDevChat) {
-          try { await addChatMessage(sessionId, user.id, 'assistant', fullResponse, { tokensUsed, model, latencyMs }); }
+          try { await addChatMessage(sessionId, user.id, 'assistant', fullResponse, { tokensUsed, model, latencyMs }, supabase); }
           catch (e) { console.error('[/api/chat] Failed to save assistant message:', e); }
         }
 
@@ -586,7 +587,7 @@ export async function POST(req: NextRequest) {
               sessionsStarted: body.sessionId ? 0 : 1,
               timeSpentMinutes: Math.ceil(latencyMs / 60000),
               subjectsPracticed: [body.subject],
-            });
+            }, supabase);
           } catch (e) { console.error('[/api/chat] Failed to update daily activity:', e); }
         }
 
@@ -626,7 +627,7 @@ export async function POST(req: NextRequest) {
               questionsAnswered: classification.quality !== 'unanswered' ? 1 : 0,
               correctAnswers:    classification.shouldIncrementCorrect ? 1 : 0,
               timeSpentMinutes:  Math.ceil(latencyMs / 60000),
-            });
+            }, supabase);
 
             // Persist live hints_used + consecutive_wrong so the next Omega
             // decision cycle reads real values.
