@@ -7,6 +7,12 @@ Endpoints:
     GET  /healthz
     POST /agents/assessment/quiz   -> Quiz JSON
     POST /agents/assessment/grade  -> GradedSubmission JSON
+    POST /agents/chat              -> orchestrator (Teacher_Agent) response
+    /lesson-architect/*            -> teacher generation (see LESSON_ARCHITECT_MOUNT_ERROR)
+
+This is the app Render runs (`render.yaml` -> startCommand). `api/scheme_server.py`
+mounts the lesson-architect router alone and exists for local teacher demos; it is
+deployed nowhere, so routes added there are invisible to the live site.
 """
 
 from __future__ import annotations
@@ -69,6 +75,44 @@ app.add_middleware(
 )
 
 
+# ---------------------------------------------------------------------------
+# Lesson Architect (teacher scheme / lesson-plan / worksheet / exam generation)
+# ---------------------------------------------------------------------------
+
+# The teacher surfaces in `studio/` reach this service through
+# `src/app/api/generate/*`, which calls `/lesson-architect/*`. Until now those
+# routes only existed on `api/scheme_server.py` — a second ASGI app that
+# `render.yaml` never starts — so every one of them answered 404 and the
+# proxies silently returned their prescribed fallback rows. The learner saw a
+# scheme that looked generated but was a template, with no error anywhere.
+#
+# Measured 2026-09-27 against the live service:
+#   GET /healthz                      -> 200
+#   POST /agents/assessment/quiz      -> route exists (405 for GET)
+#   GET /lesson-architect/healthz     -> 404
+#
+# The import is guarded, not because a failure here is acceptable, but because
+# an unguarded one would take `/agents/chat` (the student tutor) down with it.
+# `lesson_architect_api` pulls in `db.supabase_client`, which imports the
+# `supabase` package at module scope; nothing else on this app's boot path does
+# (verified: only `db/supabase_client.py` and `api/training_export_api.py`
+# import it, and neither is reachable from `server.py` today). A broken wheel
+# would therefore crash the whole service instead of the teacher tool. The
+# guard converts that into a field on /healthz that says so — observable, not
+# swallowed. If `lesson_architect.mounted` is ever false in production, fix the
+# import; do not delete the guard.
+LESSON_ARCHITECT_MOUNT_ERROR: Optional[str] = None
+
+try:
+    from .lesson_architect_api import router as lesson_architect_router
+except Exception as exc:  # noqa: BLE001 — see the comment above
+    lesson_architect_router = None
+    LESSON_ARCHITECT_MOUNT_ERROR = f"{type(exc).__name__}: {exc}"
+
+if lesson_architect_router is not None:
+    app.include_router(lesson_architect_router)
+
+
 def _build_agent() -> AssessmentAgent:
     """Build the agent. If SYNCSENTA_OFFLINE_DEMO=1, use a deterministic stub
     so the student site can be tested without a running Ollama server."""
@@ -126,6 +170,13 @@ async def healthz() -> Dict[str, Any]:
     return {
         "status": "ok",
         "offline_demo": os.environ.get("SYNCSENTA_OFFLINE_DEMO") == "1",
+        # `mounted: false` means the teacher generation routes are 404ing even
+        # though this endpoint answers 200. Report it rather than let the
+        # studio proxies look healthy from the outside.
+        "lesson_architect": {
+            "mounted": lesson_architect_router is not None,
+            "error": LESSON_ARCHITECT_MOUNT_ERROR,
+        },
     }
 
 

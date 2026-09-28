@@ -71,7 +71,10 @@ export default function LearnByMakingPage() {
   const router = useRouter()
   const { profile } = useAuth()
   const [grade, setGrade] = useState<string | null>(null)
-  const [studentName, setStudentName] = useState('Student')
+  // The tutor greets the learner by the name on their `profiles` row. This was
+  // `localStorage.studentName || localStorage.userName || 'Student'`, keys the
+  // Supabase sign-in flow never writes, so it always answered 'Student'.
+  const studentName = profile?.full_name ?? 'Student'
   const [notice, setNotice] = useState<string | null>(null)
   const [requestedSubject, setRequestedSubject] = useState<string | null>(null)
 
@@ -82,7 +85,6 @@ export default function LearnByMakingPage() {
     const selectedGrade = resolveSelectedGrade(queryGrade || profile?.grade)
     setGrade(selectedGrade)
     setRequestedSubject(querySubject)
-    setStudentName(window.localStorage.getItem('studentName') || window.localStorage.getItem('userName') || 'Student')
 
     if (selectedGrade) {
       window.sessionStorage.setItem('learningJourney.grade', selectedGrade)

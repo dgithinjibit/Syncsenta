@@ -134,6 +134,32 @@ describe('/api/set-auth-cookie cannot mint a role anonymously', () => {
   });
 });
 
+describe('nothing left can write the dead cookie session', () => {
+  /**
+   * `src/lib/auth.ts` held `signupUser()` (Firestore write + `userRole`/
+   * `userName`/`userEmail` cookies, returning '/dashboard' for every non-
+   * student) and `getServerUser()` (reads those cookies back). Its only caller
+   * was `/signup/form`, which no page, sidebar or redirect links to anywhere in
+   * the repo. Both were deleted on 2026-09-27 rather than left as a working
+   * invitation to re-create system B: sign up through that form and you got an
+   * identity the rest of the app ignores, which is how the blank `/dashboard`
+   * was produced in the first place.
+   */
+  it.each([
+    join('src', 'lib', 'auth.ts'),
+    join('src', 'app', 'signup', 'form', 'page.tsx'),
+  ])('%s stays deleted', (rel) => {
+    expect(existsSync(join(process.cwd(), rel)), `${rel} grew back`).toBe(false);
+  });
+
+  it('no module sets the userRole cookie any more', () => {
+    const offenders = allSourceFiles()
+      .filter((file) => /cookieStore\.set\(\s*['"]userRole['"]/.test(readFileSync(file, 'utf8')))
+      .map((file) => relative(process.cwd(), file));
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('client components do not read the legacy cookie session', () => {
   /**
    * `getServerUser()` is a 'use server' action that reconstructs an identity
@@ -215,6 +241,111 @@ describe('trust endpoints authenticate against Supabase, not dead cookies', () =
         return /getBackendActor\(\)/.test(source) && !/await getBackendActor\(\)/.test(source);
       });
     expect(unawaited).toEqual([]);
+  });
+});
+
+describe('identity comes from the Supabase session, not from local storage', () => {
+  /**
+   * The second half of system B. `AppHeader`, `StudentHeader` and
+   * `ProfileDialog` read `localStorage.userName` / `userEmail` / `userAvatar` /
+   * `studentName`, and the dialog was the only thing that ever wrote them — so
+   * signing in through Supabase left the account menu showing
+   * "User / user@example.com", a profile Save stored a name on the device and
+   * nowhere else, and "Log out" was a link to `/login`, which forwarded to the
+   * sign-in form while the session stayed alive. Five more components read the
+   * same absent keys for a display name and got their fallback label.
+   */
+  const IDENTITY_KEYS = 'userName|userEmail|userAvatar|studentName|userRole';
+  const pattern = new RegExp(
+    `\\b(?:window\\.)?localStorage\\s*\\.\\s*(getItem|setItem)\\(\\s*['"\`](${IDENTITY_KEYS})['"\`]`,
+  );
+
+  it('no module reads or writes the local-storage identity keys', () => {
+    const offenders = allSourceFiles()
+      .filter((file) => pattern.test(stripComments(readFileSync(file, 'utf8'))))
+      .map((file) => relative(process.cwd(), file));
+    expect(offenders).toEqual([]);
+  });
+
+  it.each([
+    ['app-header', join('src', 'components', 'layout', 'app-header.tsx')],
+    ['student-header', join('src', 'components', 'layout', 'student-header.tsx')],
+    ['profile-dialog', join('src', 'components', 'layout', 'profile-dialog.tsx')],
+  ])('%s takes its user from useAuth()', (_label, rel) => {
+    const source = stripComments(readFileSync(join(process.cwd(), rel), 'utf8'));
+    expect(source).toContain('useAuth');
+    expect(source).not.toMatch(pattern);
+  });
+
+  it('the headers end the session instead of linking to the sign-in alias', () => {
+    for (const rel of [
+      join('src', 'components', 'layout', 'app-header.tsx'),
+      join('src', 'components', 'layout', 'student-header.tsx'),
+    ]) {
+      const source = stripComments(readFileSync(join(process.cwd(), rel), 'utf8'));
+      expect(source).toMatch(/\bsignOut\s*\(/);
+      // `/login` is only an alias for /auth/signin; following it after an
+      // explicit sign-out, or instead of one, was the bug.
+      expect(source).not.toContain("'/login'");
+      expect(source).toContain('/auth/signin');
+    }
+  });
+
+  it('saving a profile writes the profiles row', () => {
+    const source = stripComments(
+      readFileSync(join(process.cwd(), 'src', 'components', 'layout', 'profile-dialog.tsx'), 'utf8'),
+    );
+    expect(source).toMatch(/updateProfile\(\s*\{\s*full_name/);
+  });
+
+  it('the legacy shell layout no longer resolves a role from a cookie', () => {
+    const source = readSource('(main)', 'layout.tsx');
+    expect(source).not.toMatch(/\bcookies\s*\(\s*\)/);
+    expect(source).not.toMatch(/cookieStore\.get\(\s*['"]userRole['"]/);
+    expect(source).not.toContain('next/headers');
+  });
+
+  /**
+   * `profiles.role` in the deployed schema can hold
+   * `student | teacher | parent | admin | head`, and `/signup` stores a school
+   * head as `head`. Both the sidebar switch and the reports view used to test
+   * only for the wider frontend spellings (`school_head`, `county_officer`), so
+   * a signed-in head got an empty nav and the teacher view — the same
+   * silently-wrong-shell outcome as the blank `/dashboard`.
+   */
+  it('the sidebar and reports accept the role spellings the column can hold', () => {
+    const sidebar = stripComments(
+      readFileSync(join(process.cwd(), 'src', 'components', 'layout', 'app-sidebar.tsx'), 'utf8'),
+    );
+    expect(sidebar).toContain("case 'head'");
+    expect(sidebar).toContain('getRoleHome');
+
+    const reports = readSource('(main)', 'dashboard', 'reports', 'page.tsx');
+    expect(reports).toContain("'head'");
+    expect(reports).toContain('school_head');
+  });
+
+  it('the sidebar has no nav item that only redirects back out of the shell', () => {
+    const sidebar = stripComments(
+      readFileSync(join(process.cwd(), 'src', 'components', 'layout', 'app-sidebar.tsx'), 'utf8'),
+    );
+    expect(sidebar).not.toMatch(/href:\s*['"]\/dashboard['"]/);
+  });
+
+  it('the unreferenced legacy dashboards stay deleted', () => {
+    for (const rel of [
+      join('src', 'components', 'dashboards', 'teacher-dashboard.tsx'),
+      join('src', 'components', 'dashboards', 'county-officer-dashboard.tsx'),
+      join('src', 'components', 'dashboards', 'school-head-dashboard.tsx'),
+      join('src', 'components', 'dashboards', 'school-admin-dashboard.tsx'),
+      join('src', 'components', 'dashboards', 'national-admin-dashboard.tsx'),
+      join('src', 'components', 'dashboards', 'parent-dashboard.tsx'),
+      join('src', 'components', 'gamification', 'gamification-overview.tsx'),
+      join('src', 'components', 'gamification', 'leaderboard-panel.tsx'),
+      join('src', 'components', 'digital-attendance-register.tsx'),
+    ]) {
+      expect(existsSync(join(process.cwd(), rel)), `${rel} grew back`).toBe(false);
+    }
   });
 });
 

@@ -82,8 +82,12 @@ export default function LessonPlanDialog({
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      // Call SyncSenta Rust backend for lesson plan generation
-      const response = await fetch('/api/v1/lesson-plans/generate', {
+      // /api/generate/lesson-plan is a Next route handler deployed with the
+      // studio; it proxies to the Python Lesson Architect and, if that service
+      // is unreachable, returns prescribed CBC template rows with a
+      // `fallback_reason`. It replaced '/api/v1/lesson-plans/generate', which
+      // targets the Rust MVP backend that is deployed nowhere (404 on Vercel).
+      const response = await fetch('/api/generate/lesson-plan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,23 +96,33 @@ export default function LessonPlanDialog({
           grade,
           subject,
           term,
-          strand: row.strand,
-          subStrand: row.subStrand,
-          specificLearningOutcome: row.specificLearningOutcome,
-          learningExperiences: row.learningExperiences,
-          keyInquiryQuestion: row.keyInquiryQuestion,
-          learningResources: row.learningResources,
-          additionalNotes,
+          row: {
+            week: row.week,
+            lesson: row.lesson,
+            strand: row.strand,
+            subStrand: row.subStrand,
+            specificLearningOutcome: row.specificLearningOutcome,
+            learningExperiences: row.learningExperiences,
+            keyInquiryQuestion: row.keyInquiryQuestion,
+            learningResources: row.learningResources,
+            assessmentMethods: row.assessmentMethods,
+            reflection: row.reflection,
+          },
+          additional_notes: additionalNotes,
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.error || 'Failed to generate lesson plan');
       }
 
       const data = await response.json();
-      setPlan(data.plan);
+      const nextPlan = data.lesson_plan ?? data.plan;
+      if (!nextPlan?.objectives || !nextPlan?.introduction) {
+        throw new Error('The lesson-plan generator returned an unusable shape.');
+      }
+      setPlan(nextPlan);
       setStep('preview');
 
       toast({ title: 'Lesson Plan Generated!' });

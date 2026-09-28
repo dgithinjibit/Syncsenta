@@ -110,25 +110,94 @@ is needed.
 | `.kiro/specs/main-stability-and-branch-consolidation/` | Current stability spec + branch audit |
 | `backend/syncsenta-backend/src/` | Rust Axum API |
 | `studio/src/` | Next.js application — the deployed web frontend |
-| `studio/src/lib/omega/` | Omega adaptive tutoring decision engine |
+| `studio/src/lib/omega-agent/` | Omega adaptive tutoring decision engine, and the TypeScript mirror of the Omega Claw rule pack |
 | `rust-core/` | Adaptive policy source of truth |
 | `docs/architecture/laya-decision-router.md` | Where an open-weight decision model may and may not sit in the tutoring loop |
 | `docs/README.md` | Which documentation is authoritative |
 | `docs/CONTENT_READINESS.md` | What a student can actually do today |
 
-## Current State (September 26, 2026)
+## Current State (September 27–28, 2026 — overnight session)
 
 - Deployed: `studio/` on Vercel (sentastudio.vercel.app), `ai-agents/` on Render
   (as `Ascendra-1`, and see the provider note below before trusting it),
   Supabase for auth/Postgres/RLS. Not deployed anywhere: `backend/syncsenta-backend`
-  (Rust, `/api/v1/mvp/*`), which several studio surfaces still call.
-- Studio gates, measured 2026-09-26 on `fix/render-build-and-student-surface`:
-  `npx tsc --noEmit` clean; vitest **419 passed, 17 skipped** across 61 files
+  (Rust, `/api/v1/mvp/*`). As of 2026-09-28 nothing under `studio/src` calls it
+  unconditionally — the one remaining caller is the Omega Claw proxy, which now
+  treats `SYNCSENTA_BACKEND_URL` as an opt-in override instead of a default (see
+  the Omega Claw bullet below).
+- **Omega Claw was dark in production, and the pedagogy was the casualty.** The
+  student challenge path is driven by a MeTTa rule pack
+  (`backend/syncsenta-backend/data/omega_claw_rules.metta` + the
+  `OmegaClawRules` façade in `src/metta_core/omega_claw.rs`) that grades scope,
+  hint level and whether a learner may advance. `studio/src/app/api/omega-claw/*`
+  was a pure proxy onto `${SYNCSENTA_BACKEND_URL ||
+  'http://127.0.0.1:8080/api/v1'}/omega-claw/…` — and that service is deployed
+  nowhere, so on Vercel the default resolved to the function's own loopback
+  address. Re-measured 2026-09-28: both endpoints answer
+  `503 {"error":"Omega Claw backend is unavailable","backend":"http://127.0.0.1:8080/api/v1"}`.
+  The learner always saw the component's hardcoded fallback strings; the hint
+  ladder, the `scaffold-retry` / `celebrate-transfer` distinction and the
+  "no transfer without an explanation" rule never fired. The rules are now
+  evaluated in `studio/src/lib/omega-agent/omega-claw-rules.ts` (a mirror with an
+  alarm: `omega-claw-rules.test.ts` parses the `.metta` file and fails if the two
+  packs disagree, and was checked red by editing a row); `omega-claw-api.ts`
+  forwards to Rust only when `SYNCSENTA_BACKEND_URL` is explicitly set, and
+  enforces a Supabase session itself when it answers locally, because the Rust
+  `AuthUser` middleware is not there to do it. Two follow-ups stay open in the
+  component itself: `interactive-challenge-path.tsx` hardcodes three challenge
+  nodes whose ids are not the approved `(omega-claw-activity …)` rows, and prints
+  the raw symbol (`Guided hint 1: notice`) where the rule pack means a scaffold
+  stage — the API now also returns learner-facing `hintMessage` /
+  `nextActionMessage` strings for it to use.
+- Studio gates, measured 2026-09-28 on `fix/render-build-and-student-surface`:
+  `npx tsc --noEmit` clean; vitest **522 passed, 17 skipped** across 67 files
   (`npx vitest run --no-file-parallelism`; the `basic` reporter no longer exists in
-  Vitest 4). Earlier notes claiming 366 / 403 tests were stale.
-- 0 open pull requests (PR #15 merged 2026-09-26); 13 remote branches, most already
+  Vitest 4). Earlier notes claiming 366 / 403 / 419 / 434 tests were stale. Neither
+  gate catches a bad `route.ts` export — only `next build` does, and it costs a
+  Vercel deployment to find out, so `studio/src/lib/__tests__/route-exports.test.ts`
+  now enforces Next's route-export allowlist locally.
+  CI still runs the suite on **Node 20**, where Supabase's client aborts every test
+  file with "Node.js detected but native WebSocket not found" — a runner artifact,
+  not a code defect. The Node 22 fix is committed on the local branch
+  `ci-node22-pending` and cannot be pushed until the `gh` token carries the
+  `workflow` scope, because it edits `.github/workflows/studio-gates.yml`.
+- The learner home (`studio/src/app/student/page.tsx`) is now built from
+  `chat_sessions` and `profiles.total_points` via
+  `studio/src/lib/student/home-data.ts`. It used to print three hardcoded arrays
+  (homework with due dates, 85/72/68 progress bars, "2:00 PM — 3:00 PM" classes)
+  and fill its stats from `/api/test-personalization`.
+  `studio/src/lib/personalized-learning.ts` — which that endpoint, `/api/mwalimu`
+  and `ai/flows/orchestrator-agent.ts` all depend on — stores profiles, sessions
+  and progress in per-process `Map`s and then persists them with `localStorage`
+  inside a Node function, so on Vercel it starts empty on every invocation and
+  returns a name from `generateFriendlyName()`. Treat that whole engine as demo
+  scaffolding, not a data layer: nothing new should read learner state from it
+  until it is backed by the Supabase tables that already exist
+  (`chat_sessions`, `chat_messages`, `point_transactions`, `profiles`).
+- `supabase/migrations/001..005_*.sql` are committed as **absolute symlinks to
+  `/home/web4ke/codes/Ascendra/sql/studio_migrations/...`**, which exists on no
+  machine anyone here has. They are dangling, so a fresh clone cannot recreate
+  the core schema (`profiles`, `chat_sessions`, `point_transactions` are missing
+  from the repo's SQL entirely). Recover them by exporting schema from the live
+  Supabase project and committing real files; until then, do not treat
+  `supabase/migrations/` as reproducible.
+- PR #17 `fix/render-build-and-student-surface` was **squash-merged into `main` as
+  `328344b` on 2026-09-28**, which means the branch's own commits are not ancestors
+  of `main` and `git rev-list origin/main..HEAD` overcounts by all of them; measure
+  the real delta with `git diff origin/main HEAD`. The same branch now carries the
+  next round as PR #18, merged with `main` locally to settle the five files the
+  squash collided with (`AGENTS.md`, `student/chat/page.tsx`,
+  `teacher-dashboard.tsx`, `student-chat-transport.test.ts`, and the deleted
+  `signup/form` page). 13 remote branches, most already
   merged or superseded — see
   `.kiro/specs/main-stability-and-branch-consolidation/branch-audit.md`
+- Two deploy targets fail on PR #18 and neither is the studio. Vercel's preview
+  build stopped at `Checking validity of types` on one route-export error (fixed
+  above). Netlify's `syncsenta` site — retired from the repo by `4c6e3c5` but still
+  linked to the GitHub app — reports failed *Header rules / Redirect rules / Pages
+  changed* for a configuration file that no longer exists in the tree. `main` is
+  not protected, so neither blocks a merge; unlinking Netlify is a click in its
+  dashboard, not a repo change.
 - Student chat: two separate failures, now both understood.
   - *Why the learner saw "Connecting" forever* — not a placeholder. The student tutor
     (`studio/src/components/student/mwalimu-chat.tsx`) was wired to the Rust MVP API
@@ -144,12 +213,47 @@ is needed.
     (`/teacher`, which *is* the teacher role home) had the same defect and now
     reports "Live monitoring is not connected" instead of spinning, and `/quiz`
     was moved off the dead prefix onto `/api/agents/assessment/*`, which
-    `vercel.json` already proxies to Render. The remaining `/api/v1` callers
-    (schemes, lesson plans, exams, the interactive quiz modal,
-    `chat-interface.tsx`) are listed as a tripwire in
-    `studio/src/lib/__tests__/student-chat-transport.test.ts`;
-    `MVP_BACKEND_URL` in `next.config.js` is the one switch that turns them all
-    on once `backend/syncsenta-backend` is deployed somewhere.
+    `vercel.json` already proxies to Render. As of 2026-09-27 `/api/v1` has **no
+    callers left anywhere under `studio/src`**: the scheme wizard, the lesson-plan
+    dialog and `/teacher/exams` were moved onto Next handlers that ship with the
+    studio (`/api/generate/scheme`, `/api/generate/lesson-plan`,
+    `/api/generate/exam`, `/api/exams/mark`), and the `scheme-v2-client` /
+    `scheme-loader` / `scheme-library` / `save-scheme-button` cluster — which read
+    `NEXT_PUBLIC_API_URL || http://localhost:8080` from the browser and had no
+    importer in `app/` — was deleted rather than rewired.
+    `student-chat-transport.test.ts` walks `src/` and fails on any hard-coded
+    `/api/v1/` literal, and `/api/schemes/active` now answers 503
+    `awaiting-backend` instead of failing silently inside a try/catch.
+    `MVP_BACKEND_URL` in `next.config.js` remains the one switch that turns the
+    Rust surfaces on once `backend/syncsenta-backend` is deployed somewhere.
+  - *Why the teacher generators looked working but were fake* — every
+    `Generate*Request` model in `ai-agents/src/syncsenta_agents/api/lesson_architect_api.py`
+    requires `teacher_id` (and `generate-lesson-plan` requires `week`), but the
+    studio proxies never sent it. FastAPI answered 422 and the proxies translated
+    that into prescribed template rows labelled "AI generation is temporarily
+    unavailable". The proxies now derive `teacher_id` from the Supabase session
+    and supply `week`/`lesson`, and `preview-step.tsx` shows a green "generated by
+    the AI service" or an amber "Template scheme." alert carrying the real
+    `fallback_reason`, so a fallback is visible instead of disguised.
+    `/api/generate/exam` and `/api/exams/mark` have **no prescribed fallback at
+    all** by deliberate decision: a fabricated question set is pupil-facing
+    assessment material and a invented mark is pupil-facing feedback, so both fail
+    loudly (401 without a session, 400 on empty allocation, 502 with the provider
+    list when the LLM chain is unreachable) and `ExamRunner.tsx` tells the teacher
+    the answer scored 0 until a human marks it. `exam-generation-shape.test.ts`
+    pins the strand-allocation shape and the JSON-extraction helper it shares with
+    `lib/llm/complete-with-fallback.ts`.
+  - *Deleted rather than left behind (2026-09-27)* — `student/chat/chat-interface.tsx`
+    (546 lines) and `components/quiz/interactive-quiz-modal.tsx`. The subject
+    deep link `/student/chat/<subject>`, which the learner home pushes, rendered
+    that legacy twin, so it reproduced the original "Connecting forever" failure
+    right after the real tutor was fixed. Both URLs now render
+    `components/student/student-chat-view.tsx`, and `/api/classroom-compass`
+    has no caller left (kept deployed, documented). Likewise
+    `src/lib/auth.ts` (`signupUser()`/`getServerUser()`) and the orphaned
+    `/signup/form` page: they were the last writers of the
+    `userRole`/`userName`/`userEmail` cookie session that produced the blank
+    `/dashboard`, and nothing linked to that page anywhere in the repo.
   - *Why the route 502s* — the route no longer depends on one upstream:
     `resolveLlmTargets()` (`studio/src/lib/llm/provider-chain.ts`) tries
     `LLM_PROVIDER` first and any other configured provider as backup, and reports
@@ -160,13 +264,33 @@ is needed.
     re-verified (TLS failures from this machine), so `gemini-3.6-flash` is left alone:
     unproven, not disproven. Still needed from the account holder: a working
     `GROQ_API_KEY` and a second provider key in the Vercel project.
+  - *Live proof of what production is doing right now (2026-09-28)* — signed in
+    through `/api/auth/demo-login?role=student` with `curl` (it sets a real
+    `sb-tumikgwhrbvirpjswlzh-auth-token` cookie and lands on `/student?demo=1`) and
+    posted one turn to `https://sentastudio.vercel.app/api/chat`. Production answers
+    **502 `Upstream model error: groq/llama-3.3-70b-versatile: 404 model_not_found`,
+    `providers_tried: ["groq"]`**. Two things follow. The Groq credential in the
+    Vercel project authenticates — a bad key gives 401, not a model 404 — but
+    production is running a build from before the default became `qwen/qwen3.8-27b`,
+    so the tutor is broken until this branch deploys. And `providers_tried` lists
+    one provider, so no Gemini backup key is set: the chain has nothing to fall
+    back to. If the 502 survives the deploy, `GROQ_MODEL` is pinned to the dead id
+    in the Vercel project settings and has to be changed there, not in code.
 - The deployed `ai-agents/` service is healthy and useless at the same time.
-  `https://ascendra-1.onrender.com/healthz` answers 200, and its OpenAPI shows
+  `https://ascendra-1.onrender.com/healthz` answers 200, and its OpenAPI showed
   only four routes (`/healthz`, `/agents/chat`, `/agents/assessment/quiz`,
-  `/agents/assessment/grade` — the dashboard, WebSocket and lesson-architect
-  routers live in `scheme_server.py`, which `render.yaml` does not run). Both
-  LLM paths inside it construct an `Ollama` client unconditionally, so with no
-  daemon on the box `POST /agents/chat` returns HTTP 200 carrying
+  `/agents/assessment/grade`). Measured 2026-09-27: `GET /lesson-architect/healthz`
+  404s on the live host, because the lesson-architect router lived only in
+  `api/scheme_server.py`, which `render.yaml` does not run — the dashboard and
+  WebSocket routers had the same problem. `api/server.py` now mounts
+  `lesson_architect_api.router` inside a guarded import and reports the outcome at
+  `/healthz` under `lesson_architect: {mounted, error}`; the guard is deliberate
+  (an unguarded import would let one broken wheel take `/agents/chat` down with no
+  way to test locally), and `ai-agents/tests/test_deployed_app_routes.py` pins all
+  eight teacher-generator routes plus the four student paths. **Still not live
+  until Ascendra-1 redeploys from this branch.** Both LLM paths inside the service
+  used to construct an `Ollama` client unconditionally, so with no daemon on the box
+  `POST /agents/chat` returns HTTP 200 carrying
   `{"success": false, "error": "Synthesis failed: … localhost:11434 … Connection
   refused"}` and `POST /agents/assessment/quiz` returns 500. Fixed in code by
   `ai-agents/src/syncsenta_agents/inference/provider_choice.py`, which resolves
@@ -174,14 +298,17 @@ is needed.
   daemon. **This is not live until the account holder sets `LLM_PROVIDER=groq`
   and a working `GROQ_API_KEY` on Ascendra-1 and redeploys** — `render.yaml` is
   documentation only for that hand-created service, and the Python tests cannot
-  run on this laptop (no pip, no aiohttp/pytest).
+  run on this laptop (no pip, no aiohttp/pytest; the edits are validated with
+  `python3 -m py_compile`).
 - The red Render build is not this repo's. `Ascendra-1` is live on the merged
   commit; the failing builds belong to the `urban-train` service, which deploys
   `dgithinjibit/urban-train` (a different repository, idle for about three
   months) and 404s every `/api/v1/mvp/*` path people expect from this one. It
   needs a decision from the account holder, not a code change: delete it, or
-  repoint it at `backend/syncsenta-backend` from this repo — which is exactly
-  the missing `/api/v1` service the teacher view is waiting for.
+  repoint it at `backend/syncsenta-backend` from this repo. Nothing in `studio/`
+  waits for that service any more (see the `/api/v1` removal above), so deleting
+  it is now a clean option — the teacher live view and scheme-context grounding
+  are gated on env vars / an explicit 503 instead.
 - Legacy auth surface retired: `/dashboard` used to resolve a role from a `userEmail`
   cookie nothing writes any more, which rendered a permanently blank page for every
   visitor including signed-in students. It is now a server redirect to the real role
@@ -201,10 +328,35 @@ is needed.
   have started storing children's consent records in a retired database with no
   reviewed access policy. `persistTrustRecord()` now returns `persisted: false`
   honestly. Durable trust records need Supabase tables plus RLS policies — a
-  migration the account holder owns, not a code fix. Still open in the
-  `(main)/dashboard/**` audit: the now-unreferenced `getServerUser()`/`signupUser()`
-  actions in `lib/auth.ts`, and the sidebar's own links to `/dashboard`, which now
-  redirect instead of rendering.
+  migration the account holder owns, not a code fix. Closed on 2026-09-28 in the
+  same shell: `lib/auth.ts` and `/signup/form` are deleted (see the student-chat
+  bullet), `(main)/layout.tsx` no longer resolves a role from the `userRole`
+  cookie it could never read, the sidebar's `/dashboard` items are replaced by one
+  Home item derived from `getRoleHome()`, and `AppSidebar`/`/dashboard/reports`
+  now accept the role spellings the deployed `profiles.role` column can hold
+  (`head`, `admin`) instead of only the frontend's `school_head`/`county_officer` —
+  which had silently given a signed-in head an empty nav and the teacher view.
+- The legacy local-storage session is gone too (2026-09-28). `AppHeader` and
+  `StudentHeader` filled the account menu from `localStorage.userName`/`userEmail`,
+  defaulting to **"User / user@example.com" for every signed-in person**, and
+  their "Log out" was a link to `/login` — an alias for `/auth/signin` that leaves
+  the Supabase session alive, so a learner who clicked it was signed in and looking
+  at the sign-in form at once. `ProfileDialog` was the only writer of those keys:
+  saving a name wrote the device and never touched `profiles.full_name`, which
+  every server handler reads. All three now take identity from `useAuth()` and the
+  dialog calls `updateProfile()`. Five more components (the Jitsi room display
+  name, county comms sender, school-head announcement sender, the legacy lesson-plan
+  dialog, `/student/learn_by_making`) were reading the same absent keys and getting
+  their fallback label; they use the profile row too. The avatar picker is deleted
+  rather than faked — a base64 data URL in `profiles.avatar_url` would put
+  megabytes in a column every auth path reads, and this project has no Supabase
+  Storage bucket or policies yet, so durable avatars are a migration the account
+  holder owns. `legacy-auth-surface.test.ts` fails on any `localStorage` read or
+  write of `userName`/`userEmail`/`userAvatar`/`studentName`/`userRole`, on a
+  header that links to `/login` instead of calling `signOut()`, and on the nine
+  unreferenced legacy dashboards (`components/dashboards/{teacher,county-officer,
+  school-head,school-admin,national-admin,parent}-dashboard.tsx`,
+  `components/gamification/*`, `digital-attendance-register.tsx`) growing back.
 - Laya System-1 affect router exists as a gated, unadopted PoC
   (`ai-agents/src/syncsenta_agents/decisions/`, `LAYA_AFFECT_ENABLED` off by
   default). CPU latency and Kiswahili/Sheng accuracy are deliberately **unmeasured**:

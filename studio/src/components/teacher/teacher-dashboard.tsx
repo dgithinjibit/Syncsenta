@@ -33,11 +33,19 @@ interface Student {
  * socket has no listener. Setting `NEXT_PUBLIC_BACKEND_API_URL` /
  * `NEXT_PUBLIC_BACKEND_WS_URL` is what turns this view on; until then it says
  * so instead of pretending to connect.
+ *
+ * There is no `/api/v1` default any more. A default that points at a route only
+ * a local `cargo run` answers means every deployment makes a doomed request and
+ * then explains the failure in a toast — the same shape as the "Connecting"
+ * spinner that hid the original tutor bug. The prefix now comes from
+ * configuration or not at all, and `src/lib/__tests__/student-chat-transport.test.ts`
+ * fails if any file under `src/` grows a hard-coded `/api/v1/` literal again.
  */
-const MVP_API_BASE = (process.env.NEXT_PUBLIC_BACKEND_API_URL || '/api/v1/mvp').replace(
+const MVP_API_BASE = (process.env.NEXT_PUBLIC_BACKEND_API_URL ?? '').replace(
   /\/$/,
   ''
 );
+const LIVE_API_CONFIGURED = MVP_API_BASE.length > 0;
 const DASHBOARD_WS_TEACHER_PATH = '/dashboard/ws/teacher';
 const LIVE_BACKEND_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_BACKEND_WS_URL);
 
@@ -212,6 +220,13 @@ export function TeacherDashboard() {
   // Load students
   useEffect(() => {
     const loadStudents = async () => {
+      if (!LIVE_API_CONFIGURED) {
+        // Nothing to reach: the empty-state card below already says which
+        // service is missing, so do not make a doomed request to find out.
+        setRosterError('NEXT_PUBLIC_BACKEND_API_URL is not set');
+        setIsLoading(false);
+        return;
+      }
       try {
         setIsLoading(true);
         const response = await fetch(`${MVP_API_BASE}/students`);
@@ -244,6 +259,7 @@ export function TeacherDashboard() {
 
   // Load student messages
   const loadStudentMessages = useCallback(async (studentId: string) => {
+    if (!LIVE_API_CONFIGURED) return;
     try {
       const response = await fetch(`${MVP_API_BASE}/students/${studentId}/messages`);
       if (response.ok) {

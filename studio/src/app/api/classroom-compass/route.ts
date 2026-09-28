@@ -9,10 +9,16 @@ export async function POST(req: NextRequest) {
   try {
     const input = (await req.json()) as ClassroomCompassInput;
     
-    // The caller sends { teacherContext, history } (see ClassroomCompassInput
-    // and student/chat/chat-interface.tsx). Read the latest user turn as the
-    // query — the former `input.query`/`input.context` fields never existed,
-    // so the model silently received `undefined`.
+    // The caller sends { teacherContext, history } (see ClassroomCompassInput).
+    // Read the latest user turn as the query — the former `input.query`/
+    // `input.context` fields never existed, so the model silently received
+    // `undefined`.
+    //
+    // As of 2026-09-27 this endpoint has no caller left in the app: the only
+    // one was the legacy `student/chat/chat-interface.tsx`, deleted because it
+    // drove the tutor through the undeployed `/api/v1/mvp/*` backend. It stays
+    // deployed and LLM-backed for a teacher surface to adopt; remove it here if
+    // nothing claims it by the time the teacher tools are rebuilt.
     const context = input.teacherContext || 'General teaching assistance';
     const grade = extractGrade(context);
     const subject = extractSubject(context);
