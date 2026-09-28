@@ -124,11 +124,20 @@ export async function middleware(request: NextRequest) {
     .filter(Boolean)
     .join(' ');
 
+  // Nothing in the app loads a script from a public CDN (verified by search:
+  // the only mention of jsdelivr/unpkg in the tree was this header), so
+  // allowing them would widen the XSS surface for no benefit.
+  //
+  // SECURITY: this prose is a JavaScript comment and must stay outside the
+  // template literal below. The `.replace(/\s{2,}/g, ' ')` that flattens the
+  // header also collapses the newlines around it, so comments written inside
+  // the literal were emitted as a directive named `//`, the browser rejected
+  // the policy, and `script-src` — glued to the end of that garbage directive
+  // — never applied. Every inline script then fell back to `default-src 'self'`,
+  // Next.js's inline RSC payload was blocked, and signed-in student pages
+  // rendered blank. Regression test: src/lib/__tests__/csp-headers.test.ts.
   const cspHeader = `
     default-src 'self';
-    // Nothing in the app loads a script from a public CDN (verified by search:
-    // the only mention of jsdelivr/unpkg in the tree was this header), so
-    // allowing them widened the XSS surface for no benefit.
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: https: blob:;

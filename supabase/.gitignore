@@ -6,3 +6,12 @@
 .env.keys
 .env.local
 .env.*.local
+
+# Scratch output from the live-schema export. The collector scripts under
+# supabase/live_schema_export/*.js ARE committed; their inputs and outputs are
+# not, because they are re-fetchable from the SQL editor with
+# supabase/export_live_schema.sql and the migration dump carries the account
+# holder's email in every row. The distillation that matters is committed at
+# supabase/migrations_live/.
+live_schema_export/*.sql
+live_schema_export/incoming/

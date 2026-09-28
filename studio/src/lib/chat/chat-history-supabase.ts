@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '../supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../supabase/types';
 
 type ChatSession = Database['public']['Tables']['chat_sessions']['Row'];
@@ -180,9 +181,13 @@ export async function addChatMessage(
     tokensUsed?: number;
     model?: string;
     latencyMs?: number;
-  }
+  },
+  // See src/lib/__tests__/server-route-supabase-client.test.ts. The default is
+  // the browser singleton; a route handler must pass its cookie-backed client
+  // or this insert runs as `anon` and the RLS owner policy rejects it.
+  client: SupabaseClient<Database> = supabase
 ): Promise<string> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('chat_messages')
     .insert({
       session_id: sessionId,
@@ -204,7 +209,7 @@ export async function addChatMessage(
   }
 
   // Update session's last_message_at. Message count is optional.
-  await supabase
+  await client
     .from('chat_sessions')
     .update({
       last_message_at: new Date().toISOString(),
