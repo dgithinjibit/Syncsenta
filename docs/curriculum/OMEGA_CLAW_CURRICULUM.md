@@ -10,7 +10,29 @@ Omega Claw uses a staged pathway:
 | Grade 6 | Introduction only | Concepts, examples, safety, privacy, fairness, shared records, and teacher-guided activities |
 | Grades 10–12 | Senior School depth | Data, algorithms, evaluation, cybersecurity, governance, distributed systems, supervised practical work, and capstone projects |
 
-The curriculum adapts principles from Suzuki-inspired nurturing and listening, Kumon-inspired diagnostic and mastery progression, Universal Design for Learning, and project-based inquiry. It is not an official Suzuki, Kumon, UDL, or PBL programme.
+The curriculum adapts principles from five established approaches: Suzuki-inspired
+nurturing and listening, Kumon-inspired diagnostic and mastery progression, a
+Montessori-inspired prepared environment in which the learner chooses within
+limits, a Waldorf-inspired developmental sequence (imagination and story before
+abstraction, one subject dwelled with, arts woven through rather than bolted on),
+Reggio Emilia's hundred languages and pedagogical documentation, Universal Design
+for Learning, and project-based inquiry. Research and primary sources for each are
+in
+[`../research/omega-claw-learning-methods.md`](../research/omega-claw-learning-methods.md)
+and
+[`../research/learning-approaches-montessori-waldorf-reggio.md`](../research/learning-approaches-montessori-waldorf-reggio.md).
+
+This is not an official Suzuki, Kumon, Montessori, Waldorf, Reggio Emilia, UDL, or
+PBL programme, and two of their positions are deliberately **not** adopted:
+Waldorf's published screen position (no media before about age 7, heavy
+restriction to about 10) is incompatible with a screen product and is answered
+here by age-gated session posture plus required offline activities rather than by
+imitating it; Montessori's rejection of extrinsic reward and Reggio's disinterest
+in it are answered by making mastery language the learner-facing surface for PP1
+to Grade 6 (Montessori Planes I and II) while points, badges and streaks keep
+recording quietly for the teacher and parent views; and Reggio's documentation practice is adult-authored
+and interpretive, so it is a separate artefact type from the automatic
+`omega_scaffolding_events` telemetry and is not the same thing.
 
 ## Grade 6: First Steps in AI and Blockchain
 
