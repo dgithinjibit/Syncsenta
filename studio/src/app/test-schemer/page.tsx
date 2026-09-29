@@ -11,17 +11,37 @@ import {
   getCurriculumData,
   getAllGrades,
 } from '@/data/curriculum';
+import { parseGradeLevel } from '@/data/curriculum/grade-level';
 import type { GradeLevel } from '@/types/curriculum';
+
+interface StrandSummary {
+  name: string;
+  subStrands: string[];
+}
+
+interface CurriculumSummary {
+  grade: GradeLevel;
+  subjects: string[];
+  strands: StrandSummary[];
+}
 
 export default function TestSchemerPage() {
   const [emojiInput, setEmojiInput] = useState('Hello 👋 World 🌍! This is a test 😊');
   const [emojiOutput, setEmojiOutput] = useState('');
   const [selectedGrade, setSelectedGrade] = useState<GradeLevel>('Grade4');
-  const [curriculumData, setCurriculumData] = useState<any>(null);
+  const [curriculumData, setCurriculumData] = useState<CurriculumSummary | null>(null);
 
   const handleEmojiTest = () => {
     const filtered = EmojiFilter.strip(emojiInput);
     setEmojiOutput(filtered);
+  };
+
+  const handleGradeChange = (value: string) => {
+    // `<select>` yields `string`. `getAllGrades()` feeds it, so the parse passes
+    // today; parsing rather than casting keeps the type honest if the option list
+    // ever grows a label that is not a registry key.
+    const grade = parseGradeLevel(value);
+    if (grade) setSelectedGrade(grade);
   };
 
   const handleCurriculumTest = () => {
@@ -30,7 +50,7 @@ export default function TestSchemerPage() {
     setCurriculumData({
       grade: selectedGrade,
       subjects: subjects.map(s => s.name),
-      mathStrands: mathData?.strands.map(s => ({
+      strands: (mathData?.strands ?? []).map(s => ({
         name: s.name,
         subStrands: s.subStrands.map(ss => ss.name),
       })),
@@ -82,7 +102,7 @@ export default function TestSchemerPage() {
             <label className="block text-sm font-medium mb-2">Select Grade:</label>
             <select
               value={selectedGrade}
-              onChange={(e) => setSelectedGrade(e.target.value as GradeLevel)}
+              onChange={(e) => handleGradeChange(e.target.value)}
               className="w-full p-2 border rounded"
             >
               {getAllGrades().map(grade => (
@@ -106,11 +126,11 @@ export default function TestSchemerPage() {
               </div>
               <div>
                 <p className="text-sm font-medium mb-2">Mathematics Strands:</p>
-                {curriculumData.mathStrands?.map((strand: any) => (
+                {curriculumData.strands.map((strand) => (
                   <div key={strand.name} className="ml-4 mb-2">
                     <p className="font-medium">{strand.name}</p>
                     <ul className="list-disc list-inside text-sm ml-4">
-                      {strand.subStrands.map((ss: string) => (
+                      {strand.subStrands.map((ss) => (
                         <li key={ss}>{ss}</li>
                       ))}
                     </ul>
