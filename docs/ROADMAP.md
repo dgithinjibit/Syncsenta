@@ -108,11 +108,13 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `2f37915` | `rust-gates.yml` (unpushed — no `workflow` scope) and `docs/architecture/decision-one-rule-voice.md`, the ADR that answers "can the frontend be Rust?" |
 | `9f86916` | this §1, §5, §7, §8, §9 and the scoreboard, written against the four commits above |
 | `bc61765` | O-4 — the blocked-topic boundary is on every request path, and refuses in the learner's own language |
+| `37cfa98` | this §1's commit count, corrected to what `git rev-list` printed rather than what it used to print |
+| `c117bef` | O-5 — the challenge path is a `learning_progress` row, graded by the server, and wired to the ledger |
 
-Working tree clean. `HEAD` is **18 commits ahead of `origin/main`** (`git rev-list --left-right count
-origin/main...HEAD` → `0 18`): nine for the security gate and O-1/O-2, four for the Rust engine slice, and
-the rest are this map being brought up to date with them, plus O-4. Nothing here is pushed or deployed —
-see the `workflow` scope in §7 and the spent deploy cap below.
+Working tree clean. `HEAD` is **20 commits ahead of `origin/main`** (`git rev-list --left-right count
+origin/main...HEAD` → `0 20`): nine for the security gate and O-1/O-2, four for the Rust engine slice, one
+for O-4, one for O-5, and the rest are this map being brought up to date with them. Nothing here is pushed
+or deployed — see the `workflow` scope in §7 and the spent deploy cap below.
 
 ### The Rust slice, 2026-09-29 — three defects in the engine, found and fixed locally
 
@@ -206,6 +208,51 @@ default, so it now declares 20 s — assertion unchanged, and the file passes al
 What is *not* proven: this has never been deployed, so no real learner request has met it, and the guard
 tests assert source ordering (`the detect call sits before the first provider marker in each route file`)
 rather than running the route. Both are listed in §9.
+
+### O-5, the same day — the path is a row now, and the award is wired but has never fired
+
+`bc61765` closed the boundary; the scoreboard's item 9 was the last Omega Claw code task: *"progress
+persists and pays"*. Three facts made it worse than a missing `INSERT`:
+
+- `completed` was `useState<string[]>([])` in the card, so a refresh, a second device or tomorrow's
+  Chromebook started every learner at node 1. `learning_progress` — a row per learner per competency
+  since the schema was written — had no challenge rows at all, and no table for them existed.
+- The node list lived inside the component, so there was nowhere for an endpoint to check an answer
+  against.
+- Correctness was the browser's claim: `/api/omega-claw/progression` accepted `{ correct: true }` and
+  believed it. Harmless while nothing was earned; not harmless the moment the path touches the ledger.
+
+**What `c117bef` does.** `lib/omega-agent/omega-claw-challenge.ts` becomes the only copy of the node
+list and the only place an answer is graded; `GET`/`POST /api/omega-claw/challenge` sit behind
+`auth.getUser()`, take the grade from `profiles` (a body claiming `Grade 12` cannot file a Grade 6
+learner's rows where nobody looking for them will find them), write the row with the caller's own client
+so `learning_progress`'s owner policies apply, and reach for the service client only at
+`award_points()`. The card reads its saved path on mount and posts every attempt. Rows are keyed
+`omega-claw:<node id>`; the prefix is what lets the read get the path back without pulling in the
+competencies the tutor writes, and it cannot collide with a curriculum code, which are of the form
+`M8-ALG.1`.
+
+**"And pays" is where the honest number lives.** The award follows
+`calculateMasteryLevel()` — 20 answered questions at 90%+ — and the path has 3 nodes, so a learner who
+answers all three correctly sits at 3. **0 of 3 nodes can reach the 50-point transition as the path is
+today**, and that is measured, not estimated: the transition branch is proven to fire by a test that
+seeds a row at 20 answers and watches `award_points` land on the service client and nowhere else. What
+was built is the wire, not the payment. The fix for the length is O-3 — nodes come from the pack's 13
+`activity` rows — not a second, lower award rule, which would be the map's own "two voices" mistake in
+the one place it pays children.
+
+Evidence: 20 new tests, RED at 16 failed / 4 passed against a stub. `npx tsc --noEmit` → **exit 0**.
+`npx vitest run --no-file-parallelism` → **767 passed / 0 failed / 17 skipped** across 87 files.
+
+One test-infrastructure finding worth keeping: both new fakes initially mutated the row object a
+previous `select()` had handed back. `updateLearningProgress()` compares the level it just wrote
+against the row it read, so an in-place mutation made the mastery transition invisible *in the test*
+while the production code was right. PostgREST returns JSON; the fakes now replace rows instead. If a
+future fake of that client mutates in place, it will fail the same way and hide the same class of bug.
+
+What is *not* proven: nothing here is deployed, so no real session has written a row, which means the
+RLS admission question is open in exactly the way §9 already records for `/api/mwalimu` — the write is
+proven against a fake that speaks the query shapes, not against the database that owns the policies.
 
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
@@ -587,8 +634,17 @@ There are **four things called Omega**, which is the actual diagnosis:
    compiles the hand-written fallback parser in `interpreter.rs` instead. Deployed nowhere; no CI
    workflow runs `cargo`, so its 2 `#[tokio::test]`s have never been executed here either (740 MB free
    — an `axum`+`sqlx` workspace build is not attempted on this machine).
-3. **The TypeScript mirror** — `studio/src/lib/omega-agent/omega-claw-rules.ts` (230 lines) + `lib/omega-claw-api.ts`
-   (164) + 2 routes. This is what actually answers in production.
+3. **The TypeScript mirror** — `studio/src/lib/omega-agent/omega-claw-rules.ts` (230 lines, the
+   restatement of the pack's 35 statements, and the file the freeze decision is *about*) +
+   `lib/omega-claw-api.ts` (272) + 3 routes + `omega-agent/omega-claw-challenge.ts` (227). This is what
+   actually answers in production. Two of those three additions are deliberately outside the freeze:
+   `omega-claw-safety.ts` (O-4) and `omega-claw-challenge.ts` (O-5) restate no rule from the pack — one
+   translates a child's words into the pack's own blocked-topic ids, the other grades an answer and
+   writes a row. Nothing new was added to the restatement itself; `omega-claw-rules.ts` is the same
+   230 lines it was when the owner said *no ts now, just rust*. **The consequence to carry into
+   cut-over:** `POST /api/omega-claw/challenge` has no Rust counterpart at all — the service's four
+   routes are scope, activity-check, progression and hint — so when the mirror is cut, either the Rust
+   service grows a persistence route or the path stops persisting. That is a Stage 4 item, listed in §10.
 4. **Two unrelated things wearing the name**: `studio/src/lib/omega-agent/metta-core.ts`
    (`evaluateTutoringDecision()`, 857 lines, the scaffolding-intensity engine that `/api/chat` really
    calls — its thresholds are provably in sync with `rust-core/src/agent_runtime.rs`, measured by
@@ -606,7 +662,8 @@ Percentages, each with its denominator:
 | …against the Rust service's own surface? | 4 Rust routes | **2/4 = 50%** | `grep '\.route(' handlers/omega_claw.rs` |
 | Do the deployed answers match the pack? | 3 probes | **3/3** — clamping, action copy, unknown-outcome `400` | signed-in curl above |
 | Is the safety boundary enforced on any request path? | 6 blocked topics | **6/6 = 100%** as of `bc61765` — and **0/6** for every hour before it | `grep -rln detectBlockedOmegaClawContent studio/src/app/api` → chat + all four `/api/generate/*`; the drift lock in `omega-claw-safety.test.ts` parses the pack and refuses a topic with no trigger |
-| Is learner progress persisted? | — | **0** — `completed` is React state; no write | `interactive-challenge-path.tsx:71` |
+| Is learner progress persisted? | 3 challenge nodes | **3/3 have a write path and a read-back as of `c117bef`** — one `learning_progress` row per node, keyed `omega-claw:<node id>`, read on mount; **0/3** for every hour before it | `find studio/src/app/api/omega-claw -name route.ts` → 3 files; `omega-claw-challenge-progress.test.ts` writes with one client and reads with a second call against the same rows |
+| Does the path pay into the ledger? | 3 challenge nodes | **0/3** — the award follows `calculateMasteryLevel()` (20 answered at 90%+), and a 3-node path answered once each sits at 3. The wire is proven; the payment is not reachable yet | `grep -n 'questionsAnswered >= 20' studio/src/lib/progress/progress-tracking.ts` against `OMEGA_CLAW_CHALLENGE_NODES.length` → 3 |
 | Is the Rust engine live? | 1 service | **0 deployed, 0 CI runs** — and as of 2026-09-29 it is no longer 0 *correct*: three defects that made it answer `blocked` to everything are fixed locally (`.github/workflows/rust-gates.yml` exists on disk but is unpushed, so no runner has executed `cargo`) | no `cargo` step pushed to `.github/workflows/` |
 
 **Headline, stated as a denominator rather than a vibe: of the 35 rule statements in the pack, 35 are
@@ -616,9 +673,11 @@ Rust service), and the 6 blocked topics gated nothing until `bc61765` today — 
 paths, none of which is deployed yet. And 0 rules have ever been executed by the MeTTa runtime the project
 claims.** What changed on 2026-09-29 is not the second number — it is the last one's
 cause: the fallback engine was run locally for the first time and answered `blocked` to its own two tests
-until three defects were fixed (§1). The learner-facing card that renders them has 3 hardcoded nodes, of
-which **1 of 3** (`ai-input-output`) is a legal Grade 6 activity in the pack; `blockchain-consensus` is a
-Senior School row the pack would refuse for Grade 6, and `explain-your-thinking` is not in the pack at all.
+until three defects were fixed (§1). The learner-facing card renders 3 nodes that now live in one module
+rather than inside the component, of which **1 of 3** (`ai-input-output`) is a legal Grade 6 activity in
+the pack; `blockchain-consensus` is a Senior School row the pack would refuse for Grade 6, and
+`explain-your-thinking` is not in the pack at all. What each of the 3 *does* now have is a
+`learning_progress` row behind it (`c117bef`), which is the difference between a path and a quiz.
 
 **Defects found here, and where each stands now** (each is a code task, none is a schema task):
 - ~~`interactive-challenge-path.tsx:91` prints the raw symbol~~ — **closed by O-1, `371c884`**: the card
@@ -630,7 +689,9 @@ Senior School row the pack would refuse for Grade 6, and `explain-your-thinking`
   instead of asking, a `$` in a stored rule head never matched, and `load()` re-asserted the pack per
   request. Still unproven under `cargo` and still undeployed.
 - **Still open** — the three node ids are not `(omega-claw-activity …)` rows, so the path a learner walks
-  is not the path the rule pack approved. The Rust service can now answer that question
+  is not the path the rule pack approved. O-5 moved the list out of the component into
+  `omega-claw-challenge.ts`, which means O-3 now has one place to replace rather than two, but the list
+  is still three invented nodes. The Rust service can answer that question
   (`{grade, scope, activities[]}`, `2d857a5`), but production reads the frozen TypeScript mirror, which has
   no listing getter; see §10.
 - **Still open** — no scope/activity route *deployed*, so nothing in the running app can ask the question
@@ -725,6 +786,9 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **The TypeScript mirror is frozen, not extended; it is cut at cut-over, not patched** | owner ("*No ts now, just rust*") | O-1/O-2's canonical parser stays where it is, but no new capability is added to the mirror. Consequence: O-3's card cannot list approved activities until the Rust service answers in production, because the Rust route exists and the mirror has no listing getter — see §10 |
 | 2026-09-29 | **The frontend stays Next.js; Rust decides, Next.js renders** | agent, answering the owner's "*can we have frontend as rust instead of next js?*" | Measured rather than felt: 246 `.tsx` files and 129,501 lines of `.ts`+`.tsx` would be rewritten, Vercel cannot host a long-lived Axum process, and an Axum+HTMX rebuild re-derives every bug fixed this week. What the owner actually wanted — one voice for the rules — is got by the API shape `{grade, scope, activities[]}`, not by a rewrite. Full argument in `docs/architecture/decision-one-rule-voice.md` |
 | 2026-09-29 | **An engine that answers `blocked` to its own tests is a defect, not a design question** — fix the query/assert split before debating which language owns the rules | agent | §1's three Rust defects. The two pre-existing `#[tokio::test]`s assert `introductory` and so cannot ever have passed, which retires the "0 of 35 executed" line's implied excuse: the missing evidence was a working engine, not a missing runner |
+| 2026-09-29 | **Challenge progress goes into `learning_progress`, not a new table** — one row per node under `omega-claw:<node id>` | agent | O-5, commit `c117bef`. No DDL, no §29 migration-history question opened, and the path reads through the same owner-policy table the tutor already writes. The cost: `mastered` for a challenge node means 20 answers, so a 3-node path cannot reach it — stated as 0/3 in §5 rather than hidden by inventing a second, lower threshold |
+| 2026-09-29 | **The server grades the answer on any path that can reach the ledger** | agent | Same commit. `/api/omega-claw/progression` still accepts the client's `correct` because it only chooses wording; `/api/omega-claw/challenge` compares the submitted text against the node list it owns and ignores the claim. A rule pack that pays children cannot take "I was right" from the child |
+| 2026-09-29 | **The mirror freeze is about the pack's restatement (`omega-claw-rules.ts`), not the app's HTTP layer** | agent, reading the owner's "*No ts now, just rust*" strictly | `omega-claw-rules.ts` is still 230 lines and untouched since `c69af07`, so O-4's safety module and O-5's persistence are not extensions of the mirror. Consequence the owner must rule on at cut-over: `POST /api/omega-claw/challenge` has **no Rust counterpart** — the service routes scope, activity-check, progression and hint only — so Rust must grow a persistence route or the path stops persisting. §10 |
 
 ---
 
@@ -743,9 +807,34 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   **686 passed / 0 failed / 17 skipped** across 81 files. Re-run again after O-1 and O-2: **exit 0** and
   **714 passed / 0 failed / 17 skipped** across 83 files, which is the gate's 686 plus 28 tests that
   belong to those two commits and nothing else. Re-run a third time after O-4: `tsc --noEmit` **exit 0** and
-  **747 passed / 0 failed / 17 skipped** across 86 files. That newest tree has had **no `next build` and
-  no Vercel deploy**, because the day's deploy was spent on PR #20 — so for the commits since, the build
-  claim is nobody's evidence yet, and §1's "committed, not deployed" is the accurate status.
+  **747 passed / 0 failed / 17 skipped** across 86 files. Re-run a fourth time after O-5: `tsc --noEmit`
+  **exit 0** and **767 passed / 0 failed / 17 skipped** across **87 files** (86 + the new
+  `omega-claw-challenge-progress.test.ts`; the route tests went into the existing `omega-claw` directory).
+  That newest tree has had **no `next build` and no Vercel deploy**, because the day's deploy was spent on
+  PR #20 — so for the commits since, the build claim is nobody's evidence yet, and §1's "committed, not
+  deployed" is the accurate status.
+- **`/api/omega-claw/challenge` has never touched the real database either** — same shape of gap as the
+  next bullet, and worth stating separately because this one writes. The 20 O-5 tests drive
+  `updateLearningProgress()` and the ledger against an injected fake that holds rows in memory. What the
+  fake cannot answer: that `learning_progress`'s owner policy admits an `INSERT` from a
+  cookie-backed route-handler client. `/api/chat` has been doing exactly that against production since
+  Stage 1, but nobody has read the row back, so the closest evidence for this route is the same unproven
+  path described in the next bullet. Also unproven: that the insert branch's omitted columns
+  (`first_attempted_at`, `practice_count`) really do carry production defaults.
+  Closing it is one signed-in answer on the deployed build plus
+  `select competency_code, questions_answered, correct_answers from learning_progress where user_id = '<demo learner>'`.
+- **The component half of O-5 has never rendered.** The two claims the owner will check in a browser are
+  "the ticked nodes survive a refresh" and "the server decides what counts as correct". Both are proven at
+  the lib and route layer with an injected fake; neither is proven in the DOM. `interactive-challenge-path.tsx`
+  has no test of its own — there is no `@testing-library/react` in this project and `vitest.config.ts` runs
+  `environment: 'node'` — so its mount-time `readSavedPath()`, the `mounted` flag that guards a late
+  response, and the `setCompleted(earned)` hand-off from the server's answer are all unwired to any
+  assertion. The one guard that does exist is a source check: the card may no longer declare a node array
+  itself. Closing the rest is one refresh on `/student` — and note which account can do it: the pack covers
+  Grade 6, 10, 11 and 12 (`grep -n 'omega-claw-scope-for' backend/syncsenta-backend/data/omega_claw_rules.metta`
+  → five rows plus a `blocked` catch-all), so `showsOmegaClawPath()` returns false for the Grade 8 and
+  Grade 1 test learners. **Only the Grade 12 demo account can reach the card at all**, which is a content
+  gap (the path has no junior coverage) as much as a verification one.
 - **`/api/mwalimu` has never touched the real database.** S-4's 21 tests drive `readLearnerState()` and
   `recordTutorTurn()` through an injected fake client, which proves the query shapes and the arithmetic,
   not that production RLS admits them. The precedent that makes this a live risk rather than a formality:
@@ -834,8 +923,17 @@ Things that are *not* proven, restated so nobody (including a future session) ha
    there is Render account access at all — there is no `RENDER_API_KEY` in this environment, so I cannot
    deploy or even read the service's build log from here.
 5. **Push now, or hold the batch for the deploy cap?** One Vercel deploy was spent today on PR #20 and the
-   cap is daily. Eight of the 14 unpushed commits are already verified by tests but not by a build, so
-   pushing without deploying leaves §1's "committed, not deployed" as the accurate status either way.
+   cap is daily. Twenty commits are unpushed now, and the last five of them — O-4, the two Rust-count
+   doc fixes, O-5 and this write-up — have tests but no build behind them, so pushing without deploying
+   leaves §1's "committed, not deployed" as the accurate status either way.
+6. **Does the Rust service grow a persistence route, or does the challenge path stop persisting at
+   cut-over?** O-5 put the node list, the grading and the `learning_progress` write behind
+   `/api/omega-claw/challenge` — an endpoint that exists only in TypeScript. The Rust service's four routes
+   (`grade6/scope`, `activity-check`, `progression`, `hint`) answer rule questions and store nothing, so
+   Stage 4's "Rust answers, the mirror is deleted" would leave the path exactly where O-5 found it: React
+   state, gone on refresh. It needs either a Rust `challenge` route that writes `learning_progress` and
+   calls `award_points()`, or a decision that the path stays on the app while the rules move. This is the
+   owner's call, not mine, because it decides what "cut-over" covers.
 
 ---
 

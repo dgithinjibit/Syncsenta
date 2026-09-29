@@ -24,6 +24,12 @@ from earlier, and 8 (O-4) from `bc61765`. What remains is 7 (O-3, whose remainin
 decision the owner owes — ROADMAP §10), 9 (O-5, progress persistence and the 50-point award), and 10 (the
 engine running under `cargo`, which needs the `workflow` scope and a deploy).
 
+Read again the same day, after O-5: **8 ticked, 2 left** (`grep -c '^- \[x\]'` → 8, `grep -c '^- \[ \]'`
+→ 2) = **8 of 10**. Item 9 closed with `c117bef`. What remains is 7 (O-3 — the Rust half is done, the card
+still needs the owner to say whether it reads the undeployed service or one mirror getter) and 10 (O-6 —
+`cargo` has never run here, so the advertised engine has never executed the pack). Both of those need
+something outside this machine, which is why 8 is where the number sits rather than a rounded 9.
+
 - [x] **1. S-1 — print-window XSS sink removed.** `components/generate-scheme-of-work-dialog.tsx:73`
   builds a whole HTML document by string interpolation and feeds it to `windowWin.document.write`,
   including `${formData.grade}`, `${formData.subject}`, `${formData.strand}`,
@@ -214,12 +220,37 @@ constant pinning the module to one grade is what let the second parser drift.
   answerable. Two things this does not claim: the boundary has never met a deployed request (§9), and
   `isBlockedOmegaClawTopic()` itself is now the only blocked-topic export with no caller — its sibling
   `omegaClawBlockedTopic()` is what the translator asks. Cut or keep at cut-over, that is #22's call.
-- [ ] **9. O-5 — progress persists and pays.** `completed` is React state (`:71`), so a refresh erases a
+- [x] **9. O-5 — progress persists and pays.** `completed` is React state (`:71`), so a refresh erases a
   learner's path; `learning_progress` and `omega_scaffolding_events` are both live tables since the
   2026-09-28 memory migration. **Fix:** write the node completion through the existing
   `updateLearningProgress()`, which already reports `masteryJustAchieved`, so the path also becomes the
   thing that earns the 50-point ledger award Stage 1 shipped. **Test:** a second mount reads back what
   the first one wrote. ~1.5 hours.
+  **CLOSED 2026-09-29, commit `c117bef`.** The item was three defects wearing one coat: React-state
+  progress, a node list living inside the component (so no endpoint could know the answer), and the browser
+  grading itself — the last of which became unacceptable the moment persistence joined the path to the
+  ledger. Now `src/lib/omega-agent/omega-claw-challenge.ts` holds the three nodes, grades the answer and
+  writes one `learning_progress` row per node under `competency_code = 'omega-claw:<node id>'`;
+  `GET`/`POST /api/omega-claw/challenge` are the routes; the card reads on mount and trusts the server's
+  verdict. No new table, no DDL — the prefix cannot collide with a curriculum code (`M8-ALG.1` has no
+  colon), the read filters on it, and production's unique `(user_id, competency_code)` makes a repeat
+  answer an update instead of a duplicate. Identity and grade come from the server (`auth.getUser()` then
+  `profiles.grade`, with the body's grade only filling a profile that has none, `409` if neither exists);
+  the row is written *as the learner* on `createSupabaseRouteHandlerClient()`, and only `award_points()`
+  runs on the service client — the route test makes the user client's `rpc` throw, so a future mix-up fails
+  loudly rather than 42501-ing invisibly. 20 tests, RED at 16 failed / 4 passed, `tsc --noEmit` exit 0.
+  **What "pays" does not mean yet.** `calculateMasteryLevel()` requires `progress_percentage >= 90` **and**
+  `questions_answered >= 20`, so three nodes answered once each sit at 3: **0 of 3 can reach the 50-point
+  award today.** The wiring is proven (the tests drive the same function with 20 and 40 attempts), the
+  threshold is not quietly lowered to make the sentence read better, and no fifth `transaction_type` was
+  invented because the ledger's CHECK constraint admits exactly four — adding one is DDL. Either the path
+  grows to 20 attempts or the award moves; that is a content decision.
+  **Two things this does not claim.** "A second mount reads back" is proven against an in-memory fake, not
+  in a browser: there is no `@testing-library/react` here and vitest runs `environment: 'node'`, so the
+  card's own `useEffect` has no assertion, and nothing is deployed (ROADMAP §9). And the fake nearly lied:
+  it used to mutate the row object a previous `select()` had returned, so `updateLearningProgress()`
+  compared the level it had just written against itself and reported no transition — production was right,
+  the test double was wrong. Fakes must replace rows on UPDATE the way PostgREST returns JSON.
 - [ ] **10. O-6 — the MeTTa engine actually executes the pack.** Blocked, by definition, on deploying
   `backend/syncsenta-backend` and on task #22 choosing one voice. Note the detail that decides what
   "running MeTTa" would even mean here: `Cargo.toml` sets `default = []` and `metta = ["dep:hyperon"]`,
