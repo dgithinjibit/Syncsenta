@@ -110,11 +110,13 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `bc61765` | O-4 — the blocked-topic boundary is on every request path, and refuses in the learner's own language |
 | `37cfa98` | this §1's commit count, corrected to what `git rev-list` printed rather than what it used to print |
 | `c117bef` | O-5 — the challenge path is a `learning_progress` row, graded by the server, and wired to the ledger |
+| `81401f4` | this §1 subsection, §5's two new rows, §8's three decisions, §9's two gaps and the scoreboard's item 9 |
 
-Working tree clean. `HEAD` is **20 commits ahead of `origin/main`** (`git rev-list --left-right count
-origin/main...HEAD` → `0 20`): nine for the security gate and O-1/O-2, four for the Rust engine slice, one
-for O-4, one for O-5, and the rest are this map being brought up to date with them. Nothing here is pushed
-or deployed — see the `workflow` scope in §7 and the spent deploy cap below.
+Working tree clean. As of `81401f4`, `git rev-list --count origin/main..HEAD` printed **21**: nine for the
+security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, and the rest are this
+map being brought up to date with them. Nothing here is pushed or deployed — see the `workflow` scope in §7
+and the spent deploy cap below. The number is stated as what the command printed at a named commit rather
+than as a live total, because the next commit to this file changes it.
 
 ### The Rust slice, 2026-09-29 — three defects in the engine, found and fixed locally
 
@@ -813,13 +815,14 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   That newest tree has had **no `next build` and no Vercel deploy**, because the day's deploy was spent on
   PR #20 — so for the commits since, the build claim is nobody's evidence yet, and §1's "committed, not
   deployed" is the accurate status.
-- **`/api/omega-claw/challenge` has never touched the real database either** — same shape of gap as the
-  next bullet, and worth stating separately because this one writes. The 20 O-5 tests drive
+- **`/api/omega-claw/challenge` has never touched the real database** — same shape of gap as
+  `/api/mwalimu` three bullets down, and worth stating separately because this one writes. The 20 O-5
+  tests drive
   `updateLearningProgress()` and the ledger against an injected fake that holds rows in memory. What the
   fake cannot answer: that `learning_progress`'s owner policy admits an `INSERT` from a
   cookie-backed route-handler client. `/api/chat` has been doing exactly that against production since
   Stage 1, but nobody has read the row back, so the closest evidence for this route is the same unproven
-  path described in the next bullet. Also unproven: that the insert branch's omitted columns
+  path described there. Also unproven: that the insert branch's omitted columns
   (`first_attempted_at`, `practice_count`) really do carry production defaults.
   Closing it is one signed-in answer on the deployed build plus
   `select competency_code, questions_answered, correct_answers from learning_progress where user_id = '<demo learner>'`.
@@ -923,9 +926,10 @@ Things that are *not* proven, restated so nobody (including a future session) ha
    there is Render account access at all — there is no `RENDER_API_KEY` in this environment, so I cannot
    deploy or even read the service's build log from here.
 5. **Push now, or hold the batch for the deploy cap?** One Vercel deploy was spent today on PR #20 and the
-   cap is daily. Twenty commits are unpushed now, and the last five of them — O-4, the two Rust-count
-   doc fixes, O-5 and this write-up — have tests but no build behind them, so pushing without deploying
-   leaves §1's "committed, not deployed" as the accurate status either way.
+   cap is daily. Twenty-one are unpushed as of §1's named commit, and six of those —
+   O-4, three doc corrections, O-5 and this write-up — have tests and a `tsc` gate but no build behind
+   them, so pushing without deploying leaves §1's "committed, not deployed" as the accurate status either
+   way.
 6. **Does the Rust service grow a persistence route, or does the challenge path stop persisting at
    cut-over?** O-5 put the node list, the grading and the `learning_progress` write behind
    `/api/omega-claw/challenge` — an endpoint that exists only in TypeScript. The Rust service's four routes
