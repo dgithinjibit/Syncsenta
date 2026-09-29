@@ -98,13 +98,17 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `f97dcc5` | S-4 — the phantom-memory engine deleted, `/api/mwalimu` authenticated and reading real tables |
 | `a966b04` | S-2 — 14 identity-bearing ids on the CSPRNG, no non-CSPRNG branch |
 | `66167fb` | S-4's tail — the last two bare `GradeLevel` casts, and the guard that keeps them gone |
+| `cdf32cc` | the security gate written down — scope scoreboard ticked, this §1, §8 and §9 |
+| `371c884` | O-1 — the challenge path renders the API's learner sentences; the local copies deleted |
+| `d476c20` | O-2 — one canonical grade parser; the teacher module stops refusing `Grade-6` |
 
 Working tree clean; the branch is merged, so `origin/main` and `HEAD` agree as of this writing.
 
 **What runs next is scoped in `docs/SCOPE-SECURITY-AND-OMEGA.md`** — a 10-item scoreboard the owner
 dictated on 2026-09-29 ("*do not build a single new feature or touch the reasoning engine until your
-codebase is hardened*", then "*code this omegaclaw to around 90%*"). Items 1–4 are the security gate,
-5–9 are Omega Claw, and 10 (the MeTTa engine actually executing the pack) cannot be ticked from this
+codebase is hardened*", then "*code this omegaclaw to around 90%*"). Items 1–4 are the security gate and
+are **closed**; 5–6 (O-1, O-2) are **closed**, 7–9 are Omega Claw and still open, and 10 (the MeTTa engine
+actually executing the pack) cannot be ticked from this
 machine, which is why 9/10 is the ceiling rather than a rounding choice. The file also records which of
 the directive's five claims are still true on `main` today: the SSRF one is already closed and guarded
 by a test, the randomness one is real but one file deeper, the XSS one is the worst item there, the
@@ -140,6 +144,32 @@ it says anything yet about `sentastudio.vercel.app`.
 Both test files were committed once green — see Stage 1's re-baseline item. The rule that kept
 `schema-coverage.test.ts` out of the tree for a day was that a committed red test only teaches
 people to ignore red; it is no longer red.
+
+### Items 5–6 (O-1, O-2) are closed on `main` locally, 2026-09-29
+
+`371c884` and `d476c20`. With the gate closed, Omega Claw work is allowed again, and these two are the
+cheap halves of it: the learner-facing copy and the grade test that decides who sees the card.
+
+- `npx tsc --noEmit` → **exit 0**; `npx vitest run --no-file-parallelism` → **714 passed, 0 failed,
+  17 skipped** across 83 files (+1 skipped). `VITEST_EXIT=0`. That is 686 + O-1's 11 + O-2's 17, which
+  is the arithmetic check on the two commits being the only thing that moved.
+- **O-1** — the card printed `Guided hint 2: isolate-step`, the raw MeTTa symbol, while the same response
+  carried `hintMessage: "Find the one step you are unsure about…"` (both verified against production).
+  Now `lib/omega-claw-copy.ts` renders the server's sentences and the five hardcoded strings are deleted,
+  so learner copy exists in one place and it is the place the rules were tested against.
+- **O-2** — the card's own `isOmegaClawGrade()` stripped whitespace only, so a `Grade-6` profile got
+  `null`; it now calls `showsOmegaClawPath()`, defined as `omegaClawScopeFor(grade) !== 'blocked'`, so
+  `SCOPE_BY_GRADE` in the pack mirror is the only place grade membership is decided. A test asserts the
+  equivalence instead of a list of expected booleans, so a future edit that re-forks the logic fails.
+
+A second canonicaliser the scope had not named, found by grepping for the bug's shape rather than its
+location: `src/curriculum/omega-claw-ai-blockchain.ts` kept its own grade list, so a **teacher** opening a
+Grade-6 class was told the grade was out of scope. It delegates to the mirror now. Its
+`SENIOR_BAND_LABELS = ["s1","s2","s3"]` widening is recorded in §8 as an input to task #22 — the Rust
+service does not accept band labels today, so "one voice" has to decide whether it inherits this or those
+classes break.
+
+**Same caveat as above: committed, not pushed, not deployed, not browser-verified.**
 
 ---
 
@@ -438,7 +468,7 @@ claiming dashboards that rendered blank. `?` = not established.
 | **Omega Claw** — grade scope and activity-allowance rules | yes in the TS mirror and the Rust façade | yes — mirror is asserted against the parsed `.metta` file | **no** — the app exposes no route for either | no |
 | **Omega Claw** — blocked-topic safety boundary (6 rules) | yes in the mirror | yes | **enforced nowhere** — no chat, generation or request path calls it | no |
 | **Omega Claw** — decision persistence (`omega_decisions`) | `lib/omega-agent/core.ts:403` inserts | no | **the table does not exist** in production or in any migration | no |
-| **Omega Claw** — `/student` challenge path (the learner-facing card) | yes, mounted at `app/student/page.tsx:256` | no component test | yes | **no** — SSR HTML is a `Loading your record…` shell by design, so rendering has not been seen in a browser |
+| **Omega Claw** — `/student` challenge path (the learner-facing card) | yes, mounted at `app/student/page.tsx:256` | source guards + 17 tests on the copy and grade layers it now delegates to (`omega-claw-copy`, `omega-claw-path`); no render test, because the suite runs in `node`, not jsdom | yes | **no** — SSR HTML is a `Loading your record…` shell by design, so rendering has not been seen in a browser |
 | **Omega Claw** — the Rust service behind it | yes (`backend/syncsenta-backend`) | 2 `#[tokio::test]`s exist, never executed here or in CI | **deployed nowhere** | no |
 | Offline / PWA | service worker exists | never registered | — | **0% live** |
 | Lesson generation (`/lesson-architect/*` on Render) | yes | yes | **not redeployed** | no |
@@ -585,6 +615,8 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **`/api/*` is not behind the middleware auth wall, so every route that touches a learner self-authenticates with `auth.getUser()` and 401s otherwise.** `/api/mwalimu` took `userId` from the request body instead | agent | Closes an IDOR the directive had not named: any caller could name any learner. `/api/chat` already did this; the rule now covers both, and `sessionId` is server-assigned for the same reason |
 | 2026-09-29 | Unusable code that duplicates a defect class is cut, not patched — `lib/personalized-learning.ts`, the `/api/test-personalization` harness, and `lib/quiz-trigger.ts` | agent | Applies the owner's 2026-09-29 cut rule to three modules with zero importers, each of which kept server state in a `Map` + `localStorage` pair. A guard test keeps each deletion from silently regrowing |
 | 2026-09-29 | A percentage for this project must name its denominator and its command, or it is not reported | agent (from the owner's standing rule) | §8 already forbids a single progress %; §5's Omega table is what compliance looks like — 35 mirrored / 10 reachable over HTTP / 0 executed by MeTTa, each from a greppable count |
+| 2026-09-29 | **Learner-facing wording comes from the API response, not the component** — `hintMessage` and `nextActionMessage` are rendered; the five hardcoded sentences and the `nextAction === '…'` comparisons are deleted | agent | O-1, commit `371c884`. The server's string is the one the rule pack's tests cover, so a component-local paraphrase can be green and still disagree with the engine. `hintFeedback()` also refuses to print `result.hint`, which is a MeTTa symbol (`isolate-step`), not a sentence |
+| 2026-09-29 | **Omega Claw grade membership is decided in exactly one place: `SCOPE_BY_GRADE`.** Two local grade tests deleted; `s1`/`s2`/`s3` are accepted as a named superset in the teacher module | agent | O-2, commit `d476c20`. One card was returning `null` for a `Grade-6` profile the pack covers, and the teacher module was independently telling a teacher that Grade 6 was out of scope. Task #22 must rule on the band labels — the Rust service does not accept them today, so "one voice" inherits this widening or breaks those classes |
 
 ---
 
@@ -600,8 +632,10 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   **Piping vitest through `tail` reports exit code 0 even when tests fail**, so read the output file —
   the run's own `VITEST_EXIT` line, not the shell's.
 - The same two commands were re-run after the security gate landed: `tsc --noEmit` **exit 0**, suite
-  **686 passed / 0 failed / 17 skipped** across 81 files. That newer tree has had **no `next build` and
-  no Vercel deploy**, because the day's deploy was spent on PR #20 — so for these five commits the build
+  **686 passed / 0 failed / 17 skipped** across 81 files. Re-run again after O-1 and O-2: **exit 0** and
+  **714 passed / 0 failed / 17 skipped** across 83 files, which is the gate's 686 plus 28 tests that
+  belong to those two commits and nothing else. That newest tree has had **no `next build` and
+  no Vercel deploy**, because the day's deploy was spent on PR #20 — so for these seven commits the build
   claim is nobody's evidence yet, and §1's "committed, not deployed" is the accurate status.
 - **`/api/mwalimu` has never touched the real database.** S-4's 21 tests drive `readLearnerState()` and
   `recordTutorTurn()` through an injected fake client, which proves the query shapes and the arithmetic,

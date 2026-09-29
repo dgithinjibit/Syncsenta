@@ -134,17 +134,46 @@ no `any`. It is the test that makes this file's "security pipeline green" a chec
 residual `Math.random` / `document.write` / `localStorage` hit in the greps is doc-comment prose in
 `print-scheme.ts:6,10`, `secure-id.ts:6` and `app/api/mwalimu/route.ts:13`, each naming the sink it
 removed.
-- [ ] **5. O-1 — the challenge path renders the words the API already returns.**
+- [x] **5. O-1 — the challenge path renders the words the API already returns.**
   `interactive-challenge-path.tsx:91` prints `Guided hint 2: isolate-step` while the same response
   carries `hintMessage` (verified against production: `"Find the one step you are unsure about…"`);
   `:110-119` discards `nextActionMessage` and keeps a near-identical hardcoded copy, so learner copy
   exists in two places and only the tested one can be trusted. **Fix:** render the API strings, delete
   the duplicates. ~20 minutes.
-- [ ] **6. O-2 — one canonicaliser.** `:51 isOmegaClawGrade()` strips whitespace only, so a profile
+- [x] **6. O-2 — one canonicaliser.** `:51 isOmegaClawGrade()` strips whitespace only, so a profile
   reading `Grade-6` becomes `grade-6`, fails all three tests and the card returns `null` for a learner
   the rule pack covers; Rust and `omega-claw-rules.ts` both strip `-` and `_`. **Fix:** import
   `canonicalOmegaClawGrade`/`omegaClawScopeFor` from the mirror and delete the local copy. **Test:**
   `Grade-6`, `grade 6`, `G6`, `Grade-13`, `''`. ~30 minutes.
+
+### Items 5–6 done, 2026-09-29 (O-1, O-2)
+
+Verified on this tree: `npx tsc --noEmit` exit 0, and
+`npx vitest run --no-file-parallelism` → **714 passed, 17 skipped, 0 failed** (83 files + 1 skipped
+MeTTa e2e suite needing a running engine). Commits `371c884` (O-1) and `d476c20` (O-2). Not pushed or
+deployed — the day's Vercel deploy was already spent on PR #20.
+
+- **O-1** — `lib/omega-claw-copy.ts` renders the server's `hintMessage` and `nextActionMessage`; the
+  card's five hardcoded sentences and its `nextAction === '…'` comparisons are gone, and 11 tests
+  enforce both halves. `hintFeedback()` deliberately never falls back to `result.hint`, which is the
+  MeTTa symbol a learner cannot read (`isolate-step`), not a sentence.
+- **O-2** — `lib/omega-claw-path.ts` `showsOmegaClawPath()` replaces the card's local
+  `isOmegaClawGrade()`, and it is defined as `omegaClawScopeFor(grade) !== 'blocked'` so the pack's
+  `SCOPE_BY_GRADE` table is the only place grade membership is decided. 6 tests, including an
+  equivalence assertion against the mirror rather than a list of expected booleans.
+
+O-2 found a second canonicaliser the scope did not name, and it was the worse of the two:
+`src/curriculum/omega-claw-ai-blockchain.ts` had its own `isOmegaClawGrade()` comparing against a
+hardcoded list, so a **teacher** opening a Grade-6 class was told the grade was out of scope for a
+subject that has its own `SCOPE_BY_GRADE` row. It now delegates to the mirror too, plus a named and
+commented `SENIOR_BAND_LABELS = ["s1","s2","s3"]` widening — Cabana band labels, not grade numbers, and
+the senior branch already degrades safely when the stage is unknown. Refusing a real senior class on a
+naming difference is worse than answering it at band level. **This widening is a decision for task #22**
+(one voice): the Rust service does not accept band labels today, so choosing the Rust pack as
+authoritative will either inherit it or break those classes. 11 tests in
+`src/curriculum/__tests__/omega-claw-grade-spellings.test.ts`, RED at 6 failed first.
+`OMEGA_CLAW_CURRICULUM_GRADE = "g6"` is deleted (zero references repo-wide, markdown included); a
+constant pinning the module to one grade is what let the second parser drift.
 - [ ] **7. O-3 — the nodes come from the pack, and scope/activity get routes.** The card's three ids
   (`ai-input-output`, `blockchain-consensus`, `explain-your-thinking`) are hardcoded, and only the first
   is a legal Grade 6 activity — the second is a Senior School row the pack would refuse, the third is
