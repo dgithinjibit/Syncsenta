@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Sparkles, Download, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { SchemeRow } from '@/types/curriculum';
+import { renderLessonPlanPrint } from '@/lib/print-lesson-plan';
 
 interface LessonPlanDialogProps {
   open: boolean;
@@ -144,43 +145,9 @@ export default function LessonPlanDialog({
     const printArea = document.getElementById('lesson-plan-print');
     if (!printArea) return;
 
-    printArea.innerHTML = `
-      <div style="font-family: serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-        <h1 style="text-align:center; font-size:18pt; margin-bottom:4px;">${plan.title}</h1>
-        <p style="text-align:center; color:#666; font-size:10pt; margin-bottom:16px;">${grade} — ${subject} — ${plan.duration}</p>
-        
-        <table style="width:100%; border-collapse:collapse; font-size:10pt; margin-bottom:16px;">
-          <tr><td style="border:1px solid #ccc; padding:6px; font-weight:bold; width:30%;">Strand</td><td style="border:1px solid #ccc; padding:6px;">${plan.strand}</td></tr>
-          <tr><td style="border:1px solid #ccc; padding:6px; font-weight:bold;">Sub-Strand</td><td style="border:1px solid #ccc; padding:6px;">${plan.subStrand}</td></tr>
-          <tr><td style="border:1px solid #ccc; padding:6px; font-weight:bold;">Key Inquiry Question</td><td style="border:1px solid #ccc; padding:6px;">${plan.keyInquiryQuestion}</td></tr>
-        </table>
-
-        <h3 style="font-size:12pt; margin:12px 0 6px;">Learning Objectives</h3>
-        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.objectives.map((o) => `<li>${o}</li>`).join('')}</ul>
-
-        <h3 style="font-size:12pt; margin:12px 0 6px;">Introduction (${plan.introduction.duration})</h3>
-        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.introduction.activities.map((a) => `<li>${a}</li>`).join('')}</ul>
-
-        <h3 style="font-size:12pt; margin:12px 0 6px;">Lesson Development (${plan.development.duration})</h3>
-        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.development.activities.map((a) => `<li>${a}</li>`).join('')}</ul>
-
-        <h3 style="font-size:12pt; margin:12px 0 6px;">Conclusion (${plan.conclusion.duration})</h3>
-        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.conclusion.activities.map((a) => `<li>${a}</li>`).join('')}</ul>
-
-        <h3 style="font-size:12pt; margin:12px 0 6px;">Assessment</h3>
-        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.assessment.map((a) => `<li>${a}</li>`).join('')}</ul>
-
-        <h3 style="font-size:12pt; margin:12px 0 6px;">Differentiation</h3>
-        <p style="font-size:10pt;"><strong>Advanced learners:</strong> ${plan.differentiation.advanced}</p>
-        <p style="font-size:10pt;"><strong>Struggling learners:</strong> ${plan.differentiation.struggling}</p>
-
-        <h3 style="font-size:12pt; margin:12px 0 6px;">Resources</h3>
-        <ul style="margin:0; padding-left:20px; font-size:10pt;">${plan.resources.map((r) => `<li>${r}</li>`).join('')}</ul>
-
-        <h3 style="font-size:12pt; margin:12px 0 6px;">Teacher's Reflection</h3>
-        <p style="font-size:10pt; border:1px dashed #ccc; padding:12px; min-height:60px;">${plan.teacherReflection}</p>
-      </div>
-    `;
+    // Text nodes only: the plan is model output, and this area lives in the
+    // application's own document, so nothing here may be parsed as markup.
+    renderLessonPlanPrint(document, printArea, plan, { grade, subject });
     window.print();
   };
 
