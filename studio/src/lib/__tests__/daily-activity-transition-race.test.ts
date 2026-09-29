@@ -1,16 +1,17 @@
 /**
  * The same race, one table over.
  *
- * `updateDailyActivity()` is the read-modify-write that `c71aa18` fixed for `learning_progress`: it
- * selects today's row, adds to the counters in JavaScript, and writes the totals back with no
- * condition on the `UPDATE`. Two requests landing in the same second — a tutor turn and a challenge
- * answer, or the chat route writing the assistant message while the learner's next message is already
- * in flight — both read `messages_sent: 4`, both write 5, and the teacher's dashboard reports one
- * message fewer than the learner actually sent. `docs/ROADMAP.md` §2's whole point is that every
- * number a teacher sees traces to a real learner action, so a quietly lost action is a defect in that
- * promise rather than a rounding error.
+ * `updateDailyActivity()` was, until `9110da3`, the same read-modify-write `c71aa18` fixed for
+ * `learning_progress`: it selected today's row, added to the counters in JavaScript, and wrote the
+ * totals back with no condition on the `UPDATE`. Its only production caller is
+ * `/api/chat/route.ts:658`, so the race is two tutor requests from one learner — a double-send, a retry
+ * over a slow stream, or the same child on two tabs — both reading `messages_sent: 4` and both writing 5,
+ * which leaves the teacher's dashboard reporting one message fewer than the learner actually sent.
+ * `docs/ROADMAP.md` §2's whole point is that every number a teacher sees traces to a real learner action,
+ * so a quietly lost action is a defect in that promise rather than a rounding error.
  *
- * These fail against the code as it is: the second writer's totals land over the first one's.
+ * Red-green record: 4 of these 5 failed against the code before `9110da3`. The one that passed is the
+ * uncontested day — the shape this guard must not disturb.
  */
 
 import { readFileSync } from 'node:fs';

@@ -113,11 +113,13 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `81401f4` | this §1 subsection, §5's two new rows, §8's three decisions, §9's two gaps and the scoreboard's item 9 |
 | `f1c409a` | the counts in that write-up, tied to the commands that printed them |
 | `c71aa18` | a mastery transition can be reported only once, by the request that actually caused it |
+| `9110da3` | the same guard on `daily_activity`, where a lost write deletes a message the learner really sent |
 
-Working tree clean. As of `c71aa18`, `git rev-list --count origin/main..HEAD` printed **23**: nine for the
-security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, one for the ledger
-race, and the rest are this map being brought up to date with them. Nothing here is pushed or deployed —
-see the `workflow` scope in §7 and the spent deploy cap below. The number is stated as what the command
+Working tree clean. As of `9110da3`, `git rev-list --count origin/main..HEAD` printed **25**: nine for the
+security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, two for the two
+read-modify-write races in the progress layer, and the rest are this map being brought up to date with
+them. Nothing here is pushed or deployed — see the `workflow` scope in §7 and the spent deploy cap below.
+The number is stated as what the command
 printed at a named commit rather than as a live total, because the next commit to this file changes it.
 
 ### The Rust slice, 2026-09-29 — three defects in the engine, found and fixed locally
@@ -293,6 +295,54 @@ accuracy later drops below 90% falls to `proficient` and is paid a second time w
 reserved a `correlation_id` column for idempotency — but nothing indexes either of them, so refusing needs
 one more DDL statement on a live school database this machine has never been able to exercise against an
 empty schema. That is §10's question, not a §5 claim.
+
+### `9110da3`, the same day — the same race one table over, where the cost is a deleted action
+
+`c71aa18` fixed the pattern, and the next function in the same file was still the pattern:
+`updateDailyActivity()` reads today's `daily_activity` row, adds `messagesSent` / `sessionsStarted` /
+`timeSpentMinutes` in JavaScript, and writes the totals back with no condition on the `UPDATE`. Two
+requests in the same second both read `messages_sent: 4`, both write `5`, and the day ends one message
+short. The window is narrower than the pattern suggests —
+`grep -rn "updateDailyActivity(" src | grep -v __tests__` → one hit, `src/app/api/chat/route.ts:658` — so
+the race this closes is two tutor requests from one learner: a double-send, a retry over a slow stream, or
+the same child on two tabs. Nothing is paid twice here, which is why it is a quieter bug than the
+double-pay; but §2's promise is that every number a teacher sees traces to a real learner action, and a
+silently dropped action breaks that promise in the direction that is hardest to notice — the dashboard
+under-reports a child's work.
+
+The guard is the same shape: the `UPDATE` carries the three counters the arithmetic read — all `non-null`
+`number` columns per `src/lib/supabase/types.ts:280-282` — plus `user_id` and `activity_date`, and a
+writer whose numbers went stale re-reads and recomputes up to `MAX_TRANSITION_ATTEMPTS` (the constant
+`c71aa18` introduced, now shared) before naming the conflict. `subjects_practiced` is deliberately *not*
+a guard predicate: it is `string[] | null`, so matching on it would make a null-vs-`[]` difference reject
+a write that should land; instead the union is re-derived from the fresh row on each attempt, which is
+why the losing writer merges into `['Mathematics', 'English']` rather than overwriting it with its own
+`['Mathematics', 'Agriculture']`. The insert branch is unchanged, including the pre-existing
+`insertRes as any` — `grep -c 'as any\|: any' src/lib/progress/progress-tracking.ts` → **14** lines, all
+of them older than today's work (this change removed three), and removing the rest is its own spoon, not
+a rider on a race fix.
+
+Evidence: 5 tests in `daily-activity-transition-race.test.ts`, **RED at 4 failed / 1 passed** against the
+code as it was. The failures, verbatim enough to check: `expected 5 to be 7`; a stored patch of two keys
+asserted against a five-key `toMatchObject`; `expected [ 'Mathematics', 'Agriculture' ] to deeply equal
+[ 'Mathematics', 'English', …(1) ]`; and the source guard finding no `.eq('messages_sent'` in the
+function body. The one that passed on the old code is the uncontested day, the shape this change must not
+disturb.
+`npx vitest run` on the two race files plus `points-award-on-mastery` → **26 passed**;
+`npx tsc --noEmit` → **exit 0**; `npx vitest run --no-file-parallelism` → **780 passed / 17 skipped**
+across **89 files** (`Test Files 89 passed | 1 skipped (90)` — the skipped file is the
+`ai-metta-e2e` one that needs `cargo`, so 90 files exist and 89 ran).
+
+**What it does not fix, and it is the same shape a third time.** `/api/chat` writes the Omega signals to
+`learning_progress` on a second, unguarded write immediately after the guarded one: `src/app/api/chat/route.ts:726-733`
+updates `hints_used` and `consecutive_wrong` on `.eq('user_id').eq('competency_code')` alone — no guard
+predicates, no `.select()` — and both values are derived from a row read at `:364`, before the answer was
+even generated. Two concurrent turns therefore settle by arrival order: one turn's `consecutive_wrong`
+increment can be replaced by the other's reset, which moves the difficulty the engine will pick next. It
+is not points, and it cannot re-cross a mastery boundary, because the guarded counters are not in this
+patch. Closing it properly means folding the signals into the guarded write (a delta and a reset flag, not
+an absolute value, so a retry recomputes them from the fresh row) rather than bolting a second retry loop
+onto a route handler. Recorded in §9 and offered as the next spoon, not done inside this one.
 
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
@@ -830,6 +880,7 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **The server grades the answer on any path that can reach the ledger** | agent | Same commit. `/api/omega-claw/progression` still accepts the client's `correct` because it only chooses wording; `/api/omega-claw/challenge` compares the submitted text against the node list it owns and ignores the claim. A rule pack that pays children cannot take "I was right" from the child |
 | 2026-09-29 | **The mirror freeze is about the pack's restatement (`omega-claw-rules.ts`), not the app's HTTP layer** | agent, reading the owner's "*No ts now, just rust*" strictly | `omega-claw-rules.ts` is still 230 lines and untouched since `c69af07`, so O-4's safety module and O-5's persistence are not extensions of the mirror. Consequence the owner must rule on at cut-over: `POST /api/omega-claw/challenge` has **no Rust counterpart** — the service routes scope, activity-check, progression and hint only — so Rust must grow a persistence route or the path stops persisting. §10 |
 | 2026-09-29 | **Guard the write in the application rather than add a ledger constraint, and say which half that leaves open** | agent | `c71aa18`. The double-pay is a read-modify-write with no condition on its `UPDATE`, and an optimistic lock on the four columns the arithmetic read fixes both the lost answer and the double transition without touching a live school schema — which this machine cannot test against an empty database (§9's own admission). The half it leaves: a `mastered` competency that dips below 90% and re-crosses is still paid twice, because refusing that needs an index on the ledger — `correlation_id` is already a column, and nothing uses it for uniqueness. §10 |
+| 2026-09-29 | **Guard on the numbers the arithmetic read, never on a nullable array — and treat "the same bug is one function away" as part of the fix** | agent | `9110da3`. `daily_activity` got the same optimistic lock, but `subjects_practiced` is `string[] | null`, so making it a guard predicate would let a `null`-vs-`[]` difference reject a write that should land; it is re-unioned from the fresh row on each attempt instead. The wider rule: after guarding one read-modify-write, grep the file for the shape rather than assuming the next function is different — that grep is what found this one, and §9's new bullet is what it found next. |
 
 ---
 
@@ -853,6 +904,10 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   `omega-claw-challenge-progress.test.ts`; the route tests went into the existing `omega-claw` directory).
   Re-run a fifth time after the ledger race: `tsc --noEmit` **exit 0** and **775 passed / 0 failed /
   17 skipped** across **88 files** (87 + `progress-transition-race.test.ts`).
+  Re-run a sixth time after the `daily_activity` race: `tsc --noEmit` **exit 0** and **780 passed /
+  0 failed / 17 skipped** across **89 files** (88 + `daily-activity-transition-race.test.ts`); the
+  command's own line reads `Test Files 89 passed | 1 skipped (90)`, and the skipped file is
+  `ai-metta-e2e.test.ts`, which needs `cargo` and is the reason the two numbers differ.
   That newest tree has had **no `next build` and no Vercel deploy**, because the day's deploy was spent on
   PR #20 — so for the commits since, the build claim is nobody's evidence yet, and §1's "committed, not
   deployed" is the accurate status.
@@ -920,8 +975,21 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   unique key beyond its own `id` (`sed -n '117,119p' supabase/migrations_live/20260929000000_gamification_and_school_scope.sql`
   → `id uuid primary key`), and the `correlation_id` column the schema reserved for idempotency is indexed
   by nothing, so a competency that re-crosses `mastered` after an accuracy dip is still paid twice. §10
-  asks whether to close that with DDL. Closing the *first* half needs no deploy — it needs one chat conversation that reaches mastery, read back from
-  the table.
+  asks whether to close that with DDL. Closing the *first* half needs no deploy — it needs one chat
+  conversation that reaches mastery, read back from the table.
+- **A third read-modify-write is still last-write-wins, and it moves the engine's next decision.**
+  `src/app/api/chat/route.ts:726-733` writes `hints_used` and `consecutive_wrong` to `learning_progress`
+  with only `.eq('user_id')` and `.eq('competency_code')` — no guard predicates, no `.select()` — from a
+  row read at `:364`, before the answer was generated. Two concurrent turns settle by arrival order: one
+  turn's `consecutive_wrong` increment can be replaced by the other's reset, and the next request's
+  scaffolding choice is made from whichever number landed last. It costs a difficulty signal, not points
+  (the guarded counters are not in this patch, so it cannot re-cross a mastery boundary), which is why it
+  is a §9 gap and not a §5 claim. `c71aa18` and `9110da3` closed the pattern in
+  `updateLearningProgress()` and `updateDailyActivity()`; this write wants the signals folded into the
+  guarded write as a delta and a reset flag rather than given a second retry loop in a route handler.
+  Worth naming what the guards *do* cover, because it is easy to assume the new endpoint is outside them:
+  the O-5 challenge path calls `updateLearningProgress()` (`src/lib/omega-agent/omega-claw-challenge.ts:187`),
+  so a double-tapped node answer gets `c71aa18`'s guard for free.
 - **The blocked-topic boundary (O-4) has never met a real request.** 29 tests cover the translator and the
   wire shape, and the route assertions check *source order* — that `detectBlockedOmegaClawContent(` appears
   before the first provider marker in each of the five route files — not that the route runs. Nobody has
