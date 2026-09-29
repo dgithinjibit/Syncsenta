@@ -1,0 +1,107 @@
+name: Rust gates
+
+# WHY THIS EXISTS: `backend/syncsenta-backend` has never had its tests executed
+# anywhere. The development laptop cannot link them (`cc` is a zig-built musl
+# clang with no `gcc`, and `ring` — pulled in by `jsonwebtoken`, `rustls`,
+# `reqwest`, `ethers` and `sqlx` — refuses the `x86_64-unknown-linux-gnu` target
+# triple), so `cargo test` exits 101 before a single test runs. The consequence
+# was measured on 2026-09-29: the Omega Claw query path asserted every query as a
+# fact instead of matching it, so `scope_for("Grade 6")` answered `blocked` and
+# every activity was refused for every learner — and the two tests that pin that
+# behaviour could never have passed. See
+# docs/architecture/decision-one-rule-voice.md.
+#
+# WHY A DATABASE JOB: 64 of the crate's queries are compile-time-checked
+# `sqlx::query!` macros and there is no committed `.sqlx/` offline data, so the
+# crate does not build without a live schema to validate them against. Postgres
+# plus the crate's own `migrations/` is therefore part of the gate, not an
+# integration nicety. If this job ever fails with "record .sqlx/ or provide
+# DATABASE_URL", the fix is `sqlx prepare --locked` in `backend/` against the
+# migrated database and committing the resulting `.sqlx/` — which would also make
+# this job hermetic and let the laptop check types without a link.
+#
+# NOT COVERED HERE: the `metta` cargo feature (the real hyperon runtime). It needs
+# cmake and native git and is exactly the toolchain the fallback engine exists to
+# avoid, so it is not compiled here. Item O-6 in docs/SCOPE-SECURITY-AND-OMEGA.md
+# stays open until a host runs it.
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'rust-core/**'
+      - 'rust-service/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'backend/Cargo.toml'
+      - 'backend/Cargo.lock'
+      - '.github/workflows/rust-gates.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'backend/Cargo.toml'
+      - 'backend/Cargo.lock'
+      - '.github/workflows/rust-gates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/syncsenta
+
+jobs:
+  tests:
+    name: migrate / build / test syncsenta-backend
+    runs-on: ubuntu-latest
+    # A cold link of ethers + sqlx + rustls is the long pole; 25 minutes is not
+    # enough and the job would be cancelled mid-build.
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: syncsenta
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d syncsenta"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      # The migrations are the schema the macros are checked against. Running the
+      # crate's own history rather than a hand-written fixture is deliberate: if a
+      # migration and a query disagree, this job is the place that finds out.
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres --locked
+
+      - name: Apply backend/syncsenta-backend/migrations
+        working-directory: backend
+        run: sqlx migrate run --source syncsenta-backend/migrations
+
+      - name: Build
+        working-directory: backend
+        run: cargo build --package syncsenta-backend --tests
+
+      - name: Test
+        working-directory: backend
+        run: cargo test --package syncsenta-backend
