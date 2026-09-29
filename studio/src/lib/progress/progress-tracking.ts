@@ -78,6 +78,58 @@ export interface ProgressUpdateResult {
 const MAX_TRANSITION_ATTEMPTS = 3;
 
 /**
+ * The ceiling on `consecutive_wrong`, which the chat route had been applying to its own arithmetic.
+ *
+ * It belongs next to the write that computes the number, or the cap becomes a property of whichever
+ * caller remembers it.
+ */
+const MAX_CONSECUTIVE_WRONG = 10;
+
+/**
+ * What a learner's difficulty signals should become, expressed as intents rather than totals.
+ *
+ * The row this function writes is the same row the next request reads to decide scaffolding, so these
+ * two columns used to be maintained by a second, unconditioned `UPDATE` in `/api/chat` — a write whose
+ * numbers came from a read taken before the answer existed. Folding them into the guarded write means an
+ * intent is resolved against the row that is actually there at the moment of landing: `hintsUsedAtLeast`
+ * is a floor the row can only rise to, `consecutiveWrongDelta` is one turn's increment on top of the
+ * current streak, and `resetConsecutiveWrong` is the turn that broke it.
+ */
+export interface OmegaProgressSignals {
+  hintsUsedAtLeast?: number;
+  consecutiveWrongDelta?: number;
+  resetConsecutiveWrong?: boolean;
+}
+
+/**
+ * The signal columns for one attempt, computed against the row this attempt is about to write.
+ *
+ * A writer that lost the race re-derives these from the row it just re-read, so the competing turn's
+ * streak is added to rather than replaced.
+ */
+function omegaSignalPatch(
+  signals: OmegaProgressSignals,
+  existing: LearningProgress,
+): Partial<Pick<LearningProgress, 'hints_used' | 'consecutive_wrong'>> {
+  const patch: Partial<Pick<LearningProgress, 'hints_used' | 'consecutive_wrong'>> = {};
+
+  if (signals.hintsUsedAtLeast !== undefined) {
+    patch.hints_used = Math.max(existing.hints_used, signals.hintsUsedAtLeast);
+  }
+
+  if (signals.resetConsecutiveWrong) {
+    patch.consecutive_wrong = 0;
+  } else if (signals.consecutiveWrongDelta !== undefined) {
+    patch.consecutive_wrong = Math.min(
+      existing.consecutive_wrong + signals.consecutiveWrongDelta,
+      MAX_CONSECUTIVE_WRONG,
+    );
+  }
+
+  return patch;
+}
+
+/**
  * The one row this competency has, or `null` when it does not exist yet.
  *
  * A read error is not thrown here, which preserves what this function did before the guard existed:
@@ -113,6 +165,8 @@ export async function updateLearningProgress(
     questionsAnswered?: number;
     correctAnswers?: number;
     timeSpentMinutes?: number;
+    /** Absent means this caller reports no difficulty signal, and neither column is touched. */
+    signals?: OmegaProgressSignals;
   },
   client: ProgressClient = supabase
 ): Promise<ProgressUpdateResult> {
@@ -154,6 +208,7 @@ export async function updateLearningProgress(
         mastered_at: masteryLevel === 'mastered' && !existing.mastered_at 
           ? new Date().toISOString() 
           : existing.mastered_at,
+        ...(updates.signals ? omegaSignalPatch(updates.signals, existing) : {}),
       })
       .eq('user_id', userId)
       .eq('competency_code', competencyCode)
@@ -211,6 +266,16 @@ export async function updateLearningProgress(
       time_spent_minutes: updates.timeSpentMinutes || 0,
       progress_percentage: progressPercentage,
       mastery_level: calculateMasteryLevel(progressPercentage, updates.questionsAnswered || 0),
+      // A first row is born with the turn's signals too, so the next request does not read zeros where
+      // this one reported a hint taken and a streak growing.
+      ...(updates.signals
+        ? {
+            hints_used: updates.signals.hintsUsedAtLeast ?? 0,
+            consecutive_wrong: updates.signals.resetConsecutiveWrong
+              ? 0
+              : Math.min(updates.signals.consecutiveWrongDelta ?? 0, MAX_CONSECUTIVE_WRONG),
+          }
+        : {}),
     });
 
   if (error) throw error;

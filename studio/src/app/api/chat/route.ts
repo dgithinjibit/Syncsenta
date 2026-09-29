@@ -685,10 +685,10 @@ export async function POST(req: NextRequest) {
               omegaDecision?.scaffolding ?? 'Guided',
             );
 
+            // What this turn claims about hints, kept for the scaffolding telemetry below. The stored
+            // value is `max(this, the row at the moment of landing)`, and that arithmetic now lives in
+            // `updateLearningProgress()` — see the `signals` field on the write underneath.
             const newHintsUsed = Math.max(body.hintsUsed ?? 0, contextRow?.hints_used ?? 0);
-            const newConsecutiveWrong = classification.shouldResetConsecutiveWrong
-              ? 0
-              : Math.min((contextRow?.consecutive_wrong ?? 0) + classification.consecutiveWrongDelta, 10);
 
             // Write progress counters — correct_answers now actually increments
             // when classification.shouldIncrementCorrect is true (#1).
@@ -700,6 +700,12 @@ export async function POST(req: NextRequest) {
               questionsAnswered: classification.quality !== 'unanswered' ? 1 : 0,
               correctAnswers:    classification.shouldIncrementCorrect ? 1 : 0,
               timeSpentMinutes:  Math.ceil(latencyMs / 60000),
+              signals: {
+                hintsUsedAtLeast: body.hintsUsed ?? 0,
+                ...(classification.shouldResetConsecutiveWrong
+                  ? { resetConsecutiveWrong: true }
+                  : { consecutiveWrongDelta: classification.consecutiveWrongDelta }),
+              },
             }, supabase);
 
             // Points follow the badge. `updateLearningProgress` reports the transition it just
@@ -721,16 +727,11 @@ export async function POST(req: NextRequest) {
               }
             }
 
-            // Persist live hints_used + consecutive_wrong so the next Omega
-            // decision cycle reads real values.
-            await supabase
-              .from('learning_progress')
-              .update({
-                hints_used:        newHintsUsed,
-                consecutive_wrong: newConsecutiveWrong,
-              })
-              .eq('user_id', user.id)
-              .eq('competency_code', competency.competencyCode);
+            // `hints_used` and `consecutive_wrong` are written by the guarded `updateLearningProgress()`
+            // above, in the same statement as the counters. This used to be a second, unconditioned
+            // `UPDATE` on numbers read before the answer existed, so two concurrent turns settled by
+            // arrival order and the next scaffolding decision was made from whichever write landed last.
+            // See `src/lib/__tests__/progress-omega-signal-write.test.ts`.
 
             // ── Scaffolding outcome telemetry (#4) ───────────────────────────
             // Fire-and-forget — analytics data, not critical path.

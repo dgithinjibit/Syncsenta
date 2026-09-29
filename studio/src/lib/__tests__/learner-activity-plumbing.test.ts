@@ -228,7 +228,15 @@ describe('defect 2 — a free question still has a competency', () => {
     expect(route).toContain('generalCompetencyForSubjectLabel(body.subject)');
     expect(route).not.toMatch(/if \(body\.competencyCode && /);
     expect(route).toContain('updateLearningProgress(user.id, competency.competencyCode');
-    expect(route).toContain(".eq('competency_code', competency.competencyCode)");
+    // The competency the write is scoped to used to be asserted here as a second, unconditioned
+    // `UPDATE` in the route. It is now the guard predicate inside the one write the route makes —
+    // same fact (this turn's row is the one written), one fewer last-write-wins statement. See
+    // `src/lib/__tests__/progress-omega-signal-write.test.ts`.
+    const progressWrite = readFileSync(
+      join(process.cwd(), 'src/lib/progress/progress-tracking.ts'),
+      'utf8',
+    );
+    expect(progressWrite).toContain(".eq('competency_code', competencyCode)");
   });
 });
 
