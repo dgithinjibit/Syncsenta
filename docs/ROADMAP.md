@@ -604,7 +604,12 @@ fail-closed rather than fail-open:
   naming her.
 
 Evidence, fresh at 21:48: the new file alone → **8 passed / 0 failed** (red observed first as
-`Cannot find module '../redact'`, 981 ms); `npx tsc --noEmit` → **exit 0** in 33.8 s.
+`Cannot find module '../redact'`, 981 ms); `npx tsc --noEmit` → **exit 0** in 33.8 s. Then, at 21:55, the
+eight tests that walk the repository — `auth-role-routing`, `grade-cast-guard`, `legacy-auth-surface`,
+`mwalimu-no-phantom-memory`, `route-exports`, `schema-coverage`, `secure-id`, `student-chat-transport` — ran
+together with the new module: **9 files, 144 passed / 0 failed** in 13.21 s. That is the set that could
+plausibly object to two more `.ts` files under `src/`, and none did. The whole 92-file suite was not
+re-run, because the laptop had 821 MB free at the time and the claim this commit makes does not need it.
 
 **What it does not do.** There is no retriever yet — nothing calls Supabase, no table has a registered
 policy, no route or script consumes this, and no live row has ever passed through it. The salt has no named
@@ -616,7 +621,8 @@ seen by the repo's own ESLint config.
 
 **Where the branch sits, and what pushing it would do.** It is based on `336a142`, the current `main`, so it
 carries this map rather than diverging from it. The repository is **public**, which means
-`git push -u origin feat/safe-data-retrieval` would publish all 36 commits — including every paragraph above
+`git push -u origin feat/safe-data-retrieval` would publish every commit above `origin/main` — the whole of
+§1's table — including every paragraph above
 about who is blocked on what — and the range still contains `.github/workflows/rust-gates.yml`, so it needs
 the `workflow` scope in §7 as well. Both are the account holder's call, so the branch is local and the work
 is backed up nowhere; §7 item 9 names the two levers.
@@ -1129,8 +1135,8 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 7. `@syncsenta.dev` has no DNS, which is why the demo and test accounts are hand-seeded.
 8. Revoke the test LLM keys when testing ends.
 9. **Decide whether this repository stays public, and what gets pushed to it.** `dgithinjibit/Syncsenta` is
-   public, and every branch here is cut from `main`, so a push publishes the whole map — 36 commits of which
-   party is blocked on which credential, the demo accounts' hand-seeded state, the compose file's default
+   public, and every branch here is cut from `main`, so a push publishes the whole map — which party is
+   blocked on which credential, the demo accounts' hand-seeded state, the compose file's default
    `POSTGRES_PASSWORD`, and the fact that six committed `.sql` files are dangling absolute symlinks into a
    machine nobody has. None of it trips the secret scan (all ten patterns print `0`, and the range check for
    emails and `service_role` came back clean), so this is a disclosure judgement rather than a leak. Two
@@ -1370,10 +1376,10 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   half — the thing that selects columns, resolves a table's policy, and supplies the salt from a named
   environment variable — does not exist yet. So the claim on the table above is "code and tests", and the
   claim that a real production read would be safe is **not** made: a policy that nobody has written for
-  `profiles` or `chat_sessions` protects nobody. Two further gaps on this branch specifically: the full serial
-  suite was not re-run (the laptop had 1.1 GB free and the commit's assertions are in one file plus
-  `tsc --noEmit` → exit 0), and `npx eslint` cannot run here at all — `Cannot find package 'eslint'` — so the
-  repo's own lint config has never looked at this code.
+  `profiles` or `chat_sessions` protects nobody. Two further gaps on this branch specifically: the full
+  92-file serial suite was not re-run (the eight repository-walking guards plus this module were, at **144
+  passed / 0 failed**, and §1 records why that is the right set), and `npx eslint` cannot run here at all —
+  `Cannot find package 'eslint'` — so the repo's own lint config has never looked at this code.
 - KICD curriculum PDFs are still unread; Grade 12 pathways (#32) rest on secondary sources.
 - The archived roadmap's "82-88% complete", "85/100 security rating" and coverage figures have no
   reproducible command behind them and are not carried forward as evidence.
