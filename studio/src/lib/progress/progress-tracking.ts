@@ -57,10 +57,45 @@ export interface StudentStats {
  * `masteryJustAchieved` is reported from the same branch that awards the `competency_mastered`
  * badge, so a caller awarding points for the transition cannot double-pay and cannot miss it — the
  * badge and the bonus are two reads of one fact.
+ *
+ * That sentence was a claim, not a property, until the write carried a guard: two requests for one
+ * competency used to read the same row, both compute the crossing, and both report it. See
+ * `MAX_TRANSITION_ATTEMPTS` below and `src/lib/__tests__/progress-transition-race.test.ts`.
  */
 export interface ProgressUpdateResult {
   masteryJustAchieved: boolean;
   competencyCode: string;
+}
+
+/**
+ * How many times a writer that lost the row re-reads and recomputes before it gives up.
+ *
+ * Two requests touching one competency is a double-tap, not a stampede: a learner answering while a
+ * tutor turn lands, or a retry after a slow stream. Three attempts covers that, and a fourth would
+ * only be a loop retrying against a writer that never stops — which is worth an error more than
+ * another try. See `src/lib/__tests__/progress-transition-race.test.ts`.
+ */
+const MAX_TRANSITION_ATTEMPTS = 3;
+
+/**
+ * The one row this competency has, or `null` when it does not exist yet.
+ *
+ * A read error is not thrown here, which preserves what this function did before the guard existed:
+ * a missing row is the insert branch, not a failure. PostgREST answers a `.single()` miss with
+ * `PGRST116`, and the unique `(user_id, competency_code)` constraint is what surfaces a real problem.
+ */
+async function readProgressRow(
+  client: ProgressClient,
+  userId: string,
+  competencyCode: string,
+): Promise<LearningProgress | null> {
+  const { data } = await client
+    .from('learning_progress')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('competency_code', competencyCode)
+    .single();
+  return (data ?? null) as LearningProgress | null;
 }
 
 /**
@@ -82,15 +117,9 @@ export async function updateLearningProgress(
   client: ProgressClient = supabase
 ): Promise<ProgressUpdateResult> {
   // Check if progress record exists
-  const existingRes = await client
-    .from('learning_progress')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('competency_code', competencyCode)
-    .single();
-  const existing = existingRes.data as any | null;
+  let existing = await readProgressRow(client, userId, competencyCode);
 
-  if (existing) {
+  for (let attempt = 1; existing !== null; attempt++) {
     // Update existing record
     const newQuestionsAsked = existing.questions_asked + (updates.questionsAsked || 0);
     const newQuestionsAnswered = existing.questions_answered + (updates.questionsAnswered || 0);
@@ -107,7 +136,12 @@ export async function updateLearningProgress(
     // Determine mastery level
     const masteryLevel = calculateMasteryLevel(progressPercentage, newQuestionsAnswered);
 
-    const { error } = await client
+    // The four columns this arithmetic read, plus the level the award depends on, go into the WHERE.
+    // PostgREST lands the UPDATE only while they still hold, and answers `data: []` when they do
+    // not, so a writer whose numbers went stale mid-flight re-reads instead of overwriting the
+    // other request's counters — or, worse, reporting a mastery transition it did not cause and
+    // paying the ledger twice for one achievement.
+    const { data: written, error } = await client
       .from('learning_progress')
       .update({
         questions_asked: newQuestionsAsked,
@@ -122,52 +156,71 @@ export async function updateLearningProgress(
           : existing.mastered_at,
       })
       .eq('user_id', userId)
-      .eq('competency_code', competencyCode);
+      .eq('competency_code', competencyCode)
+      .eq('questions_asked', existing.questions_asked)
+      .eq('questions_answered', existing.questions_answered)
+      .eq('correct_answers', existing.correct_answers)
+      .eq('mastery_level', existing.mastery_level)
+      .select();
 
     if (error) throw error;
 
-    // Check for mastery achievement
-    const masteryJustAchieved = masteryLevel === 'mastered' && existing.mastery_level !== 'mastered';
-    if (masteryJustAchieved) {
-      await awardAchievement(userId, 'competency_mastered', {
-        competencyCode,
-        competencyName: updates.competencyName,
-      }, client);
+    // `null` means the client did not report matched rows, which is how a write looked before this
+    // guard existed and what every injected test double still returns; an empty array is the new,
+    // deliberate signal that the row moved.
+    if (!(Array.isArray(written) && written.length === 0)) {
+      // Check for mastery achievement
+      const masteryJustAchieved = masteryLevel === 'mastered' && existing.mastery_level !== 'mastered';
+      if (masteryJustAchieved) {
+        await awardAchievement(userId, 'competency_mastered', {
+          competencyCode,
+          competencyName: updates.competencyName,
+        }, client);
+      }
+
+      return { masteryJustAchieved, competencyCode };
     }
 
-    return { masteryJustAchieved, competencyCode };
-  } else {
-    // Create new record
-    const progressPercentage = updates.questionsAnswered && updates.correctAnswers
-      ? Math.round((updates.correctAnswers / updates.questionsAnswered) * 100)
-      : 0;
-
-    const { error } = await client
-      .from('learning_progress')
-      .insert({
-        user_id: userId,
-        subject: updates.subject,
-        grade: updates.grade,
-        competency_code: competencyCode,
-        competency_name: updates.competencyName,
-        strand: updates.strand,
-        questions_asked: updates.questionsAsked || 0,
-        questions_answered: updates.questionsAnswered || 0,
-        correct_answers: updates.correctAnswers || 0,
-        time_spent_minutes: updates.timeSpentMinutes || 0,
-        progress_percentage: progressPercentage,
-        mastery_level: calculateMasteryLevel(progressPercentage, updates.questionsAnswered || 0),
-      });
-
-    if (error) throw error;
-
-    // No transition is reported on a first write, because this branch has never awarded the
-    // `competency_mastered` badge either — points and badge stay reads of one fact, and reporting a
-    // transition here would pay points for a badge nobody issues. Reaching `mastered` on a single
-    // first write needs 20+ answers in one call, which no current caller does; recorded as a gap in
-    // docs/ROADMAP.md rather than fixed here without a test.
-    return { masteryJustAchieved: false, competencyCode };
+    if (attempt >= MAX_TRANSITION_ATTEMPTS) {
+      throw new Error(
+        `learning_progress for ${competencyCode} changed under every attempt; nothing was written`,
+      );
+    }
+    existing = await readProgressRow(client, userId, competencyCode);
   }
+
+  // Reached in two situations, and only two: this competency has no row yet, or the row was deleted
+  // while a writer kept losing the race. Neither has a counters-total to go stale against, so the
+  // insert needs no guard — the unique `(user_id, competency_code)` constraint is the check.
+  const progressPercentage = updates.questionsAnswered && updates.correctAnswers
+    ? Math.round((updates.correctAnswers / updates.questionsAnswered) * 100)
+    : 0;
+
+  const { error } = await client
+    .from('learning_progress')
+    .insert({
+      user_id: userId,
+      subject: updates.subject,
+      grade: updates.grade,
+      competency_code: competencyCode,
+      competency_name: updates.competencyName,
+      strand: updates.strand,
+      questions_asked: updates.questionsAsked || 0,
+      questions_answered: updates.questionsAnswered || 0,
+      correct_answers: updates.correctAnswers || 0,
+      time_spent_minutes: updates.timeSpentMinutes || 0,
+      progress_percentage: progressPercentage,
+      mastery_level: calculateMasteryLevel(progressPercentage, updates.questionsAnswered || 0),
+    });
+
+  if (error) throw error;
+
+  // No transition is reported on a first write, because this branch has never awarded the
+  // `competency_mastered` badge either — points and badge stay reads of one fact, and reporting a
+  // transition here would pay points for a badge nobody issues. Reaching `mastered` on a single
+  // first write needs 20+ answers in one call, which no current caller does; recorded as a gap in
+  // docs/ROADMAP.md rather than fixed here without a test.
+  return { masteryJustAchieved: false, competencyCode };
 }
 
 /**
