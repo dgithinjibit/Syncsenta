@@ -35,11 +35,15 @@ import {
   EVIDENCE_CANONICALIZATION_VERSION,
   DuplicateEvidenceIdError,
   EmptyEvidenceSetError,
+  EvidenceIdNotFoundError,
   MalformedEvidenceIdError,
+  buildInclusionProof,
   canonicalEvidenceRecord,
   computeEvidenceRoot,
   evidenceLeafHash,
+  verifyInclusionProof,
   type EvidenceRecord,
+  type InclusionProof,
 } from '../evidence-tree';
 
 const FIXTURE_DIR = join(__dirname, '..', '__fixtures__');
@@ -64,6 +68,15 @@ function record(overrides: Partial<EvidenceRecord> = {}): EvidenceRecord {
     ...overrides,
   };
 }
+
+/**
+ * The five-row term, read once at module scope: the golden-root tests and the inclusion-proof tests are
+ * asserting two halves of the same commitment, so they have to be looking at one set of rows rather than
+ * two copies that could drift.
+ */
+const fixture = JSON.parse(
+  readFileSync(join(FIXTURE_DIR, 'evidence-class-term-2026-term-1.json'), 'utf8'),
+) as { description: string; records: EvidenceRecord[]; root: string; leaf_hashes: string[] };
 
 describe('the evidence set an anchor is allowed to commit to', () => {
   it('refuses to anchor a class-term with no evidence', () => {
@@ -228,10 +241,6 @@ describe('the tree', () => {
 });
 
 describe('the golden class-term', () => {
-  const fixture = JSON.parse(
-    readFileSync(join(FIXTURE_DIR, 'evidence-class-term-2026-term-1.json'), 'utf8'),
-  ) as { description: string; records: EvidenceRecord[]; root: string; leaf_hashes: string[] };
-
   it('reproduces the recorded root', () => {
     expect(computeEvidenceRoot(fixture.records).root).toBe(fixture.root);
   });
@@ -269,3 +278,97 @@ describe('the golden class-term', () => {
     expect(new Set(fixture.records.map((r) => r.id)).size).toBe(fixture.records.length);
   });
 });
+
+describe('the per-learner inclusion proof', () => {
+  const MIDDLE = '5d5d5d5d-5d5d-4d5d-8d5d-5d5d5d5d5d5d';
+  const PROMOTED = 'e7e7e7e7-e7e7-4e7e-8e7e-7e7e7e7e7e7e';
+
+  it('proves a learner inside the displayed window against the recorded root', () => {
+    const proof = buildInclusionProof(fixture.records, MIDDLE);
+
+    expect(proof.leafHash).toBe(evidenceLeafHash(fixture.records.find((r) => r.id === MIDDLE)!));
+    expect(verifyInclusionProof(proof)).toBe(true);
+    expect(proof.root).toBe(fixture.root);
+    expect(proof.leafCount).toBe(5);
+  });
+
+  it('proves the odd row, whose path starts with two promotions', () => {
+    const proof = buildInclusionProof(fixture.records, PROMOTED);
+    const sorted = [...fixture.records].sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+    const leaves = sorted.map((r) => evidenceLeafHash(r));
+    const pair = (left: string, right: string) => createHash('sha256').update(left + right).digest('hex');
+    const n0123 = pair(pair(leaves[0], leaves[1]), pair(leaves[2], leaves[3]));
+
+    // Leaf 4 is promoted at level one and at level two, then pairs on the right at the top. That is the
+    // promote-odd rule of §"the fold" seen from inside a proof, which is where a mirror implementation
+    // would get it wrong.
+    expect(proof.steps).toEqual([{ promote: true }, { promote: true }, { combine: n0123, side: 'left' }]);
+    expect(verifyInclusionProof(proof)).toBe(true);
+  });
+
+  it('refuses to prove somebody else evidence under a real leaf hash', () => {
+    const proof = buildInclusionProof(fixture.records, MIDDLE);
+    const swapped = { ...proof, leafHash: evidenceLeafHash(fixture.records[0]) };
+
+    expect(verifyInclusionProof(swapped)).toBe(false);
+  });
+
+  it('does not verify against a root nobody anchored', () => {
+    const proof = buildInclusionProof(fixture.records, MIDDLE);
+
+    expect(verifyInclusionProof({ ...proof, root: createHash('sha256').update('x').digest('hex') }))
+      .toBe(false);
+  });
+
+  it('refuses an id that is not in the set instead of returning a proof of nothing', () => {
+    expect(() => buildInclusionProof(fixture.records, '00000000-0000-4000-8000-000000000000'))
+      .toThrow(EvidenceIdNotFoundError);
+  });
+
+  it('refuses a proof that claims a canonicalization version this code does not implement', () => {
+    const proof = buildInclusionProof(fixture.records, MIDDLE);
+
+    // The double cast is the point, not a shortcut: `/api/verify/[anchorId]` gets this object out of a stored
+    // anchor row or a caller's POST, so whatever `InclusionProof` says about the literal type, at runtime a
+    // proof can name `syncsenta-evidence-v2`. TypeScript refuses a single assertion here — the literal types
+    // genuinely do not overlap — which is exactly the false confidence the route will not have. A verifier
+    // that folds without checking the name would approve it under v1's rules.
+    const foreign = { ...proof, version: 'syncsenta-evidence-v2' } as unknown as InclusionProof;
+
+    expect(verifyInclusionProof(foreign)).toBe(false);
+  });
+
+  it('survives a JSON round trip, because /api/verify hands it out over HTTP', () => {
+    const proof = buildInclusionProof(fixture.records, MIDDLE);
+    const revived = JSON.parse(JSON.stringify(proof)) as typeof proof;
+
+    expect(verifyInclusionProof(revived)).toBe(true);
+  });
+
+  it('proves a one-row term, the case where the fold has no levels to walk', () => {
+    const only = record({ id: '0a0a0a0a-0a0a-4a0a-8a0a-0a0a0a0a0a0a' });
+    const proof = buildInclusionProof([only], only.id);
+
+    // With one leaf the top node is the leaf itself and there is no sibling to publish, so an
+    // implementation that loops "while index > 0" and never emits a step would still pass — but one that
+    // hashed the lone leaf twice, or bound a count of 0, would not. The root comparison is the assertion.
+    expect(proof.steps).toEqual([]);
+    expect(proof.root).toBe(computeEvidenceRoot([only]).root);
+    expect(verifyInclusionProof(proof)).toBe(true);
+  });
+
+  it('rejects a proof whose sibling hash is another row from the same term', () => {
+    const proof = buildInclusionProof(fixture.records, MIDDLE);
+    const firstCombine = proof.steps.findIndex((step) => 'combine' in step);
+    expect(firstCombine).toBeGreaterThanOrEqual(0);
+
+    const step = proof.steps[firstCombine] as { combine: string; side: 'left' | 'right' };
+    const forged = { ...step, combine: fixture.leaf_hashes[0] };
+    const tampered = { ...proof, steps: proof.steps.map((s, i) => (i === firstCombine ? forged : s)) };
+
+    // A sibling that exists in the term but sits elsewhere is the attack a proof is supposed to close: the
+    // re-fold lands on a different node, so the root comparison has to catch it.
+    expect(verifyInclusionProof(tampered)).toBe(false);
+  });
+});
+

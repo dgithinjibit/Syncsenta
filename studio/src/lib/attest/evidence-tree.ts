@@ -35,6 +35,10 @@
  *      commits to how many rows it stands for as well as what they say.
  *   8. **The empty set is not a root.** A class-term with no evidence throws. A predictable hash over
  *      nothing would read as a term that happened, and the anchor exists precisely so that cannot be faked.
+ *   9. **An inclusion step carries the promotion.** A leaf that travelled alone up an odd-sized level is
+ *      proved with `{ promote: true }`, not with a copy of itself as a sibling. A mirror implementation that
+ *      duplicates the last node computes a different top for the same row, so the proof is where that rule
+ *      shows up for a third party: the verifier re-folds from the steps alone and never sees the tree.
  *
  * The shape mirrors `learning_evidence` as it exists in production
  * (`supabase/migrations_live/20260928000000_live_baseline.sql:146`), snake_cased like every other row type
@@ -100,6 +104,16 @@ export class DuplicateEvidenceIdError extends Error {
   constructor(readonly id: string) {
     super(`duplicate evidence id ${id}: two rows with one id make the leaf order ambiguous`);
     this.name = 'DuplicateEvidenceIdError';
+  }
+}
+
+export class EvidenceIdNotFoundError extends Error {
+  constructor(readonly id: string) {
+    super(
+      `evidence id ${JSON.stringify(id)} is not in this class-term: a proof of somebody who is not in the ` +
+      'set would be a proof of nothing, and the route has no honest way to answer it',
+    );
+    this.name = 'EvidenceIdNotFoundError';
   }
 }
 
@@ -246,9 +260,35 @@ export function evidenceLeafHash(record: EvidenceRecord): string {
 }
 
 /**
+ * Contract rule 7's binding step, isolated because the root above and the verifier below both have to do
+ * it identically: the root commits to the row count as well as the content, so a proof re-binds with the
+ * count it was handed rather than one it inferred.
+ */
+function bindRoot(leafCount: number, topNode: string): string {
+  return sha256Hex(`${ROOT_BINDING_VERSION}|${leafCount}|${topNode}`);
+}
+
+/**
  * The root of one class-term's evidence. Deterministic in the records only: same set, any order, same root.
  */
 export function computeEvidenceRoot(records: readonly EvidenceRecord[]): EvidenceRoot {
+  const { leaves } = orderedLeaves(records);
+
+  return {
+    version: EVIDENCE_CANONICALIZATION_VERSION,
+    leafCount: leaves.length,
+    root: bindRoot(leaves.length, foldTop(leaves)),
+  };
+}
+
+/**
+ * Validate a set and return it in tree order: sorted by canonical id, leaves hashed once. The proof below
+ * and the root above share this so the two cannot disagree about what "the same class-term" means.
+ */
+function orderedLeaves(records: readonly EvidenceRecord[]): {
+  sorted: EvidenceRecord[];
+  leaves: string[];
+} {
   if (records.length === 0) throw new EmptyEvidenceSetError();
 
   const sorted = [...records].sort((a, b) => compareStrings(a.id, b.id));
@@ -261,22 +301,120 @@ export function computeEvidenceRoot(records: readonly EvidenceRecord[]): Evidenc
     leaves.push(evidenceLeafHash(record));
   }
 
-  let level = leaves;
+  return { sorted, leaves };
+}
+
+/**
+ * One level up: pairs hashed, an odd trailing node promoted. This is the whole fold rule, written once, so
+ * the root and a proof path cannot drift apart on how the last row of an odd-sized level is treated.
+ */
+function parentLevel(level: readonly string[]): string[] {
+  const next: string[] = [];
+  for (let index = 0; index < level.length; index += 2) {
+    next.push(
+      index + 1 < level.length
+        ? sha256Hex(level[index] + level[index + 1])
+        : level[index],
+    );
+  }
+  return next;
+}
+
+/** Fold up from the leaves until one node is left. */
+function foldTop(leaves: readonly string[]): string {
+  let level = [...leaves];
+
   while (level.length > 1) {
-    const next: string[] = [];
-    for (let index = 0; index < level.length; index += 2) {
-      next.push(
-        index + 1 < level.length
-          ? sha256Hex(level[index] + level[index + 1])
-          : level[index],
-      );
+    level = parentLevel(level);
+  }
+
+  return level[0];
+}
+
+/**
+ * One step of a path from a leaf up to the top node. `combine` is the sibling's hash and `side` is where it
+ * sits; `promote` is the odd node travelling alone, which is the half a duplicated-last implementation
+ * would get wrong.
+ */
+export type ProofStep =
+  | { combine: string; side: 'left' | 'right' }
+  | { promote: true };
+
+export interface InclusionProof {
+  version: typeof EVIDENCE_CANONICALIZATION_VERSION;
+  root: string;
+  leafCount: number;
+  /** Zero-based position in the id-ordered leaf list, so a reader can re-sort and find the same slot. */
+  leafIndex: number;
+  leafHash: string;
+  steps: ProofStep[];
+}
+
+/**
+ * The path that shows one learner's evidence row is inside the anchored set, without showing anybody
+ * else's row. `docs/research/ASI-DAPP-PATH.md` Phase 0 item 4 asks for exactly this at
+ * `/api/verify/[anchorId]`: a party who already knows the learner id can prove inclusion and learns
+ * nothing about the rest of the class.
+ *
+ * Plain JSON, on purpose — `leafIndex`, `steps` and the hex strings are all serializable as they stand, so
+ * the route can hand this object out without a second representation to keep in sync.
+ */
+export function buildInclusionProof(
+  records: readonly EvidenceRecord[],
+  evidenceId: string,
+): InclusionProof {
+  const { sorted, leaves } = orderedLeaves(records);
+
+  const leafIndex = sorted.findIndex((record) => record.id === evidenceId);
+  if (leafIndex === -1) throw new EvidenceIdNotFoundError(evidenceId);
+
+  const steps: ProofStep[] = [];
+  let index = leafIndex;
+  let level = leaves;
+
+  // Climb with the same `parentLevel` the root used, so the path is a by-product of the fold rather than a
+  // second guess at it. Stop once the level is the single top node: at that point there is no sibling left
+  // to publish, and the count travels in the proof instead.
+  while (level.length > 1) {
+    if (index % 2 === 1) {
+      steps.push({ combine: level[index - 1], side: 'left' });
+    } else if (index + 1 < level.length) {
+      steps.push({ combine: level[index + 1], side: 'right' });
+    } else {
+      steps.push({ promote: true });
     }
-    level = next;
+
+    level = parentLevel(level);
+    index = Math.floor(index / 2);
   }
 
   return {
     version: EVIDENCE_CANONICALIZATION_VERSION,
+    root: bindRoot(leaves.length, level[0]),
     leafCount: leaves.length,
-    root: sha256Hex(`${ROOT_BINDING_VERSION}|${leaves.length}|${level[0]}`),
+    leafIndex,
+    leafHash: leaves[leafIndex],
+    steps,
   };
+}
+
+/**
+ * Re-fold a leaf through its steps and compare the result to the proof's root. Returns false rather than
+ * throwing: a verifier that distinguishes "wrong proof" from "wrong shape" tells an attacker which they are
+ * close to, and the route wants a yes/no answer either way.
+ */
+export function verifyInclusionProof(proof: InclusionProof): boolean {
+  // A proof off the wire is only typed as `InclusionProof` by whoever parsed it. Folding without checking
+  // the name would approve a `v2` proof under `v1`'s rules, which is the drift the version exists to stop.
+  if (proof.version !== EVIDENCE_CANONICALIZATION_VERSION) return false;
+  if (!Number.isInteger(proof.leafCount) || proof.leafCount < 1) return false;
+  if (!Array.isArray(proof.steps)) return false;
+
+  let node = proof.leafHash;
+  for (const step of proof.steps) {
+    if ('promote' in step) continue;
+    node = sha256Hex(step.side === 'left' ? step.combine + node : node + step.combine);
+  }
+
+  return bindRoot(proof.leafCount, node) === proof.root;
 }
