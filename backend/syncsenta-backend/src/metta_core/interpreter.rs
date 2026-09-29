@@ -64,9 +64,33 @@ impl MettaSpace {
 
     /// Evaluate a MeTTa expression against the current contents of the space
     /// and return the resulting atoms.
+    ///
+    /// A query must never become an assertion. Both engines this class wraps
+    /// treat a *bare* pattern as a fact to add: MeTTa asserts `(rel arg)` and
+    /// matches `!(rel arg)`; the fallback engine asserts anything that is not
+    /// `(= …)` or `(! …)` (`fallback_backend::eval_top_level`) and returns the
+    /// asserted pattern as if it were a match. Every caller in this crate passes
+    /// a bare pattern — `omega_claw.rs`, `reasoning.rs`, `orchestration.rs` —
+    /// so before this normalisation `scope_for("Grade 6")` inserted
+    /// `(omega-claw-scope-for grade6)` into the space, got that string back, read
+    /// its last token (`grade6`), matched neither `introductory` nor
+    /// `senior-deep`, and answered `blocked`. `is_activity_allowed` then refused
+    /// every activity for every learner, and each request permanently grew the
+    /// space.
+    ///
+    /// Wrapping happens here rather than at the call sites because the two
+    /// engines spell a query differently, and no caller should have to know which
+    /// one is compiled in.
     pub async fn query(&self, expression: &str) -> Result<Vec<AtomString>> {
+        let trimmed = expression.trim();
+        let already_a_query = trimmed.starts_with("(!") || trimmed.starts_with("!(");
+        let expression = if already_a_query {
+            trimmed.to_string()
+        } else {
+            query_form(trimmed)
+        };
         let mut backend = self.inner.lock().await;
-        backend.query(expression)
+        backend.query(&expression)
     }
 
     /// Number of atoms currently asserted in the space (excluding rule
@@ -340,9 +364,23 @@ mod fallback_backend {
     }
 
     fn pattern_match(pattern: &str, atom: &str) -> bool {
-        // Variable-aware match: `$x` in pattern matches any single token at
-        // the same position. Tokens are whitespace-separated within the same
-        // parenthesisation depth.
+        // Variable-aware match: `$x` matches any single token at the same
+        // position — on *either* side.
+        //
+        // It has to be either side because a rule is stored as a `(lhs, rhs)`
+        // rewrite and reaches here as the `atom` argument. In
+        // `(= (omega-claw-can-unlock-transfer $correct $explained) no)` the
+        // variables live in `atom`, so a matcher that only honours `$` in
+        // `pattern` compares `true` against `$correct`, fails, and the catch-all
+        // becomes unanswerable: the façade reports "Omega Claw rule returned no
+        // result" for a rule that plainly applies. The same is true of
+        // `(= (omega-claw-scope-for $lower-grade) blocked)`, which is why
+        // `scope_for` only ever reached `blocked` by its own default branch.
+        //
+        // NOT implemented: repeated variables are not unified, so two `$x` in
+        // one expression may match different tokens. Real MeTTa binds them, so a
+        // rule that depends on binding must not enter a pack until this engine
+        // grows bindings.
         let p_tokens = tokenize(pattern);
         let a_tokens = tokenize(atom);
         if p_tokens.len() != a_tokens.len() {
@@ -351,7 +389,7 @@ mod fallback_backend {
         p_tokens
             .iter()
             .zip(a_tokens.iter())
-            .all(|(p, a)| p.starts_with('$') || p == a)
+            .all(|(p, a)| p.starts_with('$') || a.starts_with('$') || p == a)
     }
 
     fn tokenize(s: &str) -> Vec<String> {
@@ -364,6 +402,22 @@ mod fallback_backend {
 use hyperon_backend::Backend;
 #[cfg(not(feature = "metta"))]
 use fallback_backend::Backend;
+
+/// Wrap a bare pattern in the query syntax of the engine that is compiled in.
+///
+/// MeTTa asserts `(rel x)` and matches `!(rel x)`. The fallback engine asserts
+/// anything that is not `(= …)` or `(! …)` and matches `(! (rel x))`. Both read
+/// a bare pattern as a fact, so this is the one place that has to know which
+/// engine is live — see [`MettaSpace::query`] for what happens when it doesn't.
+#[cfg(feature = "metta")]
+fn query_form(pattern: &str) -> String {
+    format!("!{pattern}")
+}
+
+#[cfg(not(feature = "metta"))]
+fn query_form(pattern: &str) -> String {
+    format!("(! {pattern})")
+}
 
 #[cfg(test)]
 mod tests {
@@ -401,5 +455,75 @@ mod tests {
         let hits = space.query("(! (role student $who))").await.unwrap();
         assert_eq!(hits.len(), 1);
         assert!(hits[0].as_str().contains("alice"));
+    }
+
+    /// A caller's bare pattern must be read as a question.
+    ///
+    /// Before `MettaSpace::query` normalised it, `(omega-claw-scope-for grade6)`
+    /// was asserted as a new fact and echoed back, so every rule lookup returned
+    /// its own input and the space grew on every request. See the doc comment on
+    /// `query` for the downstream effect on Omega Claw.
+    #[cfg(not(feature = "metta"))]
+    #[tokio::test]
+    async fn a_bare_pattern_queries_rather_than_asserting() {
+        let interp = MettaInterpreter::new().unwrap();
+        let space = interp.global_space();
+        space
+            .run("(= (omega-claw-scope-for grade6) introductory)")
+            .await
+            .unwrap();
+        let before = space.atom_count().await;
+
+        let hits = space.query("(omega-claw-scope-for grade6)").await.unwrap();
+
+        assert_eq!(hits.len(), 1, "the rule's result, not an echo");
+        assert_eq!(hits[0].as_str(), "introductory");
+        assert_eq!(
+            space.atom_count().await,
+            before,
+            "a query must not add an atom"
+        );
+    }
+
+    /// A rule's variables are on the *stored* side, not the query side.
+    ///
+    /// `(= (head $x) result)` becomes a `(lhs, rhs)` rewrite whose `$x` reaches
+    /// `pattern_match` as the `atom` argument, so a matcher that only honours `$`
+    /// in `pattern` cannot answer any catch-all rule. This test is that catch-all.
+    #[cfg(not(feature = "metta"))]
+    #[tokio::test]
+    async fn a_variable_in_a_stored_rule_head_still_matches() {
+        let interp = MettaInterpreter::new().unwrap();
+        let space = interp.global_space();
+        space
+            .run("(= (omega-claw-can-unlock-transfer $correct $explained) no)")
+            .await
+            .unwrap();
+
+        let hits = space
+            .query("(omega-claw-can-unlock-transfer true false)")
+            .await
+            .unwrap();
+
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].as_str(), "no");
+    }
+
+    /// The two engines spell a query differently; the wrapper has to leave an
+    /// already-query form alone rather than wrapping it twice.
+    #[cfg(not(feature = "metta"))]
+    #[tokio::test]
+    async fn an_explicit_query_form_is_not_wrapped_again() {
+        let interp = MettaInterpreter::new().unwrap();
+        let space = interp.global_space();
+        space
+            .run("(= (omega-claw-scope-for grade11) senior-deep)")
+            .await
+            .unwrap();
+
+        let hits = space.query("(! (omega-claw-scope-for grade11))").await.unwrap();
+
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].as_str(), "senior-deep");
     }
 }
