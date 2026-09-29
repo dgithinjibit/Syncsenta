@@ -29,6 +29,7 @@ import { UnpackedOutcomeRenderer } from './unpacked-outcome-renderer'
 import { ExportTrainingDataButton } from './export-training-data-button'
 import { FeedbackWidget } from '@/components/teacher/feedback-widget'
 import type { SchemeRow } from '@/types/curriculum'
+import { newId } from '@/lib/secure-id';
 
 // Stopgap teacher identity. Until real auth lands, persist a single ID per
 // browser so the generate (save) and list paths agree. Replace with the
@@ -40,7 +41,7 @@ function getTeacherId(): string {
   const KEY = 'syncsenta:teacherId'
   let id = window.localStorage.getItem(KEY)
   if (!id) {
-    id = `teacher_${Math.random().toString(36).slice(2, 10)}`
+    id = newId('teacher')
     window.localStorage.setItem(KEY, id)
   }
   return id

@@ -3,6 +3,8 @@
  * Automates quiz generation, marks submissions, provides feedback, and tracks competency mastery
  */
 
+import { newId } from '@/lib/secure-id';
+
 interface QuizGenerationRequest {
   subject: string;
   grade: string;
@@ -129,7 +131,7 @@ export class AssessmentAgent {
    */
   async generateQuiz(request: QuizGenerationRequest): Promise<Quiz> {
     const quiz: Quiz = {
-      id: `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: newId('quiz'),
       title: `${request.subject} - ${request.topic} Quiz`,
       subject: request.subject,
       grade: request.grade,
@@ -182,7 +184,7 @@ export class AssessmentAgent {
     if (request.studentPerformance.weakAreas.includes('comparing fractions')) {
       // Ensure at least one question about comparing fractions
       const comparingQuestion = {
-        id: `compare_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        id: newId('compare'),
         question: 'Compare these fractions: which is larger, 2/5 or 3/7?',
         type: 'multiple_choice' as const,
         options: ['2/5', '3/7', 'They are equal', 'Cannot tell'],
@@ -578,7 +580,7 @@ export class AssessmentAgent {
       // Generate unique IDs and return requested number of questions
       for (let i = 0; i < Math.min(request.questionCount, baseQuestions.length); i++) {
         const question = { ...baseQuestions[i] };
-        question.id = `q${i + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+        question.id = newId(`q${i + 1}`);
         questions.push(question);
       }
 
@@ -586,7 +588,7 @@ export class AssessmentAgent {
       while (questions.length < request.questionCount) {
         const baseQuestion = baseQuestions[questions.length % baseQuestions.length];
         const newQuestion = { ...baseQuestion };
-        newQuestion.id = `q${questions.length + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+        newQuestion.id = newId(`q${questions.length + 1}`);
         questions.push(newQuestion);
       }
     }

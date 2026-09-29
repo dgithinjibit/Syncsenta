@@ -5,6 +5,7 @@ import { Brain, MessageCircle, Send, Sparkles, Square, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { newId } from '@/lib/secure-id';
 
 type ChatRole = 'assistant' | 'user';
 type TutorAction = 'hint' | 'explain' | 'example' | 'quiz';
@@ -30,7 +31,7 @@ interface FloatingConceptChatProps {
 }
 
 function makeId() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return newId('msg');
 }
 
 function welcomeMessage(studentName: string, subject: string, question?: string): ChatMessage {

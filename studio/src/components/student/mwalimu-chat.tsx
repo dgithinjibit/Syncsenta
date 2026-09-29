@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { streamTutorTurn, type TutorHistoryEntry } from '@/lib/chat/tutor-stream';
+import { newId } from '@/lib/secure-id';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -281,12 +282,12 @@ export function MwalimuChat({
     if (!text || isLoading) return;
 
     const userMessage: Message = {
-      id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Temporary local ID
+      id: newId('local'), // Temporary local ID
       sender: 'student',
       text,
       timestamp: new Date().toISOString(),
     };
-    const replyId = `tutor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const replyId = newId('tutor');
 
     // Only learner and tutor turns belong in the conversation the model sees.
     // A teacher's interjection is context for the human, not a turn to imitate.

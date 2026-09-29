@@ -3,6 +3,8 @@
  * Queues failed requests and retries them when connection is restored
  */
 
+import { newUuid } from '@/lib/secure-id';
+
 interface SerializedRequestInit {
   method?: string;
   headers?: Record<string, string>;
@@ -114,9 +116,7 @@ class OfflineQueue {
       }
     }
 
-    const requestId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const requestId = newUuid();
     const request: QueuedRequest = {
       id: requestId,
       url,

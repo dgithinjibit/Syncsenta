@@ -7,6 +7,7 @@
 
 import { supabase } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { newId } from '@/lib/secure-id';
 
 export interface TeacherFeedback {
   id: string;
@@ -145,7 +146,7 @@ class RealtimeFeedbackManager {
   async sendFeedbackToStudent(feedback: Omit<TeacherFeedback, 'id' | 'createdAt'>) {
     const feedbackWithId: TeacherFeedback = {
       ...feedback,
-      id: `feedback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: newId('feedback'),
       createdAt: new Date().toISOString()
     };
     

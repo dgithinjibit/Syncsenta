@@ -15,11 +15,12 @@ import { storage, db, app } from '@/lib/firebase';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc } from 'firebase/firestore';
 import { getAuth } from "firebase/auth";
+import { newJoinCode } from "@/lib/secure-id";
 
 
 function generateJoinCode() {
     // Generate a reasonably unique 7-char alphanumeric code
-    return Math.random().toString(36).substring(2, 9).toUpperCase();
+    return newJoinCode();
 }
 
 export default function LearningLabPage() {

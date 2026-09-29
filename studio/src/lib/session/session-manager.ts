@@ -9,6 +9,8 @@
  * - Validates session integrity
  */
 
+import { newUuid } from '@/lib/secure-id';
+
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const WARNING_BEFORE_TIMEOUT = 5 * 60 * 1000; // 5 minutes before timeout
 const ACTIVITY_CHECK_INTERVAL = 60 * 1000; // Check every minute
@@ -26,19 +28,14 @@ export interface SessionInfo {
 
 /**
  * Generate a cryptographically secure session ID
- * SECURITY: Uses crypto.randomUUID() for unpredictable session IDs
+ * SECURITY: the id is what makes a session unguessable, so there is no
+ * non-CSPRNG path. `newUuid()` comes from `crypto.getRandomValues`, which —
+ * unlike `crypto.randomUUID` that this file used to fork on — also exists on a
+ * plain-HTTP school LAN. The old hand-rolled `Math`-seeded template that the
+ * fork fell back to is deleted, not bypassed.
  */
 function generateSessionId(): string {
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
-    return window.crypto.randomUUID();
-  }
-  
-  // Fallback for older browsers
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  return newUuid();
 }
 
 /**

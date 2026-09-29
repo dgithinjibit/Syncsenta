@@ -59,6 +59,7 @@ import { tutorIntroMessage } from '@/lib/curriculum/grade-greetings';
 import { useWebSpeech } from '@/hooks/use-web-speech';
 import { useAuth } from '@/hooks/use-auth';
 import { CallInterface } from '@/components/voice/call-interface';
+import { newId } from '@/lib/secure-id';
 
 export type ChatLanguage = 'english' | 'kiswahili' | 'mixed';
 export type ChatMode = 'socratic' | 'compass' | 'homework-help';
@@ -122,7 +123,7 @@ function parseChoices(text: string): { content: string; choices: string[] } {
 }
 
 function makeId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return newId('msg');
 }
 
 function introMessage(opts: {

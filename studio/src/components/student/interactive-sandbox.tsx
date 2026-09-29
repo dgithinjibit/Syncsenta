@@ -50,6 +50,7 @@ import {
 import { buildAdaptiveLearningStep } from '@/lib/sandbox/sandbox-personalization'
 import { applyAdaptiveDecision, buildAdaptiveDecisionRequest, createAdaptiveQuestionBridge, createServerAdaptiveDecision } from '@/lib/progress/adaptive-question-bridge'
 import { resolveTeacherApprovedMedia, type TeacherApprovedSandboxMedia } from '@/lib/sandbox/sandbox-media'
+import { newId } from '@/lib/secure-id';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -279,7 +280,7 @@ export function InteractiveSandbox({
   const [sessionId, setSessionId] = useState('pending')
   const [canSpeak, setCanSpeak] = useState(false)
   useEffect(() => {
-    setSessionId(`sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`)
+    setSessionId(newId('sess'))
     setCanSpeak('speechSynthesis' in window)
   }, [])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -596,7 +597,7 @@ export function InteractiveSandbox({
     hover.current = { target: null, enteredAt: 0 }
     setFeedback(null)
     variationStartRef.current = Date.now()
-    setSessionId(`sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`)
+    setSessionId(newId('sess'))
   }, [activityType])
 
   const handleSubmit = async () => {

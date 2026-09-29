@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '@/lib/supabase/client';
+import { newId } from '@/lib/secure-id';
 
 // Core Types for Omega Agent System
 export interface OmegaContext {
@@ -316,7 +317,7 @@ export class OmegaAgent {
   }
 
   private generateSessionId(): string {
-    return `omega_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return newId('omega');
   }
 
   private initializeKnowledgeBase(): void {

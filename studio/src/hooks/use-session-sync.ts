@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './use-auth';
 import type { LearningSession } from '@/lib/session/session-persistence';
+import { newId } from '@/lib/secure-id';
 
 interface SyncOptions {
   autoSync?: boolean; // Auto-sync every 30 seconds
@@ -58,7 +59,7 @@ function getDeviceId(): string {
   
   let deviceId = localStorage.getItem('syncsenta_device_id');
   if (!deviceId) {
-    deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    deviceId = newId('device');
     localStorage.setItem('syncsenta_device_id', deviceId);
   }
   return deviceId;

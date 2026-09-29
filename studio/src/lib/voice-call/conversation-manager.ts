@@ -10,6 +10,8 @@
  * - Zero-cost localStorage-based implementation
  */
 
+import { newId } from '@/lib/secure-id';
+
 export interface ConversationMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -101,7 +103,7 @@ export class ConversationManager {
    * Generate unique ID
    */
   private generateId(): string {
-    return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return newId('conv');
   }
 
   /**
