@@ -140,12 +140,16 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `3531e08` | the two repo-walking guards get filesystem budgets measured on this laptop instead of guessed |
 | `336a142` | that write-up: Stage 3 two bricks deep, §5's evidence row, §9's two re-runs |
 | `5f9c963` | **new branch `feat/safe-data-retrieval`** — the redaction half of a surface that can read production rows safely |
+| `74564c4` | that brick written up, plus §7's ninth blocker: the repository is public, so pushing is a disclosure decision |
+| `caffc4e` | the count in those two sentences replaced by the guard set that was actually run |
+| `2098ab8` | the retriever — an unpolicied table is never queried, and a dropped column never leaves the database |
 
-Working tree clean. As of `5f9c963`, `git rev-list --count origin/main..HEAD` printed **36**: nine for the
+Working tree clean. As of `2098ab8`, on `feat/safe-data-retrieval`, `git rev-list --count origin/main..HEAD`
+printed **39**: nine for the
 security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, three for the three
 read-modify-write races in the progress layer, one for the telemetry that was reporting the wrong pair, two
-for the evidence tree and its inclusion proofs, one for the guard budgets, one for the redaction policy, and
-the rest are this map being brought up to date with them. Nothing here is pushed or deployed — see the
+for the evidence tree and its inclusion proofs, one for the guard budgets, two for the safety-retrieval
+bricks, and the rest are this map being brought up to date with them. Nothing here is pushed or deployed — see the
 `workflow` scope in §7, the publish decision §7 now names, and the spent deploy cap below.
 The number is stated as what the command
 printed at a named commit rather than as a live total, because the next commit to this file changes it.
@@ -627,6 +631,39 @@ about who is blocked on what — and the range still contains `.github/workflows
 the `workflow` scope in §7 as well. Both are the account holder's call, so the branch is local and the work
 is backed up nowhere; §7 item 9 names the two levers.
 
+### `2098ab8`, the same night — the retriever, and the select list the policy writes
+
+Redaction that happens after the rows arrive is a confession: the guardian phone number came over the wire,
+sat in this process's memory, and was then thrown away by a function hoping nobody dumped the heap. So the
+second brick decides what is ever asked for.
+
+`retrieveTable({ select, table, policies, salt, limit })` refuses before it queries, and the ordering is the
+design: no policy for the table → `UnpoliciedRetrievalError` and **the connection is never called** (a test
+asserts the call log is empty, because "we would have redacted it" is not a defence for having fetched it).
+Then the salt, so a missing secret aborts a query rather than a result set. Then the limit — `limit` is
+refused above `MAX_RETRIEVAL_ROWS` (200) instead of silently clamped, because a caller that believed it was
+reading 5,000 rows must not be handed 200 and left to average them. Only then is the select list built: the
+policy's `keep` and `pseudonymize` columns, sorted, never `*` — so a `drop` rule removes a column from the
+network rather than from the answer, and a schema change cannot turn into a disclosure without somebody
+editing this file. A policy that drops everything it names is refused too, since an empty select list is a
+mistake wearing the costume of a safety rule.
+
+The connection arrives as a function, which is what makes all of that testable: the suite runs against a
+double that records `(table, columns, limit)`. There is no Supabase adapter yet, deliberately — writing one
+means deciding which credential reads which table, and that is a decision with §7's public-repository
+problem attached to it.
+
+Evidence, fresh at 22:00: `npx vitest run` over the directory → **17 passed** (9 new, red first as
+`Cannot find module '../retrieve'`); the same eight repository-walking guards re-run with it → **10 files,
+153 passed / 0 failed** in 13.32 s; `npx tsc --noEmit` → **exit 0** in 38.1 s. `redact.ts` gained
+`assertRetrievalSalt` so both halves check one rule rather than two that happen to agree, and its eight
+tests still pass unchanged.
+
+**What it does not do.** Nothing calls `retrieveTable` yet, so no live row has been asked for; no real table
+has a policy registered, so the registry is one test fixture; and the full 92-file suite still has not been
+run on this branch. A caller that wants rows today has to write the `select` function itself, which is the
+correct amount of friction for a surface whose whole job is to make the easy call the safe one.
+
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
 Five commits, listed in §1's table: `372089c` S-1, `e584ff4` S-3, `f97dcc5` S-4, `a966b04` S-2,
@@ -997,7 +1034,7 @@ claiming dashboards that rendered blank. `?` = not established.
 | Lesson generation (`/lesson-architect/*` on Render) | yes | yes | **not redeployed** | no |
 | Rust `/api/v1` backend | yes | no | **deployed nowhere** | no |
 | Evidence anchoring / Merkle verification (Stage 3) | yes — `attest/evidence-tree.ts`: canonical serialization, root, and per-learner inclusion proofs (`aa81219`, `73066f7`) | yes — 29 tests, red first, golden fixture | **no** — nothing has signed a root, no `evidence_anchors` table exists, no route serves a proof | no — and the rows it hashes are still invented: `learning_evidence` has no writer (§10 item 8) |
-| **Safe data retrieval** — a policy decides what a retrieved row may contain | yes — `lib/safe-retrieval/redact.ts`, on branch `feat/safe-data-retrieval` (`5f9c963`) | yes — 8 tests, red first as `Cannot find module`, `tsc --noEmit` exit 0 | **no** — the branch is unpushed, and there is no retriever, route, script or registered table policy behind it | no — no live row has ever passed through it |
+| **Safe data retrieval** — a policy decides what a retrieval may ask for and what a row may contain | yes — `lib/safe-retrieval/redact.ts` and `retrieve.ts`, on branch `feat/safe-data-retrieval` (`5f9c963`, `2098ab8`) | yes — 17 tests, each red first as `Cannot find module`, `tsc --noEmit` exit 0, the eight repository guards green with them | **no** — the branch is unpushed, and there is no connection adapter, route, script or registered table policy behind it | no — no live row has ever been asked for |
 | Multi-tenancy, indigenous languages (Stage 5) | no | no | no | no |
 
 ### Omega Claw, measured 2026-09-29
@@ -1371,15 +1408,17 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   from the TypeScript mirror under the real hyperon engine, and whether the card on `/student` actually
   paints, since the SSR HTML is a `Loading your record…` shell by design and no browser has looked at it
   since.
-- **`redactRow` has no caller, and that is the gap in the new branch, stated plainly.** Eight tests assert
-  what the function does with a row somebody hands it; nothing in `src` hands it one, because the retriever
-  half — the thing that selects columns, resolves a table's policy, and supplies the salt from a named
-  environment variable — does not exist yet. So the claim on the table above is "code and tests", and the
-  claim that a real production read would be safe is **not** made: a policy that nobody has written for
-  `profiles` or `chat_sessions` protects nobody. Two further gaps on this branch specifically: the full
-  92-file serial suite was not re-run (the eight repository-walking guards plus this module were, at **144
-  passed / 0 failed**, and §1 records why that is the right set), and `npx eslint` cannot run here at all —
-  `Cannot find package 'eslint'` — so the repo's own lint config has never looked at this code.
+- **`retrieveTable` has no caller, and that is the gap on the `feat/safe-data-retrieval` branch, stated
+  plainly.** Seventeen tests assert what the two halves do with a row and a query somebody hands them; nothing
+  in `src` hands them either, because the third brick — a Supabase adapter behind the `SelectRows` port, one
+  real table's policy, and a named environment variable for the salt — does not exist yet. So the claim on
+  the ledger above is "code and tests", and the claim that a real production read would be safe is **not**
+  made: a policy nobody has written for `profiles` or `chat_sessions` protects nobody, and the adapter is
+  where a credential gets chosen, which is why it was not written casually at 22:00. Two further gaps on the
+  branch: the full 92-file serial suite was not re-run (the eight repository-walking guards plus this
+  directory were, at **153 passed / 0 failed**, and §1 records why that is the right set), and `npx eslint`
+  cannot run here at all — `Cannot find package 'eslint'` — so the repo's own lint config has never looked at
+  any of it.
 - KICD curriculum PDFs are still unread; Grade 12 pathways (#32) rest on secondary sources.
 - The archived roadmap's "82-88% complete", "85/100 security rating" and coverage figures have no
   reproducible command behind them and are not carried forward as evidence.
