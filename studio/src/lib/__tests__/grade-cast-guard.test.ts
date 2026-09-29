@@ -46,13 +46,23 @@ function tsFiles(dir: string): string[] {
   return found;
 }
 
+/**
+ * These two guards walk every `.ts`/`.tsx` under `src` and read each file, so their cost is the size of the
+ * repository, not the size of the assertion. Vitest's 5 s default was enough when this file was written and
+ * is not enough on the 3.7 GB development laptop: measured 2026-09-29, that walk takes 0.49 s when this file
+ * runs alone and 6.36 s inside `vitest run --no-file-parallelism`, where the run spends 26.8 s transforming
+ * and 117.5 s importing modules for 54.4 s of actual test time. The assertion is
+ * unchanged — this only stops a filesystem budget from being reported as a grade-parser regression.
+ */
+const WALK_TIMEOUT_MS = 40_000;
+
 describe('no bare cast into GradeLevel', () => {
   it('leaves bare casts into GradeLevel out of every executable line in src', () => {
     const offenders = tsFiles(SRC)
       .filter((file) => /as\s+GradeLevel\b/.test(codeOnly(readFileSync(file, 'utf8'))))
       .map((file) => relative(SRC, file));
     expect(offenders, `these files still cast a string into GradeLevel: ${offenders.join(', ')}`).toEqual([]);
-  });
+  }, WALK_TIMEOUT_MS);
 });
 
 describe('the dead quiz trigger is cut', () => {
@@ -67,8 +77,8 @@ describe('the dead quiz trigger is cut', () => {
     const importers = tsFiles(SRC)
       .filter((file) => /from '[^']*quiz-trigger'/.test(readFileSync(file, 'utf8')))
       .map((file) => relative(SRC, file));
-    expect(importers).toEqual([]);
-  });
+    expect(importers, `quiz-trigger.ts is dead but still imported by: ${importers.join(', ')}`).toEqual([]);
+  }, WALK_TIMEOUT_MS);
 });
 
 describe('the schemer test page validates its grade', () => {

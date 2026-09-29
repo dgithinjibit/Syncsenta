@@ -294,9 +294,12 @@ describe('code, repo and production agree about which tables exist', () => {
       'supabase/migrations/004_agent_traces.sql',
       'supabase/migrations/005_camera_frames.sql',
     ]);
-  // The 20 s is not a guess: this walk reads four whole trees, and on the 3.7 GB
-  // development laptop it measured 7.2 s inside a full `--no-file-parallelism`
-  // run — past vitest's 5 s default, which showed up as a failure of this suite
-  // and nothing else. The assertion is unchanged; only the patience is.
-  }, 20_000);
+  // The patience is measured, twice, and the first measurement was too small. This walk reads four
+  // whole trees, so its cost tracks what else is resident rather than the size of the assertion:
+  // the note this replaces recorded 7.2 s inside a full `--no-file-parallelism` run (already past
+  // vitest's 5 s default, which showed up as a failure of this suite and nothing else); today the
+  // same walk measured 29.3 s inside the full run and 9.4 s with this file alone. 20 s held one
+  // observation and not the range.
+  // The assertion is unchanged; only the patience is, and the range is what it now budgets for.
+  }, 60_000);
 });
