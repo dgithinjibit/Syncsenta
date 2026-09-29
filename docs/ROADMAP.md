@@ -60,10 +60,21 @@ A learner can, right now, on `https://sentastudio.vercel.app` (verified 2026-09-
 That is the whole verified surface. Everything else in this document is *written*, *tested*,
 *deployed*, or *browser-verified* — those are four different claims and §5 keeps them apart.
 
-Committed locally, **nothing pushed** (deliberately — Vercel caps deployments per day, so a batch of
-work earns one deploy rather than six). `git diff origin/main HEAD` is the real delta, because PR #17
-was squash-merged and `origin/main..HEAD` overcounts: **41 files, +3876 / −1747**, measured after
-`6f948b9` on 2026-09-29.
+**Pushed and merged 2026-09-29: PR #20 → `ef394e4` on `main`, production build `Ready`**
+(`sentastudio-5q96rsz9l…`, 2 m build). The batch that had been held locally — 41 files, +3881 / −1747 —
+is now on `sentastudio.vercel.app`. Read back from production with curl the same day, as
+`student01`: `/api/auth/demo-login?role=student` → `200` → `/student?demo=1`; `/dashboard` → `307` →
+`/student`; `POST /api/omega-claw/hint {hint_level:5}` → `200 {"hintLevel":4,"hint":"worked-example",
+"hintMessage":"…"}`; `POST /api/omega-claw/progression {outcome:"correct"}` →
+`200 {"nextAction":"celebrate-transfer",…,"unlocksTransfer":false}`; `{outcome:"maybe"}` → `400`; and
+both endpoints anonymous → `401`, not the old `503`.
+
+CI's `install / typecheck / test / build` job is **red on `main` for a reason that is not this code**:
+one suite, `production-readiness-regressions.test.ts`, dies with `Error: Node.js detected but native
+WebSocket not found`, i.e. Supabase's `realtime-js` needing Node 22 while `studio-gates.yml` pins
+Node 20 (72 other files passed, and the same suite is 631-green locally on Node 22). The fix is the
+unpushed `ci-node22-pending` branch, blocked on the `workflow` scope in §7. Vercel built the same tree
+on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not a broken build.
 
 | Commit | What it is |
 |---|---|
@@ -74,8 +85,10 @@ was squash-merged and `origin/main..HEAD` overcounts: **41 files, +3876 / −174
 | `4c03d69` | Stage 1's code task — the mastery award through `award_points()`, the dead writer deleted, `/api/chat` wired |
 | `6f948b9` | Stage 1's re-baseline — `schema-coverage.test.ts` committed green for the first time |
 | `363602e` | the learner home's stale points caveat, corrected |
+| `3b61639` | this §1, written against the commits it describes |
+| `ef394e4` | PR #20 merged to `main` — all of the above is production |
 
-Working tree clean as of this writing; **all of it is local**.
+Working tree clean; the branch is merged, so `origin/main` and `HEAD` agree as of this writing.
 
 Both test files were committed once green — see Stage 1's re-baseline item. The rule that kept
 `schema-coverage.test.ts` out of the tree for a day was that a committed red test only teaches
@@ -363,25 +376,97 @@ claiming dashboards that rendered blank. `?` = not established.
 |---|---|---|---|---|
 | Sign in as a learner, teacher, parent, head | yes | yes | yes | **yes** (2026-09-28) |
 | `/dashboard` blank-page fix | yes | yes | yes | yes (2026-09-28) |
-| Landing page routes a session straight to the role dashboard | yes | yes — `auth-role-routing` (47) | **no** | no |
-| Sign-up flow removed, four demo roles are the entry | yes | yes — deletion is locked | **no** | no |
+| Landing page routes a session straight to the role dashboard | yes | yes — `auth-role-routing` (47) | **yes** (`ef394e4`) | no — the routes were curl-verified, the landing page itself has not been re-opened in a browser |
+| Sign-up flow removed, four demo roles are the entry | yes | yes — deletion is locked | **yes** (`ef394e4`) | no |
 | Student tutor (`/api/chat`) | yes | yes | yes | yes (real streamed reply) |
-| Chat transcript + counters (Stage 1 defects 1–2) | yes | 16 tests pass | **no** | no |
-| Nairobi-timezone activity days and streaks (defect 3) | yes | same suite | no | no |
+| Chat transcript + counters (Stage 1 defects 1–2) | yes | 16 tests pass | **yes** (`ef394e4`) | no |
+| Nairobi-timezone activity days and streaks (defect 3) | yes | same suite | **yes** (`ef394e4`) | no |
 | Points ledger, scope columns, leaderboard + award RPCs (defect 4, **schema**) | yes | **yes — against production**, V1–V7 in the migration file: catalog read-back, award recompute, column-guard no-op, real `get_leaderboard` call, `42501` for `authenticated`, cleanup re-read | live in the database (applied 2026-09-29) | n/a — no UI reads it yet |
-| Points, mastery award in code (`awardCompetencyMastery` → `award_points`, `/api/chat`) | yes | yes — 13 tests, red-then-green; `tsc --noEmit` clean | **no** — local commit only | no |
-| Points, streak rewards, class leaderboard (**learner-visible**) | **no** — the ledger is written by code that is not deployed, and nothing renders a board | no | no | no |
+| Points, mastery award in code (`awardCompetencyMastery` → `award_points`, `/api/chat`) | yes | yes — 13 tests, red-then-green; `tsc --noEmit` clean | **yes** (`ef394e4`) | **no** — nothing has earned 50 points yet; the ledger is live and still empty |
+| Points, streak rewards, class leaderboard (**learner-visible**) | **no** — the award is deployed but nothing renders a board or a balance | no | no | no |
 | Classroom-scoped leaderboard with real rows | code exists | **no** — production has 0 `school_classes` and 0 profiles carrying a `classroom_id`, so there is nothing to rank | live RPC | no |
 | Teacher analytics from live tables | partial | no | no | no |
 | `get_teacher_students` / `get_teacher_alerts` | called by code | — | **the RPCs do not exist** | no |
+| **Omega Claw** — progression + hint rules over HTTP | yes | yes — 17 mirror + 12 route tests | **yes** | **yes** (2026-09-29, signed-in curl on production: clamping, action copy, `400` on unknown outcome, `401` anonymous) |
+| **Omega Claw** — grade scope and activity-allowance rules | yes in the TS mirror and the Rust façade | yes — mirror is asserted against the parsed `.metta` file | **no** — the app exposes no route for either | no |
+| **Omega Claw** — blocked-topic safety boundary (6 rules) | yes in the mirror | yes | **enforced nowhere** — no chat, generation or request path calls it | no |
+| **Omega Claw** — decision persistence (`omega_decisions`) | `lib/omega-agent/core.ts:403` inserts | no | **the table does not exist** in production or in any migration | no |
+| **Omega Claw** — `/student` challenge path (the learner-facing card) | yes, mounted at `app/student/page.tsx:256` | no component test | yes | **no** — SSR HTML is a `Loading your record…` shell by design, so rendering has not been seen in a browser |
+| **Omega Claw** — the Rust service behind it | yes (`backend/syncsenta-backend`) | 2 `#[tokio::test]`s exist, never executed here or in CI | **deployed nowhere** | no |
 | Offline / PWA | service worker exists | never registered | — | **0% live** |
 | Lesson generation (`/lesson-architect/*` on Render) | yes | yes | **not redeployed** | no |
 | Rust `/api/v1` backend | yes | no | **deployed nowhere** | no |
 | Evidence anchoring / Merkle verification (Stage 3) | no | no | no | no |
 | Multi-tenancy, indigenous languages (Stage 5) | no | no | no | no |
 
-**Known measurement gap**: `Code Quality Metrics` in the archived roadmap claimed
-*"Linting Errors: 0 ✅"*. That is unsupported. `studio/package.json` declares no `eslint`
+### Omega Claw, measured 2026-09-29
+
+"How much of Omega Claw is done?" has no single answer that is not a guess, so it is answered as
+counts against named denominators, each with the command that produced it. Read from the tree on `main`
+at `ef394e4` plus curl against production.
+
+There are **four things called Omega**, which is the actual diagnosis:
+
+1. **The Omega Claw rule pack** — `backend/syncsenta-backend/data/omega_claw_rules.metta`, 51 lines,
+   **35 rule statements in 6 families** (grade scope 6, activity allowance 13, next-action 4, hint
+   ladder 4, transfer gate 2, blocked topics 6). Counted with
+   `grep -cE '^\(omega-claw|^\(=' data/omega_claw_rules.metta`.
+2. **The Rust façade + service** — `src/metta_core/omega_claw.rs` (199 lines, loads the pack with
+   `include_str!` into a MeTTa space) and `src/handlers/omega_claw.rs` (189 lines, **4 routes**:
+   `/:grade/scope`, `/activity/check`, `/progression`, `/hint`). The real hyperon MeTTa runtime sits
+   behind an off-by-default cargo feature (`default = []`, `metta = ["dep:hyperon"]`), so a plain build
+   compiles the hand-written fallback parser in `interpreter.rs` instead. Deployed nowhere; no CI
+   workflow runs `cargo`, so its 2 `#[tokio::test]`s have never been executed here either (740 MB free
+   — an `axum`+`sqlx` workspace build is not attempted on this machine).
+3. **The TypeScript mirror** — `studio/src/lib/omega-agent/omega-claw-rules.ts` (230 lines) + `lib/omega-claw-api.ts`
+   (164) + 2 routes. This is what actually answers in production.
+4. **Two unrelated things wearing the name**: `studio/src/lib/omega-agent/metta-core.ts`
+   (`evaluateTutoringDecision()`, 857 lines, the scaffolding-intensity engine that `/api/chat` really
+   calls — its thresholds are provably in sync with `rust-core/src/agent_runtime.rs`, measured by
+   `node studio/scripts/check-omega-thresholds.mjs` → **exit 0, 3 of 3 thresholds match**), and the
+   `/omega` page, a demo dashboard on `use-omega-agent.ts` whose Grade 2 activity picker is
+   `Math.random()` and which pulls in `omega-agent/core.ts` — the module that inserts into the
+   nonexistent `omega_decisions` table.
+
+Percentages, each with its denominator:
+
+| Question asked | Denominator | Measured | Command |
+|---|---|---|---|
+| Are the pack's rules mirrored in code the app runs? | 6 rule families | **6/6 = 100%** | `omega-claw-rules.test.ts` parses the `.metta` file and fails on disagreement — 17 tests pass |
+| …of those, how many can a client ask the deployed app about? | 6 families | **3/6 = 50%** (next-action, hint, transfer) | `find studio/src/app/api/omega-claw -name route.ts` → 2 files; scope and activity have no route |
+| …against the Rust service's own surface? | 4 Rust routes | **2/4 = 50%** | `grep '\.route(' handlers/omega_claw.rs` |
+| Do the deployed answers match the pack? | 3 probes | **3/3** — clamping, action copy, unknown-outcome `400` | signed-in curl above |
+| Is the safety boundary enforced on any request path? | 6 blocked topics | **0/6 = 0%** | `grep -rn isBlockedOmegaClawTopic studio/src` → mirror + tests only |
+| Is learner progress persisted? | — | **0** — `completed` is React state; no write | `interactive-challenge-path.tsx:71` |
+| Is the Rust engine live? | 1 service | **0 deployed, 0 CI runs** | no `cargo` step in `.github/workflows/` |
+
+**Headline, stated as a denominator rather than a vibe: of the 35 rule statements in the pack, 35 are
+mirrored in code the app runs, 10 are reachable over a deployed HTTP endpoint (the 4 next-action and 4
+hint rows plus the 2 transfer rows; the 6 scope and 13 activity rows have no route, and the 6 blocked
+topics are wired to nothing), and 0 have ever been executed by the MeTTa runtime the project claims.**
+The learner-facing card that renders them has 3 hardcoded nodes, of which **1 of 3**
+(`ai-input-output`) is a legal Grade 6 activity in the pack; `blockchain-consensus` is a Senior School
+row the pack would refuse for Grade 6, and `explain-your-thinking` is not in the pack at all.
+
+**Defects found, not yet fixed** (each is a code task, none is a schema task):
+- `interactive-challenge-path.tsx:91` prints the raw symbol — `Guided hint 2: isolate-step` — while the
+  API it just called returned `hintMessage` with the child-readable sentence. The copy exists and is
+  discarded.
+- `:110-119` ignores `nextActionMessage` the same way and hardcodes near-identical strings, so learner
+  copy lives in two places and only one of them is tested.
+- `:51` `isOmegaClawGrade()` strips only whitespace, so a profile whose grade is `Grade-6` canonicalises
+  to `grade-6`, fails all three tests, and the card silently returns `null`. Rust and the TS mirror both
+  strip `-` and `_`. Two canonicalisers, two answers — the Stage 4 "one voice" problem in miniature.
+- The three node ids are not `(omega-claw-activity …)` rows, so the path a learner walks is not the path
+  the rule pack approved.
+- No scope/activity route, so nothing in the app can ask the question the pack mostly answers.
+
+This block is the input to task #22 (which language Omega's rules live in) and #37 (mirror the checkable
+pedagogy rules into the pack), and to the Stage 4 exit evidence. Until #22 lands, the pack is documentation
+with a working TypeScript restatement, not an engine.
+
+**Known measurement gap**: `Code Quality Metrics` in the archived roadmap claimed *"Linting Errors: 0 ✅"*.
+That is unsupported. `studio/package.json` declares no `eslint`
 dependency and none is installed, `studio/eslint.config.mjs` is an ESLint 9 flat config that
 `next lint` on Next 14 does not read (so `npm run lint` hangs on an interactive prompt), and
 `next.config.js` sets `eslint.ignoreDuringBuilds: true`, so the build never reports lint either.
@@ -449,6 +534,8 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **Gamification DDL applied to production and verified** (V1–V7 read back from the live catalog and a real `get_leaderboard` call) | owner's condition met by agent | Stage 1 defect 4's schema half is closed; the ledger is live and empty; the app still has to call it |
 | 2026-09-29 | **Applying and probing found three defects reading had missed** — `anon` EXECUTE survived `revoke … from public` because Supabase's default privileges grant per role; `get_leaderboard`'s own-row branch ignored scope and caller identity; the ledger trigger had no DELETE coverage | agent | Fixed in place, re-verified, written into the migration file. Standing lesson in §4: on this project a new function is anon-reachable until `revoke … from anon` says otherwise |
 | 2026-09-29 | Leaderboard's own-row lookup is caller-checked, not scope-free: a browser caller may only ever receive their row | agent | Any future RPC added here follows the same rule — the security-definer body carries the boundary, RLS cannot |
+| 2026-09-29 | **"Omega Claw" is four things wearing one name** — the MeTTa pack, the undeployed Rust service, the TypeScript mirror that actually answers in production, and two unrelated engine-shaped modules (`metta-core.ts`'s tutoring decision, the `/omega` demo) | agent | Asked for a diagnosis and a percentage. §5's measured block is the answer; it is also the input to #22 and Stage 4's exit evidence. Until one voice is chosen, the pack is documentation with a working restatement, not an engine |
+| 2026-09-29 | A percentage for this project must name its denominator and its command, or it is not reported | agent (from the owner's standing rule) | §8 already forbids a single progress %; §5's Omega table is what compliance looks like — 35 mirrored / 10 reachable over HTTP / 0 executed by MeTTa, each from a greppable count |
 
 ---
 
@@ -458,9 +545,9 @@ Things that are *not* proven, restated so nobody (including a future session) ha
 
 - `next build` has never been run locally on this batch, and will not be: it is the heaviest thing on
   a 3.7 GB machine and Vercel runs it anyway on deploy. What was run 2026-09-29: `tsc --noEmit`
-  **exit 0**, and `vitest run --no-file-parallelism` **627 passed / 3 failed / 17 skipped** across 74
-  files, the three
-  failures all in the untracked, not-yet-re-baselined `schema-coverage.test.ts`.
+  **exit 0**, and `vitest run --no-file-parallelism` **631 passed / 0 failed / 17 skipped** across 74
+  files — the first fully green suite in this batch, and Vercel's own build of the same tree went
+  `Ready` in 2 minutes, so the build claim is now Vercel's evidence rather than nobody's.
   **Piping vitest through `tail` reports exit code 0 even when tests fail**, so read the output file —
   the run's own `VITEST_EXIT` line, not the shell's.
 - `schema-coverage.test.ts` is green and committed as of 2026-09-29, which changes what the gap means
@@ -484,17 +571,23 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   code-reviewed and exercised only through the `school` branch, because `school_classes` has 0 rows
   and no profile carries a `classroom_id`. Stage 5's tenancy work is what puts rows there; until
   then the class board the owner asked for is verified as a query, not as a feature.
-- **The points code is unit-green and production-blind.** `award_points` now has a caller — but only
-  in a local commit. Nothing has been deployed since the ledger went in, so on
-  `sentastudio.vercel.app` a learner who masters a competency still earns nothing, and the deployed
-  build could not reach the ledger if it wanted to: `types.ts` there has no `award_points` entry and
-  `points-system.ts` there is still the read-modify-write. What a learner sees today is `—` in the
-  "SyncSenta Points" card on `/student`, not `0`: `home-data.ts` reports `null` for an unreadable
-  profile and the page renders the em dash, and the ledger has 0 rows for every account because the
-  verification test award was cleaned up. The 13 tests assert the wiring at the boundary of a fake
-  client; they do not prove the real service key passes `42501`-free, and a double-transition race
-  has no idempotency key underneath it yet. What closes this is one deploy and one real learner
-  crossing into `mastered`, read back from `point_transactions`.
+- **The points code is deployed and still unproven in the only way that matters.** It went to
+  production with `ef394e4` on 2026-09-29, so the deployed `points-system.ts` is the ledger-backed one
+  and the deployed `types.ts` does carry `award_points`. What has *not* happened is one real learner
+  crossing into `mastered` and a `point_transactions` row appearing: the ledger still has 0 rows for
+  every account, because the verification award from the DDL apply was cleaned up, and `/student`
+  therefore renders `—` rather than a number. The 13 tests assert the wiring at the boundary of a fake
+  client; they do not prove the real service key passes `42501`-free on the deployed function, and a
+  double-transition race still has no idempotency key underneath it. Closing this needs no deploy —
+  it needs one chat conversation that reaches mastery, read back from the table.
+- **Omega Claw's Rust side is entirely unexecuted.** `metta_core/omega_claw.rs` carries two
+  `#[tokio::test]`s and `rust-core/src/agent_runtime.rs` carries seventeen, and no workflow runs
+  `cargo`, so none of them has ever run in CI; they were not run here either, because 740 MB free is
+  not enough to build an `axum` + `sqlx` workspace and the standing rule is to check the memory cost
+  before a test run. Two further unknowns the §5 block cannot settle: whether the shipped service would
+  behave differently from the TypeScript mirror under the real hyperon engine (it is compiled out —
+  `default = []`), and whether the card on `/student` actually paints, since the SSR HTML is a
+  `Loading your record…` shell by design and no browser has looked at it since.
 - KICD curriculum PDFs are still unread; Grade 12 pathways (#32) rest on secondary sources.
 - The archived roadmap's "82-88% complete", "85/100 security rating" and coverage figures have no
   reproducible command behind them and are not carried forward as evidence.
