@@ -62,7 +62,8 @@ That is the whole verified surface. Everything else in this document is *written
 
 Committed locally, **nothing pushed** (deliberately — Vercel caps deployments per day, so a batch of
 work earns one deploy rather than six). `git diff origin/main HEAD` is the real delta, because PR #17
-was squash-merged and `origin/main..HEAD` overcounts; 36 files, +3117 / −1475 as of 2026-09-29.
+was squash-merged and `origin/main..HEAD` overcounts: **41 files, +3876 / −1747**, measured after
+`6f948b9` on 2026-09-29.
 
 | Commit | What it is |
 |---|---|
@@ -70,7 +71,11 @@ was squash-merged and `origin/main..HEAD` overcounts; 36 files, +3117 / −1475 
 | `2a101a2` | Stage 1 defects 1–3 — transcript count, subject→competency resolution, Nairobi calendar days |
 | `2be809e` + `fd97acb` | Stage 1 defect 4 — the ledger DDL, then its apply and the three defects running it found. **Production holds this** |
 | `2916dd5` | Stage 0 — one gate: a signed-in visitor is never asked to sign in again; sign-up deleted |
-| uncommitted | the points code task below: `points-system.ts`, `progress-tracking.ts`, `/api/chat`, `types.ts`, `points-award-on-mastery.test.ts`, and the re-baselined `schema-coverage.test.ts` |
+| `4c03d69` | Stage 1's code task — the mastery award through `award_points()`, the dead writer deleted, `/api/chat` wired |
+| `6f948b9` | Stage 1's re-baseline — `schema-coverage.test.ts` committed green for the first time |
+| `363602e` | the learner home's stale points caveat, corrected |
+
+Working tree clean as of this writing; **all of it is local**.
 
 Both test files were committed once green — see Stage 1's re-baseline item. The rule that kept
 `schema-coverage.test.ts` out of the tree for a day was that a committed red test only teaches
