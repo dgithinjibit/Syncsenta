@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { answerFeedback, hintFeedback } from '@/lib/omega-claw-copy';
+import { showsOmegaClawPath } from '@/lib/omega-claw-path';
 
 interface ChallengeNode {
   id: string;
@@ -48,11 +49,6 @@ const omegaClawNodes: ChallengeNode[] = [
   },
 ];
 
-function isOmegaClawGrade(grade: string): boolean {
-  const normalized = grade.toLowerCase().replace(/\s+/g, '');
-  return normalized.includes('senior') || normalized === 'grade6' || /grade1[0-2]/.test(normalized);
-}
-
 async function postOmegaClaw(path: string, payload: unknown): Promise<Record<string, unknown> | null> {
   try {
     const response = await fetch(`/api/omega-claw/${path}`, {
@@ -82,7 +78,7 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
   const activeIndex = omegaClawNodes.findIndex((node) => node.id === activeNode.id);
   const progress = Math.round((completed.length / omegaClawNodes.length) * 100);
 
-  if (!isOmegaClawGrade(grade)) return null;
+  if (!showsOmegaClawPath(grade)) return null;
 
   const handleHint = async () => {
     setIsChecking(true);

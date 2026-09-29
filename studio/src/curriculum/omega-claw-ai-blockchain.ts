@@ -6,10 +6,14 @@
  * were written down. It now lives in ./pedagogy.ts and is read from here; the
  * `pedagogyBoundaries` line below is what keeps that read honest, since a
  * boundary the model never sees cannot constrain the lesson it writes.
+ *
+ * The same reason applies to which grades Omega Claw covers: the answer comes
+ * from `lib/omega-agent/omega-claw-rules.ts`, the MeTTa pack mirror, not from a
+ * grade test written in this file. It used to have one, and a profile reading
+ * `Grade-6` was told to use other content.
  */
 import { pedagogyAdaptations } from "./pedagogy";
-
-export const OMEGA_CLAW_CURRICULUM_GRADE = "g6" as const;
+import { canonicalOmegaClawGrade, omegaClawScopeFor } from "../lib/omega-agent/omega-claw-rules";
 
 const PEDAGOGY_NAMES = pedagogyAdaptations.map((adaptation) => adaptation.name).join("; ");
 const PEDAGOGY_BOUNDARIES = pedagogyAdaptations.map((adaptation) => adaptation.boundary).join(" ");
@@ -421,13 +425,23 @@ export function isOmegaClawAdvancedRequest(queryOrContent: string): boolean {
 }
 
 export function isOmegaClawGrade(grade: string): boolean {
-  const normalizedGrade = grade.trim().toLowerCase().replace(/\s+/g, "");
-  return normalizedGrade === OMEGA_CLAW_CURRICULUM_GRADE || normalizedGrade === "grade6";
+  return omegaClawScopeFor(grade) === "introductory";
 }
 
+/**
+ * Kenyan senior-school band labels. The MeTTa pack has no rows for them —
+ * `canonical_grade()` knows grades, not bands — so they cannot arrive through
+ * `omegaClawScopeFor()`. They stay as a named superset of the pack rather than
+ * being silently dropped; task #22 (one voice for the Omega rules) is where the
+ * pack itself decides whether to carry them.
+ */
+const SENIOR_BAND_LABELS: readonly string[] = ["s1", "s2", "s3"];
+
 export function isOmegaClawSeniorGrade(grade: string): boolean {
-  const normalizedGrade = grade.trim().toLowerCase().replace(/\s+/g, "");
-  return ["g10", "g11", "g12", "grade10", "grade11", "grade12", "s1", "s2", "s3"].includes(normalizedGrade);
+  return (
+    omegaClawScopeFor(grade) === "senior-deep" ||
+    SENIOR_BAND_LABELS.includes(canonicalOmegaClawGrade(grade))
+  );
 }
 
 export function getOmegaClawScopeMessage(grade: string): string {
