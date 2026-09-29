@@ -57,10 +57,11 @@ function subjectLabel(slug: string): string {
  * Tomorrow, 11:59 PM"), a `learningPath` with invented 85/72/68 percentages, a
  * `todaysClasses` list with times nobody scheduled, and a KPI card asserting
  * "3 active assignments, 2 due this week". The real-looking numbers came from
- * `/api/test-personalization`, whose engine keeps profiles in per-process
- * `Map`s and tries to persist them with `localStorage` inside a Vercel function
+ * `/api/test-personalization`, whose engine kept profiles in per-process
+ * `Map`s and tried to persist them with `localStorage` inside a Vercel function
  * — so every cold start returned a randomly generated friendly name and zero
- * progress. Everything below now reads the Supabase tables the app genuinely
+ * progress. The engine and that harness were deleted on 2026-09-29. Everything
+ * below now reads the Supabase tables the app genuinely
  * writes (`chat_sessions`, `profiles.total_points`), and a learner with no
  * history sees an empty page instead of someone else's timetable.
  */

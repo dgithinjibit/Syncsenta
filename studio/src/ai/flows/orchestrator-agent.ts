@@ -6,7 +6,6 @@
 import { CBCCurriculumAgent } from './cbc-curriculum-agent';
 import { mwalimuAiTutor } from './mwalimu-ai-flow';
 import { generateLessonPlan } from './generate-lesson-plan';
-import { personalizedLearning } from '../../lib/personalized-learning';
 
 export interface OrchestratorRequest {
   message: string;
@@ -399,16 +398,17 @@ export class OrchestratorAgent {
    */
   private async handleTutoringRequest(request: OrchestratorRequest): Promise<OrchestratorResponse> {
     try {
-      // Get personalized prompt
-      const profile = await personalizedLearning.getStudentProfile(request.context.userId);
-
+      // The tutor pipeline reads the learner's own state. This used to call
+      // `personalizedLearning.getStudentProfile()`, whose profile came from a
+      // process-local `Map` that Node cannot persist: it returned a randomly
+      // chosen friendly name and `Grade 4` for every caller, so a Grade 9
+      // request was answered as though a nine-year-old had sent it.
       const tutoringResponse = await mwalimuAiTutor({
         currentMessage: request.message,
-        grade: request.context.grade || profile.grade.replace('Grade ', 'g'),
+        grade: request.context.grade || 'Grade 4',
         subject: request.context.subject || 'General',
         history: [],
         studentId: request.context.userId,
-        studentName: profile.name
       });
 
       return {

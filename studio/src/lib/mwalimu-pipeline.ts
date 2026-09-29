@@ -10,7 +10,12 @@
  * Next.js API route calls this module directly.
  */
 import { multiAIClient } from './multi-ai-client';
-import { personalizedLearning } from './personalized-learning';
+import {
+  learnerStateWithoutHistory,
+  readLearnerState,
+  type LearnerState,
+} from './chat/learner-state';
+import { buildPersonalizedPrompt } from './chat/personalized-prompt';
 import {
   queryCBCAgent,
   formatCBCContextForPrompt,
@@ -42,6 +47,15 @@ export interface MwalimuTurnInput {
   history?: Array<{ role: 'user' | 'model'; content: string }>;
   /** Optional running mastery score in [0,1] used to query MeTTa pedagogy. */
   masteryScore?: number;
+  /**
+   * The learner's state, read from the database by the caller.
+   *
+   * Optional because the Genkit dev flow has no request context to read with.
+   * When it is absent the pipeline reads it itself if a session cookie is
+   * available, and falls back to an explicitly barren state if not — never to
+   * invented facts about a child.
+   */
+  learner?: LearnerState;
 }
 
 export interface MwalimuTurnOutput {
@@ -74,6 +88,47 @@ export interface MettaPedagogy {
 
 const METTA_BASE = process.env.METTA_BASE_URL || 'http://localhost:8080';
 
+/**
+ * State for one turn: what the caller read, or a read of our own, or nothing.
+ *
+ * A route handler can always read. Outside a request context — the Genkit dev
+ * flow, a test — `cookies()` throws, and the answer is an honestly empty state
+ * rather than the fabricated profile the deleted engine used to hand out.
+ */
+async function resolveLearnerState(input: MwalimuTurnInput): Promise<LearnerState> {
+  if (input.learner) return input.learner;
+
+  try {
+    const { createSupabaseRouteHandlerClient } = await import('./supabase/route-handler');
+    const client = await createSupabaseRouteHandlerClient();
+    return await readLearnerState(client, {
+      userId: input.userId,
+      subject: input.subject || 'General',
+      gradeFallback: input.grade || 'Grade 4',
+    });
+  } catch (error) {
+    console.warn('[mwalimu] no request context to read learner state from:', error);
+    return learnerStateWithoutHistory(input.userId, input.grade || 'Grade 4', input.subject || 'General');
+  }
+}
+
+/** The personalized half of the system prompt, from real state. */
+async function personalizedPromptFor(input: MwalimuTurnInput): Promise<string> {
+  const state = await resolveLearnerState(input);
+  // A caller that knows the learner's name (a teacher-assigned display name)
+  // outranks a profile row that has none; it never overrides a recorded name.
+  const profile =
+    input.studentName && !state.profile.name
+      ? { ...state.profile, name: input.studentName }
+      : state.profile;
+
+  return buildPersonalizedPrompt({
+    state: { ...state, profile },
+    subject: input.subject || 'General',
+    currentMessage: input.currentMessage || '',
+  });
+}
+
 /** Run one Mwalimu chat turn end-to-end. */
 export async function runMwalimuTurn(input: MwalimuTurnInput): Promise<MwalimuTurnOutput> {
   // 0. Analyze student emotional state
@@ -91,11 +146,7 @@ export async function runMwalimuTurn(input: MwalimuTurnInput): Promise<MwalimuTu
   const pedagogy = await safeQueryPedagogy(input.masteryScore);
 
   // 4. Build personalized system prompt and append CBC + scheme + pedagogy constraints.
-  let personalizedPrompt = await personalizedLearning.generatePersonalizedPrompt(
-    input.userId,
-    input.subject || 'General',
-    input.currentMessage || ''
-  );
+  let personalizedPrompt = await personalizedPromptFor(input);
   
   // 4.5. Enhance prompt with emotional intelligence
   personalizedPrompt = enhancePromptWithEmotionalIntelligence(
@@ -186,11 +237,7 @@ export async function* runMwalimuTurnStream(
 
   yield { type: 'meta', cbc: !!cbc, pedagogy };
 
-  let personalizedPrompt = await personalizedLearning.generatePersonalizedPrompt(
-    input.userId,
-    input.subject || 'General',
-    input.currentMessage || '',
-  );
+  let personalizedPrompt = await personalizedPromptFor(input);
   
   // Enhance prompt with emotional intelligence
   personalizedPrompt = enhancePromptWithEmotionalIntelligence(

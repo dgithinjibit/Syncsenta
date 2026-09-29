@@ -1,135 +1,182 @@
+/**
+ * POST /api/mwalimu — the Mwalimu tutor endpoint.
+ *
+ * Two things were wrong here before 2026-09-29, and they were related.
+ *
+ * 1. Identity came from the request body: `input.userId || 'user1'`. Anyone who
+ *    could reach the endpoint could name any learner and get that learner's
+ *    profile, personalisation and progress back, plus write into their session
+ *    history; and every caller who omitted the field shared one bucket. The
+ *    learner is now taken from the session cookie via `auth.getUser()`, the same
+ *    way `/api/chat` does it, and an anonymous call is a 401.
+ * 2. State came from `lib/personalized-learning.ts`, which kept profiles,
+ *    sessions and progress in `Map`s and persisted them with `localStorage`
+ *    inside a Node handler. That is a no-op, so every request started from zero
+ *    and the session id it minted matched nothing. State now comes from the
+ *    tables the rest of the app writes — see `lib/chat/learner-state.ts` — and
+ *    the turn is stored in `chat_messages` through the existing helper, so a
+ *    teacher or parent reading the transcript sees the same conversation the
+ *    learner had.
+ *
+ * `sessionId` is no longer read from the body either: a client-supplied id can
+ * point at another learner's session, and `getOrCreateChatSession()` already
+ * finds the learner's own active session for the subject.
+ *
+ * The request fields `studentUnderstood` and `responseTime` used to be written
+ * into the phantom interaction record. Nothing read them back, and a real
+ * equivalent already exists — `chat_messages.helpful`, set through
+ * `updateChatMessage()` — so they are not accepted here.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { multiAIClient } from '@/lib/multi-ai-client';
-import { personalizedLearning } from '@/lib/personalized-learning';
 import { runMwalimuTurn, runMwalimuTurnStream } from '@/lib/mwalimu-pipeline';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
+import { getOrCreateChatSession } from '@/lib/chat/subject-session';
+import { readLearnerState, recordTutorTurn } from '@/lib/chat/learner-state';
+import type { LearnerState, TutorProfile, TutorProgress } from '@/lib/chat/learner-state';
+import type { Database } from '@/lib/supabase/types';
 import type { MwalimuAiTutorInput } from '@/ai/flows/mwalimu-ai-types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 type MwalimuApiInput = MwalimuAiTutorInput & {
-  userId?: string;
-  sessionId?: string;
-  responseTime?: number;
-  messageType?: 'question' | 'explanation' | 'encouragement' | 'correction' | 'hint';
-  studentUnderstood?: boolean;
+  messageType?: MessageType;
   /** Latest mastery estimate in [0,1] for the active strand. Optional. */
   masteryScore?: number;
 };
 
+type MessageType = 'question' | 'explanation' | 'encouragement' | 'correction' | 'hint';
+
+type TutorClient = SupabaseClient<Database>;
+
+interface TurnContext {
+  userId: string;
+  subject: string;
+  grade: string;
+  learner: LearnerState;
+  sessionId: string;
+}
+
 export async function POST(req: NextRequest) {
+  const wantsStream =
+    req.headers.get('accept')?.includes('text/event-stream') ||
+    new URL(req.url).searchParams.get('stream') === '1';
+
+  let input: MwalimuApiInput;
   try {
-    const wantsStream =
-      req.headers.get('accept')?.includes('text/event-stream') ||
-      new URL(req.url).searchParams.get('stream') === '1';
+    input = (await req.json()) as MwalimuApiInput;
+  } catch {
+    return NextResponse.json({ error: 'Request body must be JSON' }, { status: 400 });
+  }
 
-    const input = (await req.json()) as MwalimuApiInput;
-    const userId = input.userId || 'user1';
-    const subject = input.subject || 'General';
-    const grade = input.grade || 'Grade 4';
+  const supabase = await createSupabaseRouteHandlerClient();
 
-    const profile = await personalizedLearning.getStudentProfile(userId);
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Unauthorized', detail: 'Sign in to talk to Mwalimu' },
+      { status: 401 },
+    );
+  }
+
+  const subject = input.subject || 'General';
+  const grade = input.grade || 'Grade 4';
+
+  try {
+    const ctx = await openTurn(supabase, user.id, subject, grade);
 
     if (wantsStream) {
-      return streamMwalimu(input, { userId, subject, grade, profile });
+      return streamMwalimu(input, ctx, supabase);
     }
 
-    // Run the consolidated pipeline (CBC + MeTTa + multi-provider generation).
     const turn = await runMwalimuTurn({
-      userId,
-      studentName: profile.name,
+      userId: ctx.userId,
+      studentName: ctx.learner.profile.name ?? undefined,
       teacherId: input.teacherId,
-      grade,
-      subject,
+      grade: ctx.grade,
+      subject: ctx.subject,
       currentMessage: input.currentMessage || '',
       history: input.history,
       masteryScore: input.masteryScore,
+      learner: ctx.learner,
     });
 
-    // Start or continue learning session.
-    let sessionId = input.sessionId;
-    if (!sessionId) {
-      const session = await personalizedLearning.startSession(
-        userId,
-        subject,
-        input.currentMessage ? extractTopicFromMessage(input.currentMessage) : 'General Discussion',
-      );
-      sessionId = session.id;
-    }
+    await recordTutorTurn(supabase, {
+      userId: ctx.userId,
+      sessionId: ctx.sessionId,
+      userMessage: input.currentMessage || '',
+      aiResponse: turn.response,
+      provider: turn.provider,
+      model: turn.model,
+      tokensUsed: turn.tokensUsed,
+    });
 
-    // Analyze message type and difficulty for analytics.
-    const messageType = input.messageType || detectMessageType(input.currentMessage || '');
+    const messageType: MessageType = input.messageType || detectMessageType(input.currentMessage || '');
     const difficultyLevel = calculateDifficultyLevel(input.currentMessage || '', turn.response);
-
-    if (sessionId) {
-      await personalizedLearning.addInteraction(userId, sessionId, {
-        userMessage: input.currentMessage || '',
-        aiResponse: turn.response,
-        messageType,
-        topicCovered: subject,
-        difficultyLevel,
-        studentUnderstood: input.studentUnderstood ?? null,
-        responseTime: input.responseTime || 0,
-      });
-    }
-
-    await updateProfileFromInteraction(userId, input, turn.response);
-
-    const progress = await personalizedLearning.getLearningProgress(userId, subject);
 
     return NextResponse.json({
       response: turn.response,
-      conversationId: (input as any).conversationId || 'default',
-      sessionId,
+      sessionId: ctx.sessionId,
       timestamp: new Date().toISOString(),
       provider: turn.provider,
       model: turn.model,
       tokensUsed: turn.tokensUsed,
-      personalization: {
-        studentName: profile.name,
-        learningStyle: profile.learningStyle,
-        preferredLanguage: profile.preferredLanguage,
-        culturalContext: profile.culturalContext.region,
-        interests: profile.interests,
-        strengths: profile.strengths,
-        challenges: profile.challenges,
-      },
-      learningAnalytics: {
-        overallProgress: progress.overallProgress,
-        streakDays: progress.streakDays,
-        totalSessions: progress.totalSessions,
-        averageSessionTime: progress.averageSessionTime,
-        messageType,
-        difficultyLevel,
-        adaptiveRecommendations: generateAdaptiveRecommendations(profile, progress),
-      },
+      personalization: personalizationBlock(ctx.learner.profile),
+      learningAnalytics: learningAnalyticsBlock(ctx.learner.progress, messageType, difficultyLevel, ctx.learner.profile),
       mettaSignals: {
         validation: turn.mettaValidation,
         pedagogy: turn.pedagogy,
         cbcCitationsAttached: turn.cbcCitationsAttached,
       },
       metadata: {
-        grade,
-        subject,
-        userId,
+        grade: ctx.grade,
+        subject: ctx.subject,
+        userId: ctx.userId,
         providerStatus: multiAIClient.getProviderStatus(),
       },
     });
   } catch (error) {
     console.error('mwalimu route error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({
-      error: message,
-      providerStatus: multiAIClient.getProviderStatus(),
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: message, providerStatus: multiAIClient.getProviderStatus() },
+      { status: 500 },
+    );
   }
+}
+
+/**
+ * Read the learner's state and make sure this turn has a session row to live in.
+ *
+ * Both happen before generation so the prompt is built from real data, and so a
+ * storage failure surfaces before the model is paid for.
+ */
+async function openTurn(
+  supabase: TutorClient,
+  userId: string,
+  subject: string,
+  grade: string,
+): Promise<TurnContext> {
+  const learner = await readLearnerState(supabase, {
+    userId,
+    subject,
+    gradeFallback: grade,
+  });
+
+  const { sessionId } = await getOrCreateChatSession(supabase, userId, subject, learner.profile.grade);
+
+  return { userId, subject, grade, learner, sessionId };
 }
 
 function streamMwalimu(
   input: MwalimuApiInput,
-  ctx: { userId: string; subject: string; grade: string; profile: any },
+  ctx: TurnContext,
+  supabase: TutorClient,
 ): Response {
-  const { userId, subject, grade, profile } = ctx;
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -140,29 +187,30 @@ function streamMwalimu(
       };
 
       try {
-        let sessionId = input.sessionId;
-        if (!sessionId) {
-          const session = await personalizedLearning.startSession(
-            userId,
-            subject,
-            input.currentMessage ? extractTopicFromMessage(input.currentMessage) : 'General Discussion',
-          );
-          sessionId = session.id;
-        }
-        send('session', { sessionId });
+        send('session', { sessionId: ctx.sessionId });
 
         let finalText = '';
-        let finalMeta: any = null;
+        let finalMeta: {
+          provider: string;
+          model: string;
+          tokensUsed?: number;
+          mettaSignals: {
+            validation: unknown;
+            pedagogy: unknown;
+            cbcCitationsAttached: boolean;
+          };
+        } | null = null;
 
         for await (const evt of runMwalimuTurnStream({
-          userId,
-          studentName: profile.name,
+          userId: ctx.userId,
+          studentName: ctx.learner.profile.name ?? undefined,
           teacherId: input.teacherId,
-          grade,
-          subject,
+          grade: ctx.grade,
+          subject: ctx.subject,
           currentMessage: input.currentMessage || '',
           history: input.history,
           masteryScore: input.masteryScore,
+          learner: ctx.learner,
         })) {
           if (evt.type === 'meta') {
             send('meta', { cbc: evt.cbc, pedagogy: evt.pedagogy });
@@ -193,45 +241,26 @@ function streamMwalimu(
           }
         }
 
-        const messageType = input.messageType || detectMessageType(input.currentMessage || '');
+        await recordTutorTurn(supabase, {
+          userId: ctx.userId,
+          sessionId: ctx.sessionId,
+          userMessage: input.currentMessage || '',
+          aiResponse: finalText,
+          provider: finalMeta?.provider,
+          model: finalMeta?.model,
+          tokensUsed: finalMeta?.tokensUsed,
+        });
+
+        const messageType: MessageType = input.messageType || detectMessageType(input.currentMessage || '');
         const difficultyLevel = calculateDifficultyLevel(input.currentMessage || '', finalText);
-        if (sessionId) {
-          await personalizedLearning.addInteraction(userId, sessionId, {
-            userMessage: input.currentMessage || '',
-            aiResponse: finalText,
-            messageType,
-            topicCovered: subject,
-            difficultyLevel,
-            studentUnderstood: input.studentUnderstood ?? null,
-            responseTime: input.responseTime || 0,
-          });
-        }
-        await updateProfileFromInteraction(userId, input, finalText);
-        const progress = await personalizedLearning.getLearningProgress(userId, subject);
 
         send('done', {
           ...finalMeta,
-          sessionId,
+          sessionId: ctx.sessionId,
           timestamp: new Date().toISOString(),
-          personalization: {
-            studentName: profile.name,
-            learningStyle: profile.learningStyle,
-            preferredLanguage: profile.preferredLanguage,
-            culturalContext: profile.culturalContext.region,
-            interests: profile.interests,
-            strengths: profile.strengths,
-            challenges: profile.challenges,
-          },
-          learningAnalytics: {
-            overallProgress: progress.overallProgress,
-            streakDays: progress.streakDays,
-            totalSessions: progress.totalSessions,
-            averageSessionTime: progress.averageSessionTime,
-            messageType,
-            difficultyLevel,
-            adaptiveRecommendations: generateAdaptiveRecommendations(profile, progress),
-          },
-          metadata: { grade, subject, userId },
+          personalization: personalizationBlock(ctx.learner.profile),
+          learningAnalytics: learningAnalyticsBlock(ctx.learner.progress, messageType, difficultyLevel, ctx.learner.profile),
+          metadata: { grade: ctx.grade, subject: ctx.subject, userId: ctx.userId },
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
@@ -253,22 +282,45 @@ function streamMwalimu(
   });
 }
 
-function extractTopicFromMessage(message: string): string {
-  const lowerMessage = message.toLowerCase();
-  const subjectKeywords = {
-    mathematics: ['math', 'number', 'add', 'subtract', 'multiply', 'divide', 'fraction', 'decimal'],
-    english: ['read', 'write', 'story', 'sentence', 'word', 'grammar', 'verb', 'noun'],
-    science: ['experiment', 'plant', 'animal', 'water', 'air', 'earth', 'body'],
-    'social studies': ['community', 'family', 'culture', 'history', 'geography', 'map'],
-    kiswahili: ['lugha', 'maneno', 'sentensi', 'hadithi', 'mazungumzo'],
+function personalizationBlock(profile: TutorProfile) {
+  return {
+    studentName: profile.name,
+    hasRecordedName: profile.name !== null,
+    learningStyle: profile.learningStyle,
+    preferredLanguage: profile.preferredLanguage,
+    culturalContext: profile.region,
+    interests: profile.interests,
+    strengths: profile.strengths,
+    challenges: profile.challenges,
   };
-  for (const [subject, keywords] of Object.entries(subjectKeywords)) {
-    if (keywords.some((k) => lowerMessage.includes(k))) return subject;
-  }
-  return 'General Discussion';
 }
 
-function detectMessageType(message: string): 'question' | 'explanation' | 'encouragement' | 'correction' | 'hint' {
+function learningAnalyticsBlock(
+  progress: TutorProgress,
+  messageType: MessageType,
+  difficultyLevel: number,
+  profile: TutorProfile,
+) {
+  return {
+    overallProgress: progress.overallProgress,
+    streakDays: progress.streakDays,
+    totalSessions: progress.totalSessions,
+    totalMessages: progress.totalMessages,
+    averageSessionTime: progress.averageSessionTime,
+    messageType,
+    difficultyLevel,
+    adaptiveRecommendations: generateAdaptiveRecommendations(profile, progress),
+  };
+}
+
+/**
+ * Heuristics that describe the message being answered, not stored state.
+ *
+ * They are response hints for the caller's UI. They used to be written into the
+ * phantom interaction record and reported back as analytics; nothing stored them
+ * now, so nothing here claims to be a measurement of history.
+ */
+function detectMessageType(message: string): MessageType {
   const m = message.toLowerCase();
   if (m.includes('?') || /^(what|how|why|when|where)/.test(m)) return 'question';
   if (m.includes('help') || m.includes('stuck') || m.includes('confused')) return 'hint';
@@ -286,47 +338,19 @@ function calculateDifficultyLevel(userMessage: string, aiResponse: string): numb
   return Math.max(1, Math.min(10, difficulty));
 }
 
-async function updateProfileFromInteraction(
-  userId: string,
-  input: MwalimuApiInput,
-  _aiResponse: string,
-): Promise<void> {
-  const updates: any = { lastActive: new Date().toISOString() };
-  const message = input.currentMessage?.toLowerCase() || '';
-
-  if (
-    message.includes('show me') ||
-    message.includes('picture') ||
-    message.includes('diagram')
-  ) {
-    updates.learningStyle = 'visual';
-  }
-
-  const interests: string[] = [];
-  if (message.includes('animal') || message.includes('lion') || message.includes('elephant')) interests.push('animals');
-  if (message.includes('sport') || message.includes('football') || message.includes('running')) interests.push('sports');
-  if (message.includes('music') || message.includes('song') || message.includes('dance')) interests.push('music');
-  if (message.includes('story') || message.includes('book') || message.includes('read')) interests.push('stories');
-  if (interests.length > 0) {
-    const profile = await personalizedLearning.getStudentProfile(userId);
-    updates.interests = [...new Set([...profile.interests, ...interests])];
-  }
-
-  if (input.grade) {
-    updates.grade = `Grade ${input.grade.replace('g', '')}`;
-  }
-  await personalizedLearning.updateProfile(userId, updates);
-}
-
-function generateAdaptiveRecommendations(profile: any, progress: any): string[] {
+function generateAdaptiveRecommendations(profile: TutorProfile, progress: TutorProgress): string[] {
   const recs: string[] = [];
   if (progress.overallProgress < 30) recs.push('Focus on building foundational concepts');
   else if (progress.overallProgress > 80) recs.push('Ready for more challenging topics');
+
   if (progress.streakDays > 7) recs.push('Excellent consistency! Keep up the great work');
   else if (progress.streakDays === 0) recs.push('Try to practice a little bit each day');
+
   if (profile.learningStyle === 'visual') recs.push('Try drawing diagrams to understand concepts better');
   else if (profile.learningStyle === 'kinesthetic') recs.push('Use hands-on activities and real objects when learning');
+
   if (profile.interests.includes('animals')) recs.push('Connect math problems to animal examples');
   if (profile.interests.includes('sports')) recs.push('Use sports scenarios for word problems');
+
   return recs.slice(0, 3);
 }

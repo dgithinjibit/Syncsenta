@@ -31,15 +31,6 @@ vi.mock('../generate-lesson-plan', () => ({
   })
 }));
 
-vi.mock('../../lib/personalized-learning', () => ({
-  personalizedLearning: {
-    getStudentProfile: vi.fn().mockResolvedValue({
-      name: 'Test Student',
-      grade: 'Grade 4'
-    })
-  }
-}));
-
 describe('Orchestrator Agent', () => {
   let orchestrator: OrchestratorAgent;
 

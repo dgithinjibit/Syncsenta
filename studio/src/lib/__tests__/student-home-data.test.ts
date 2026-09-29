@@ -12,9 +12,10 @@ import {
  * The learner home page used to be demo content: three hand-written arrays
  * (fake homework with due dates, invented 85/72/68 progress bars, class times
  * nobody scheduled) plus stats from `/api/test-personalization`, whose engine
- * keeps everything in per-process Maps and then persists them with
+ * kept everything in per-process Maps and then persisted them with
  * `localStorage` inside a Vercel function — so it always came back empty with a
- * randomly generated name. These tests cover the replacement: pure derivations
+ * randomly generated name. Both the engine and that dev harness were deleted on
+ * 2026-09-29. These tests cover the replacement: pure derivations
  * over the `chat_sessions` rows the tutor actually writes, and a check that the
  * fabricated content stays deleted.
  */

@@ -4,13 +4,14 @@
  * WHY THIS EXISTS. The learner home used to show three hand-written arrays —
  * `assignments` ("Mathematics — Algebra Practice, due Tomorrow"), `learningPath`
  * (85% / 72% / 68%), and `todaysClasses` ("2:00 PM — 3:00 PM") — and fill the
- * stats cards from `/api/test-personalization`. That endpoint is not a lie of
- * omission: `src/lib/personalized-learning.ts` keeps profiles, sessions and
- * progress in `Map`s on the request-handling process and then tries to
+ * stats cards from `/api/test-personalization`. That endpoint was not a lie of
+ * omission: `src/lib/personalized-learning.ts` kept profiles, sessions and
+ * progress in `Map`s on the request-handling process and then tried to
  * `localStorage.setItem(...)` them, which does not exist in Node. Every Vercel
- * invocation therefore starts empty, so the "personalized" numbers were always
+ * invocation therefore started empty, so the "personalized" numbers were always
  * zero and the learner's name came from `generateFriendlyName()`. Nothing about
- * a real child survived a cold start.
+ * a real child survived a cold start. The engine and that dev harness were
+ * deleted on 2026-09-29 (see `lib/chat/learner-state.ts`).
  *
  * `chat_sessions` is different: it is a Supabase table, written by `/api/chat`
  * and protected by RLS with `auth.uid() = user_id`. So this module reads only
