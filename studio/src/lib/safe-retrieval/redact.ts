@@ -108,6 +108,17 @@ function pseudonym(value: ScalarValue, salt: string): string {
 }
 
 /**
+ * The one salt rule, exported so a caller can fail before it queries rather than after it has fetched the
+ * rows it was about to refuse. `redactRow` runs it too; a retriever that checked only at redaction time
+ * would have already put the identifiers on the wire.
+ */
+export function assertRetrievalSalt(salt: string): void {
+  if (typeof salt !== 'string' || salt.length < MIN_SALT_LENGTH) {
+    throw new MissingRetrievalSaltError(typeof salt === 'string' ? salt.length : 0);
+  }
+}
+
+/**
  * Apply a table's policy to one retrieved row.
  *
  * The salt is validated even when no rule asks for it: a caller that narrowed its policy later should not
@@ -115,9 +126,7 @@ function pseudonym(value: ScalarValue, salt: string): string {
  * parameter is that it arrived from a secret store rather than from this file.
  */
 export function redactRow(row: RetrievedRow, policy: TablePolicy, salt: string): Record<string, ScalarValue> {
-  if (typeof salt !== 'string' || salt.length < MIN_SALT_LENGTH) {
-    throw new MissingRetrievalSaltError(typeof salt === 'string' ? salt.length : 0);
-  }
+  assertRetrievalSalt(salt);
 
   // Shape is checked on the way past every column, before any rule is consulted: an unnamed column
   // holding a blob is refused even though an unnamed scalar column is dropped, because the two failures
