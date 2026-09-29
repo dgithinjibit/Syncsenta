@@ -24,6 +24,12 @@ So Stage 1 is unapplied nowhere and unwritten nowhere. What Stage 1 still lacks 
 learner-visible surface: nothing on the site shows a point yet, because the code that pays them is
 committed locally only.**
 
+**Later the same day: the owner's security gate — items 1–4 of `docs/SCOPE-SECURITY-AND-OMEGA.md` — is
+closed, with every one of its four criteria backed by a guard suite that was checked red first. Five
+commits, locally green (`tsc` exit 0, 686 tests passing), and deliberately not pushed: the day's Vercel
+deploy was spent on PR #20. See the §1 block "Items 1–4 (the security gate) are closed on `main`
+locally".**
+
 Evidence for that sentence, run on this machine on 2026-09-29:
 
 - `npx tsc --noEmit` → **exit 0, no diagnostics.** This is what proves the deletions were clean:
@@ -87,8 +93,49 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `363602e` | the learner home's stale points caveat, corrected |
 | `3b61639` | this §1, written against the commits it describes |
 | `ef394e4` | PR #20 merged to `main` — all of the above is production |
+| `372089c` | S-1 — both print surfaces built with DOM calls; two `document.write`/`innerHTML` sinks closed |
+| `e584ff4` | S-3 — `parseGradeLevel()` as the one way in, and the week divisor guarded |
+| `f97dcc5` | S-4 — the phantom-memory engine deleted, `/api/mwalimu` authenticated and reading real tables |
+| `a966b04` | S-2 — 14 identity-bearing ids on the CSPRNG, no non-CSPRNG branch |
+| `66167fb` | S-4's tail — the last two bare `GradeLevel` casts, and the guard that keeps them gone |
 
 Working tree clean; the branch is merged, so `origin/main` and `HEAD` agree as of this writing.
+
+**What runs next is scoped in `docs/SCOPE-SECURITY-AND-OMEGA.md`** — a 10-item scoreboard the owner
+dictated on 2026-09-29 ("*do not build a single new feature or touch the reasoning engine until your
+codebase is hardened*", then "*code this omegaclaw to around 90%*"). Items 1–4 are the security gate,
+5–9 are Omega Claw, and 10 (the MeTTa engine actually executing the pack) cannot be ticked from this
+machine, which is why 9/10 is the ceiling rather than a rounding choice. The file also records which of
+the directive's five claims are still true on `main` today: the SSRF one is already closed and guarded
+by a test, the randomness one is real but one file deeper, the XSS one is the worst item there, the
+"format string injection" one is mis-described but has a real defect under it, and "PR #8 failed CodeQL"
+is not true of current `main` — CodeQL is green and still misses the sink, so green is not evidence.
+
+### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
+
+Five commits, listed in §1's table: `372089c` S-1, `e584ff4` S-3, `f97dcc5` S-4, `a966b04` S-2,
+`66167fb` S-4's tail. S-2 lands after S-4 deliberately — its tripwire walks all of `src/` for
+`Math.random().toString(`, and the phantom-memory engine S-4 deletes was the last server-side id built
+that way, so the guard ships with no exclusions.
+
+- `npx tsc --noEmit` → **exit 0** on the final tree.
+- `npx vitest run --no-file-parallelism` → **686 passed, 0 failed, 17 skipped** across 81 files
+  (80 passed, 1 skipped — the MeTTa e2e file, which needs a running engine). `VITEST_EXIT=0`.
+- The gate's four "green means" criteria each have a named guard suite behind them now, and each of
+  those suites was checked red before the code landed: `scheme-print-is-not-an-html-sink` +
+  `lesson-plan-print-is-not-an-html-sink`, `secure-id`, `grade-cast-guard` + `grade-level.test`,
+  `mwalimu-no-phantom-memory`.
+
+What a teacher or a learner would notice, once this is deployed: an anonymous `POST /api/mwalimu` now
+returns `401` instead of answering as a fabricated child called "user1"; a learner's name is never
+invented (`studentName: null` plus `hasRecordedName: false`); and a second tutor request in the same
+session sees the first one's transcript, because the state lives in `chat_sessions`,
+`chat_messages`, `learning_progress`, `daily_activity` and `profiles` rather than in a `Map` that a cold
+start erased.
+
+**Not done: this is committed, not pushed, not deployed, not browser-verified.** One Vercel deploy was
+already spent today on PR #20 and the cap is daily, so the push is one batch — which also means none of
+it says anything yet about `sentastudio.vercel.app`.
 
 Both test files were committed once green — see Stage 1's re-baseline item. The rule that kept
 `schema-coverage.test.ts` out of the tree for a day was that a committed red test only teaches
@@ -535,6 +582,8 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **Applying and probing found three defects reading had missed** — `anon` EXECUTE survived `revoke … from public` because Supabase's default privileges grant per role; `get_leaderboard`'s own-row branch ignored scope and caller identity; the ledger trigger had no DELETE coverage | agent | Fixed in place, re-verified, written into the migration file. Standing lesson in §4: on this project a new function is anon-reachable until `revoke … from anon` says otherwise |
 | 2026-09-29 | Leaderboard's own-row lookup is caller-checked, not scope-free: a browser caller may only ever receive their row | agent | Any future RPC added here follows the same rule — the security-definer body carries the boundary, RLS cannot |
 | 2026-09-29 | **"Omega Claw" is four things wearing one name** — the MeTTa pack, the undeployed Rust service, the TypeScript mirror that actually answers in production, and two unrelated engine-shaped modules (`metta-core.ts`'s tutoring decision, the `/omega` demo) | agent | Asked for a diagnosis and a percentage. §5's measured block is the answer; it is also the input to #22 and Stage 4's exit evidence. Until one voice is chosen, the pack is documentation with a working restatement, not an engine |
+| 2026-09-29 | **`/api/*` is not behind the middleware auth wall, so every route that touches a learner self-authenticates with `auth.getUser()` and 401s otherwise.** `/api/mwalimu` took `userId` from the request body instead | agent | Closes an IDOR the directive had not named: any caller could name any learner. `/api/chat` already did this; the rule now covers both, and `sessionId` is server-assigned for the same reason |
+| 2026-09-29 | Unusable code that duplicates a defect class is cut, not patched — `lib/personalized-learning.ts`, the `/api/test-personalization` harness, and `lib/quiz-trigger.ts` | agent | Applies the owner's 2026-09-29 cut rule to three modules with zero importers, each of which kept server state in a `Map` + `localStorage` pair. A guard test keeps each deletion from silently regrowing |
 | 2026-09-29 | A percentage for this project must name its denominator and its command, or it is not reported | agent (from the owner's standing rule) | §8 already forbids a single progress %; §5's Omega table is what compliance looks like — 35 mirrored / 10 reachable over HTTP / 0 executed by MeTTa, each from a greppable count |
 
 ---
@@ -550,6 +599,18 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   `Ready` in 2 minutes, so the build claim is now Vercel's evidence rather than nobody's.
   **Piping vitest through `tail` reports exit code 0 even when tests fail**, so read the output file —
   the run's own `VITEST_EXIT` line, not the shell's.
+- The same two commands were re-run after the security gate landed: `tsc --noEmit` **exit 0**, suite
+  **686 passed / 0 failed / 17 skipped** across 81 files. That newer tree has had **no `next build` and
+  no Vercel deploy**, because the day's deploy was spent on PR #20 — so for these five commits the build
+  claim is nobody's evidence yet, and §1's "committed, not deployed" is the accurate status.
+- **`/api/mwalimu` has never touched the real database.** S-4's 21 tests drive `readLearnerState()` and
+  `recordTutorTurn()` through an injected fake client, which proves the query shapes and the arithmetic,
+  not that production RLS admits them. The precedent that makes this a live risk rather than a formality:
+  the browser singleton reaches PostgREST as `anon` from a route handler and `auth.uid() = user_id` rejects
+  it, which is why the route takes `createSupabaseRouteHandlerClient()` — but the cookie-backed path with a
+  real session, the `message_count` counter self-correcting against `chat_messages`, and the new `401`
+  response have all only been seen locally. Closing it needs one signed-in tutor conversation on the
+  deployed build and a read-back of the `chat_sessions` row.
 - `schema-coverage.test.ts` is green and committed as of 2026-09-29, which changes what the gap means
   rather than removing it. **30 tables that shipped code queries do not exist in production** — every
   one is a runtime PostgREST "Could not find the table" error with a learner's name on it, and the
