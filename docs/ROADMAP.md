@@ -481,12 +481,15 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   then the class board the owner asked for is verified as a query, not as a feature.
 - **The points code is unit-green and production-blind.** `award_points` now has a caller — but only
   in a local commit. Nothing has been deployed since the ledger went in, so on
-  `sentastudio.vercel.app` a learner who masters a competency still gets 0 points, and the deployed
+  `sentastudio.vercel.app` a learner who masters a competency still earns nothing, and the deployed
   build could not reach the ledger if it wanted to: `types.ts` there has no `award_points` entry and
-  `points-system.ts` there is still the read-modify-write. The 13 tests assert the wiring at the
-  boundary of a fake client; they do not prove the real service key passes `42501`-free, and a
-  double-transition race has no idempotency key underneath it yet. What closes this is one deploy and
-  one real learner crossing into `mastered`, read back from `point_transactions`.
+  `points-system.ts` there is still the read-modify-write. What a learner sees today is `—` in the
+  "SyncSenta Points" card on `/student`, not `0`: `home-data.ts` reports `null` for an unreadable
+  profile and the page renders the em dash, and the ledger has 0 rows for every account because the
+  verification test award was cleaned up. The 13 tests assert the wiring at the boundary of a fake
+  client; they do not prove the real service key passes `42501`-free, and a double-transition race
+  has no idempotency key underneath it yet. What closes this is one deploy and one real learner
+  crossing into `mastered`, read back from `point_transactions`.
 - KICD curriculum PDFs are still unread; Grade 12 pathways (#32) rest on secondary sources.
 - The archived roadmap's "82-88% complete", "85/100 security rating" and coverage figures have no
   reproducible command behind them and are not carried forward as evidence.

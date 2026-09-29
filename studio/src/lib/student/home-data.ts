@@ -17,12 +17,12 @@
  * real rows, and when a learner has none it reports that honestly rather than
  * substituting demo content.
  *
- * One caveat worth keeping visible: `profiles.total_points` is in the generated
- * types but not in the live schema yet (supabase/migrations_live has no points
- * columns), so the points read below is expected to fail until the gamification
- * migration is applied. That is why it uses `maybeSingle()` and reports `null`
- * rather than a number: "no points recorded" is the truth; "0" would be a
- * guess dressed up as data.
+ * `profiles.total_points` exists in production as of 2026-09-29 — the gamification migration
+ * applied it and made the column a trigger-maintained cache of `point_transactions`. The read still
+ * uses `maybeSingle()` and reports `null` rather than 0, because `null` and `0` mean different
+ * things here: `null` is "this learner has no profile row to read", `0` is "the ledger is empty".
+ * Note which one a learner sees today: the award path is written but not deployed, so every
+ * account's ledger is empty and `/student` renders `—`.
  */
 
 import type { Database } from '@/lib/supabase/types';
