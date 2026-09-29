@@ -48,6 +48,11 @@ import {
 } from '@/lib/chat/socratic-prompts';
 import { evaluateTutoringDecision, MeTTaEducationKnowledgeGraph, MeTTaSession } from '@/lib/omega-agent/metta-core';
 import { classifyAnswerQuality } from '@/lib/omega-agent/answer-quality';
+import {
+  detectBlockedOmegaClawContent,
+  omegaClawLearnerRefusal,
+} from '@/lib/omega-agent/omega-claw-safety';
+import { refusalEventStream } from '@/lib/chat/refusal-stream';
 import { buildOmegaEnrichment, enrichSystemPrompt } from '@/lib/omega-agent/server-enrichment';
 import {
   buildScaffoldingEventPayload,
@@ -269,6 +274,27 @@ export async function POST(req: NextRequest) {
 
   const verifiedGrade = profile.grade || body.grade;
   const learningTrack = getLearningTrack(body.subject);
+
+  // ── Omega Claw safety boundary (O-4) ────────────────────────────────────────
+  //
+  // The rule pack declares six `(omega-claw-blocked-topic …)` rows, and until
+  // this line nothing on a request path asked them: `isBlockedOmegaClawTopic()`
+  // matched only the canonical identifiers, which no child types, and it had no
+  // caller outside the mirror's own tests. A learner asking "how do I start a
+  // mining wallet" was answered.
+  //
+  // The check sits here — before the session row, before the transcript write,
+  // before the quota read and before any prompt is built — because a refusal that
+  // spends a provider call has already lost the argument it is making. The blocked
+  // text does not leave this process.
+  const blockedTurn = detectBlockedOmegaClawContent(body.message);
+  if (blockedTurn) {
+    return refusalEventStream(omegaClawLearnerRefusal(blockedTurn), {
+      sessionId: body.sessionId,
+      rateLimitRemaining: rateLimit.remaining,
+      rateLimitLimit: rateLimit.limit,
+    });
+  }
 
   // Which `learning_progress` row this turn belongs to.
   //

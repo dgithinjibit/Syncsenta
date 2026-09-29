@@ -17,6 +17,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildApiUrl } from '@/lib/api-config';
 import { toLessonArchitectAllocation, type StudioAllocation } from '@/lib/exam-allocation';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  detectBlockedOmegaClawContent,
+  omegaClawGenerationHaystack,
+  omegaClawTeacherRefusal,
+} from '@/lib/omega-agent/omega-claw-safety';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -51,6 +56,18 @@ export async function POST(req: NextRequest) {
 
   const allocation = Array.isArray(body.allocation) ? body.allocation : [];
   const scopedAllocation = toLessonArchitectAllocation(allocation);
+
+  // Checked on the way to the proxy, not after it: an exam request carries the
+  // strand names a teacher picked, and those are the words the pack rules on.
+  const blocked = detectBlockedOmegaClawContent(
+    omegaClawGenerationHaystack([
+      body.subject,
+      body.term,
+      ...scopedAllocation.flatMap((row) => [row.strandName, ...row.subStrands.map((sub) => sub.name)]),
+    ]),
+  );
+  if (blocked) return NextResponse.json(omegaClawTeacherRefusal(blocked), { status: 400 });
+
   if (scopedAllocation.length === 0) {
     return NextResponse.json(
       {

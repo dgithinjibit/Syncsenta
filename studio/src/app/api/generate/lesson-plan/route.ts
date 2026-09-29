@@ -1,6 +1,11 @@
 import { NextRequest } from 'next/server';
 import { buildApiUrl } from '@/lib/api-config';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  detectBlockedOmegaClawContent,
+  omegaClawGenerationHaystack,
+  omegaClawTeacherRefusal,
+} from '@/lib/omega-agent/omega-claw-safety';
 
 export const runtime = 'nodejs';
 
@@ -81,6 +86,19 @@ function prescribedLessonPlan(payload: LessonPlanRequest, reason: string) {
 export async function POST(req: NextRequest) {
   // Proxy POST to configured AI agents backend's lesson-plan endpoint
   const body = (await req.json().catch(() => ({}))) as LessonPlanRequest;
+
+  // The pack's blocked topics are checked before the proxy is even resolved,
+  // because this route forwards the teacher's own words to the AI service.
+  const blocked = detectBlockedOmegaClawContent(
+    omegaClawGenerationHaystack([
+      body.subject,
+      body.term,
+      body.row?.strand,
+      body.row?.subStrand,
+      body.row?.specificLearningOutcome,
+    ]),
+  );
+  if (blocked) return Response.json(omegaClawTeacherRefusal(blocked), { status: 400 });
 
   let target: string;
   try {

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildApiUrl } from '@/lib/api-config';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  detectBlockedOmegaClawContent,
+  omegaClawGenerationHaystack,
+  omegaClawTeacherRefusal,
+} from '@/lib/omega-agent/omega-claw-safety';
 
 export const runtime = 'nodejs';
 export const maxDuration = 10;
@@ -35,6 +40,15 @@ function prescribedAssessment(body: AssessmentRequest, reason: string) {
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as AssessmentRequest;
+
+  // Omega Claw's blocked topics apply to what a teacher generates as much as to
+  // what a learner asks: this route forwards the request to the AI service, so a
+  // check after `buildApiUrl` would be a prompt that already left the building.
+  const blocked = detectBlockedOmegaClawContent(
+    omegaClawGenerationHaystack([body.message, body.subject, body.term]),
+  );
+  if (blocked) return Response.json(omegaClawTeacherRefusal(blocked), { status: 400 });
+
   let target: string;
   try {
     target = buildApiUrl('/agents/chat');

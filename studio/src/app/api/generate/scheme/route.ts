@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildApiUrl } from '@/lib/api-config';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  detectBlockedOmegaClawContent,
+  omegaClawGenerationHaystack,
+  omegaClawTeacherRefusal,
+} from '@/lib/omega-agent/omega-claw-safety';
 
 // The local AI service is reached over the server network. Edge runtime cannot
 // open that localhost connection during development, so keep this proxy in the
@@ -85,6 +90,24 @@ function prescribedScheme(payload: SchemeRequest, reason: string) {
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as SchemeRequest;
+
+  // Blocked topics are refused before any output, prescribed or generated: the
+  // prescribed fallback would otherwise hand back a scheme whose content the
+  // rule pack refuses to teach.
+  const blocked = detectBlockedOmegaClawContent(
+    omegaClawGenerationHaystack([
+      body.subject,
+      body.term,
+      ...(body.strands ?? []).flatMap((strand) => [
+        strand.strand,
+        strand.name,
+        ...(strand.subStrands ?? []),
+        ...(strand.sub_strands ?? []),
+      ]),
+      ...Object.values(body.teacherInputs ?? {}),
+    ]),
+  );
+  if (blocked) return Response.json(omegaClawTeacherRefusal(blocked), { status: 400 });
 
   // Presentation deployments can opt out of the network call entirely. This
   // is useful when only the prescribed CBC demonstration data is required.
