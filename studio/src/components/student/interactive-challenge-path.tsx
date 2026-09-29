@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, Circle, Lightbulb, LockKeyhole, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,46 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { answerFeedback, hintFeedback } from '@/lib/omega-claw-copy';
 import { showsOmegaClawPath } from '@/lib/omega-claw-path';
-
-interface ChallengeNode {
-  id: string;
-  title: string;
-  concept: string;
-  prompt: string;
-  options: string[];
-  answer: string;
-}
+import { OMEGA_CLAW_CHALLENGE_NODES } from '@/lib/omega-agent/omega-claw-challenge';
 
 interface InteractiveChallengePathProps {
   grade: string;
 }
-
-const omegaClawNodes: ChallengeNode[] = [
-  {
-    id: 'ai-input-output',
-    title: 'Trace an AI decision',
-    concept: 'AI basics',
-    prompt: 'A phone sorts photos of maize leaves. Which sequence best describes the system?',
-    options: ['Input → process → output', 'Output → input → guess', 'Rule → magic → answer'],
-    answer: 'Input → process → output',
-  },
-  {
-    id: 'blockchain-consensus',
-    title: 'Build a shared record',
-    concept: 'Blockchain basics',
-    prompt: 'A class keeps matching copies of a transaction record. What makes the record shared?',
-    options: ['Several participants keep and check copies', 'One person hides the only copy', 'The record changes without anyone checking'],
-    answer: 'Several participants keep and check copies',
-  },
-  {
-    id: 'explain-your-thinking',
-    title: 'Teach it back',
-    concept: 'Reflection',
-    prompt: 'Which next step shows real understanding rather than memorisation?',
-    options: ['Explain the idea with a new local example', 'Repeat the definition three times', 'Skip the explanation and copy the answer'],
-    answer: 'Explain the idea with a new local example',
-  },
-];
 
 async function postOmegaClaw(path: string, payload: unknown): Promise<Record<string, unknown> | null> {
   try {
@@ -63,20 +28,56 @@ async function postOmegaClaw(path: string, payload: unknown): Promise<Record<str
   }
 }
 
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+/**
+ * The nodes this learner already earned, read from `learning_progress`.
+ *
+ * The card used to answer this from `useState`, so the honest answer after a refresh was "none".
+ * An unreadable path is empty rather than an error state: the learner can still answer, and the
+ * next save writes what they earn.
+ */
+async function readSavedPath(): Promise<string[]> {
+  try {
+    const response = await fetch('/api/omega-claw/challenge', { cache: 'no-store' });
+    if (!response.ok) return [];
+    const body: unknown = await response.json();
+    if (!body || typeof body !== 'object') return [];
+    return stringArray((body as { completed?: unknown }).completed);
+  } catch {
+    return [];
+  }
+}
+
 export function InteractiveChallengePath({ grade }: InteractiveChallengePathProps) {
-  const [activeId, setActiveId] = useState(omegaClawNodes[0].id);
+  const [activeId, setActiveId] = useState(OMEGA_CLAW_CHALLENGE_NODES[0].id);
   const [completed, setCompleted] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [hintLevel, setHintLevel] = useState(1);
   const [isChecking, setIsChecking] = useState(false);
 
+  // A second mount reads back what the first one wrote. Without this the path is React state, which
+  // is nothing at all to a learner who closed the tab.
+  useEffect(() => {
+    if (!showsOmegaClawPath(grade)) return;
+    let mounted = true;
+    readSavedPath().then((ids) => {
+      if (mounted && ids.length > 0) setCompleted(ids);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [grade]);
+
   const activeNode = useMemo(
-    () => omegaClawNodes.find((node) => node.id === activeId) ?? omegaClawNodes[0],
+    () => OMEGA_CLAW_CHALLENGE_NODES.find((node) => node.id === activeId) ?? OMEGA_CLAW_CHALLENGE_NODES[0],
     [activeId],
   );
-  const activeIndex = omegaClawNodes.findIndex((node) => node.id === activeNode.id);
-  const progress = Math.round((completed.length / omegaClawNodes.length) * 100);
+  const activeIndex = OMEGA_CLAW_CHALLENGE_NODES.findIndex((node) => node.id === activeNode.id);
+  const progress = Math.round((completed.length / OMEGA_CLAW_CHALLENGE_NODES.length) * 100);
 
   if (!showsOmegaClawPath(grade)) return null;
 
@@ -89,9 +90,17 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
   };
 
   const handleAnswer = async (option: string) => {
-    const correct = option === activeNode.answer;
     setSelected(option);
     setIsChecking(true);
+
+    // The server grades this answer. The card could grade it — it has always known which option is
+    // right — but the record that grades it is the one that feeds `learning_progress` and, on a
+    // mastery transition, the points ledger, so that judgement cannot come from the browser.
+    const saved = await postOmegaClaw('challenge', { nodeId: activeNode.id, answer: option });
+    const correct = saved?.correct === true;
+    const earned = stringArray(saved?.completed);
+    if (saved) setCompleted(earned);
+
     const result = await postOmegaClaw('progression', {
       outcome: correct ? 'correct' : 'incorrect',
       correct,
@@ -99,14 +108,11 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
     });
 
     setFeedback(answerFeedback(result, correct));
-    if (correct && !completed.includes(activeNode.id)) {
-      setCompleted((current) => [...current, activeNode.id]);
-    }
     setIsChecking(false);
   };
 
   const handleContinue = () => {
-    const nextNode = omegaClawNodes[activeIndex + 1];
+    const nextNode = OMEGA_CLAW_CHALLENGE_NODES[activeIndex + 1];
     if (!nextNode) {
       setFeedback('Challenge path complete. Try the ideas in a new local example.');
       return;
@@ -138,7 +144,7 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
         </div>
         <div className="space-y-2 pt-2">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{completed.length} of {omegaClawNodes.length} challenge nodes mastered</span>
+            <span>{completed.length} of {OMEGA_CLAW_CHALLENGE_NODES.length} challenge nodes mastered</span>
             <span>{progress}%</span>
           </div>
           <Progress value={progress} />
@@ -146,9 +152,9 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-2 md:grid-cols-3" aria-label="Challenge path">
-          {omegaClawNodes.map((node, index) => {
+          {OMEGA_CLAW_CHALLENGE_NODES.map((node, index) => {
             const isComplete = completed.includes(node.id);
-            const isLocked = index > 0 && !completed.includes(omegaClawNodes[index - 1].id);
+            const isLocked = index > 0 && !completed.includes(OMEGA_CLAW_CHALLENGE_NODES[index - 1].id);
             const isActive = node.id === activeNode.id;
             return (
               <button
@@ -198,7 +204,7 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
           )}
           {selected === activeNode.answer && (
             <Button type="button" className="mt-4" onClick={handleContinue} disabled={isChecking}>
-              {activeIndex === omegaClawNodes.length - 1 ? 'Finish path' : 'Continue to next node'}
+              {activeIndex === OMEGA_CLAW_CHALLENGE_NODES.length - 1 ? 'Finish path' : 'Continue to next node'}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           )}

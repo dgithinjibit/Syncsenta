@@ -9,6 +9,13 @@ import {
   OmegaClawUnknownOutcome,
 } from '@/lib/omega-agent/omega-claw-rules';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  OmegaClawUnknownChallengeNode,
+  isOmegaClawChallengeNode,
+  readCompletedOmegaClawNodes,
+  recordOmegaClawNodeAttempt,
+} from '@/lib/omega-agent/omega-claw-challenge';
 
 /**
  * The `/api/omega-claw/*` endpoints.
@@ -161,4 +168,105 @@ export async function handleHint(request: NextRequest): Promise<NextResponse> {
   const hintLevel = clampOmegaClawHintLevel(requested);
   const hint = omegaClawHintFor(hintLevel);
   return NextResponse.json({ hintLevel, hint, hintMessage: OMEGA_CLAW_HINT_COPY[hint] });
+}
+
+/**
+ * The challenge routes always check the session, even when `SYNCSENTA_BACKEND_URL` is set. The two
+ * rule endpoints hand their whole call to the Rust service — including its `AuthUser` middleware —
+ * but these write `learning_progress` rows, which is the app's table and stays the app's job until
+ * the service grows the same persistence.
+ */
+function unauthorizedChallenge(): NextResponse {
+  return NextResponse.json(
+    { error: 'Unauthorized', detail: 'Please sign in to continue' },
+    { status: 401 },
+  );
+}
+
+/** `GET /api/omega-claw/challenge` — the nodes this learner has already earned. */
+export async function handleChallengeGet(_request: NextRequest): Promise<NextResponse> {
+  const supabase = await createSupabaseRouteHandlerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return unauthorizedChallenge();
+
+  const completed = await readCompletedOmegaClawNodes(supabase, user.id);
+  return NextResponse.json({ completed });
+}
+
+/**
+ * `POST /api/omega-claw/challenge` — `{ nodeId, answer }`
+ *
+ * Three things this route refuses to take on trust, all of which the card used to decide locally:
+ *
+ *   - who the learner is: the session cookie, so a refresh on a different device reads the same path;
+ *   - whether the answer was right: graded against `OMEGA_CLAW_CHALLENGE_NODES`, because this write
+ *     is the one that can reach the points ledger;
+ *   - which grade the rows land under: `profiles.grade`, so a body claiming `Grade 12` cannot file a
+ *     Grade 6 learner's progress where nobody who looks for them will find it. The body's `grade` is
+ *     only a fallback for a profile with none, which is the same compromise `/api/chat` makes.
+ *
+ * The progress row is written with the caller's own client so `learning_progress` owner policies
+ * apply; only `award_points()` runs on the service client.
+ */
+export async function handleChallengePost(request: NextRequest): Promise<NextResponse> {
+  const supabase = await createSupabaseRouteHandlerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return unauthorizedChallenge();
+
+  const body = parseRawJson(await request.text());
+  if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+
+  const nodeId = typeof body.nodeId === 'string' ? body.nodeId.trim() : '';
+  const answer = typeof body.answer === 'string' ? body.answer.trim() : '';
+  if (!nodeId) return NextResponse.json({ error: 'nodeId must be a non-empty string' }, { status: 400 });
+  if (!answer) return NextResponse.json({ error: 'answer must be a non-empty string' }, { status: 400 });
+  if (!isOmegaClawChallengeNode(nodeId)) {
+    return NextResponse.json({ error: `Unknown Omega Claw challenge node: ${nodeId}` }, { status: 400 });
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('grade')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profileError) {
+    return NextResponse.json(
+      { error: 'Could not read this learner’s profile', detail: profileError.message },
+      { status: 500 },
+    );
+  }
+
+  const grade = profile?.grade || (typeof body.grade === 'string' ? body.grade.trim() : '');
+  if (!grade) {
+    return NextResponse.json(
+      {
+        error: 'No grade on this profile',
+        detail: 'Ask your teacher to set your class before saving challenge progress.',
+      },
+      { status: 409 },
+    );
+  }
+
+  try {
+    const attempt = await recordOmegaClawNodeAttempt({
+      client: supabase,
+      serviceClient: getSupabaseServerClient(),
+      userId: user.id,
+      grade,
+      nodeId,
+      answer,
+    });
+    return NextResponse.json(attempt);
+  } catch (error) {
+    if (error instanceof OmegaClawUnknownChallengeNode) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    return NextResponse.json(
+      {
+        error: 'Could not save that answer',
+        detail: error instanceof Error ? error.message : 'Unknown storage failure',
+      },
+      { status: 500 },
+    );
+  }
 }
