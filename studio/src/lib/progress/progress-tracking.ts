@@ -65,6 +65,17 @@ export interface StudentStats {
 export interface ProgressUpdateResult {
   masteryJustAchieved: boolean;
   competencyCode: string;
+  /**
+   * The two Omega difficulty signals as the row holds them after this write.
+   *
+   * Reported rather than left to the caller's arithmetic because the caller's numbers came from a read
+   * taken before the answer existed: a claim of fewer hints than the row holds is a floor the row
+   * ignores, and a writer that lost the race adds its delta to the streak it found, not the one it read.
+   * `/api/chat`'s scaffolding telemetry is the consumer — `omega_scaffolding_events` describes the turn
+   * only if it is handed what landed.
+   */
+  hintsUsed: number;
+  consecutiveWrong: number;
 }
 
 /**
@@ -102,26 +113,27 @@ export interface OmegaProgressSignals {
 }
 
 /**
- * The signal columns for one attempt, computed against the row this attempt is about to write.
+ * The signal columns for one attempt, resolved against the row this attempt is about to write.
  *
- * A writer that lost the race re-derives these from the row it just re-read, so the competing turn's
- * streak is added to rather than replaced.
+ * `current` is the pair as it stands in the row: the existing row for an update, zeros for the insert
+ * that creates it. A writer that lost the race re-derives these from the row it just re-read, so the
+ * competing turn's streak is added to rather than replaced.
  */
 function omegaSignalPatch(
   signals: OmegaProgressSignals,
-  existing: LearningProgress,
+  current: Pick<LearningProgress, 'hints_used' | 'consecutive_wrong'>,
 ): Partial<Pick<LearningProgress, 'hints_used' | 'consecutive_wrong'>> {
   const patch: Partial<Pick<LearningProgress, 'hints_used' | 'consecutive_wrong'>> = {};
 
   if (signals.hintsUsedAtLeast !== undefined) {
-    patch.hints_used = Math.max(existing.hints_used, signals.hintsUsedAtLeast);
+    patch.hints_used = Math.max(current.hints_used, signals.hintsUsedAtLeast);
   }
 
   if (signals.resetConsecutiveWrong) {
     patch.consecutive_wrong = 0;
   } else if (signals.consecutiveWrongDelta !== undefined) {
     patch.consecutive_wrong = Math.min(
-      existing.consecutive_wrong + signals.consecutiveWrongDelta,
+      current.consecutive_wrong + signals.consecutiveWrongDelta,
       MAX_CONSECUTIVE_WRONG,
     );
   }
@@ -190,6 +202,10 @@ export async function updateLearningProgress(
     // Determine mastery level
     const masteryLevel = calculateMasteryLevel(progressPercentage, newQuestionsAnswered);
 
+    // Resolved per attempt, against `existing`: the row this write is conditioned on is the row whose
+    // streak the delta belongs to.
+    const signalPatch = updates.signals ? omegaSignalPatch(updates.signals, existing) : {};
+
     // The four columns this arithmetic read, plus the level the award depends on, go into the WHERE.
     // PostgREST lands the UPDATE only while they still hold, and answers `data: []` when they do
     // not, so a writer whose numbers went stale mid-flight re-reads instead of overwriting the
@@ -208,7 +224,7 @@ export async function updateLearningProgress(
         mastered_at: masteryLevel === 'mastered' && !existing.mastered_at 
           ? new Date().toISOString() 
           : existing.mastered_at,
-        ...(updates.signals ? omegaSignalPatch(updates.signals, existing) : {}),
+        ...signalPatch,
       })
       .eq('user_id', userId)
       .eq('competency_code', competencyCode)
@@ -233,7 +249,14 @@ export async function updateLearningProgress(
         }, client);
       }
 
-      return { masteryJustAchieved, competencyCode };
+      return {
+        masteryJustAchieved,
+        competencyCode,
+        // What this write put in the row. A caller that sent no signals is told back what the row
+        // already held, which is still more truthful than the value it read before the answer existed.
+        hintsUsed: signalPatch.hints_used ?? existing.hints_used,
+        consecutiveWrong: signalPatch.consecutive_wrong ?? existing.consecutive_wrong,
+      };
     }
 
     if (attempt >= MAX_TRANSITION_ATTEMPTS) {
@@ -251,6 +274,12 @@ export async function updateLearningProgress(
     ? Math.round((updates.correctAnswers / updates.questionsAnswered) * 100)
     : 0;
 
+  // A first row is born with the turn's signals too, so the next request does not read zeros where this
+  // one reported a hint taken and a streak growing. Computed before the insert because the same object is
+  // what the result reports back.
+  const insertSignals: Partial<Pick<LearningProgress, 'hints_used' | 'consecutive_wrong'>> =
+    updates.signals ? omegaSignalPatch(updates.signals, { hints_used: 0, consecutive_wrong: 0 }) : {};
+
   const { error } = await client
     .from('learning_progress')
     .insert({
@@ -266,16 +295,7 @@ export async function updateLearningProgress(
       time_spent_minutes: updates.timeSpentMinutes || 0,
       progress_percentage: progressPercentage,
       mastery_level: calculateMasteryLevel(progressPercentage, updates.questionsAnswered || 0),
-      // A first row is born with the turn's signals too, so the next request does not read zeros where
-      // this one reported a hint taken and a streak growing.
-      ...(updates.signals
-        ? {
-            hints_used: updates.signals.hintsUsedAtLeast ?? 0,
-            consecutive_wrong: updates.signals.resetConsecutiveWrong
-              ? 0
-              : Math.min(updates.signals.consecutiveWrongDelta ?? 0, MAX_CONSECUTIVE_WRONG),
-          }
-        : {}),
+      ...insertSignals,
     });
 
   if (error) throw error;
@@ -285,7 +305,12 @@ export async function updateLearningProgress(
   // transition here would pay points for a badge nobody issues. Reaching `mastered` on a single
   // first write needs 20+ answers in one call, which no current caller does; recorded as a gap in
   // docs/ROADMAP.md rather than fixed here without a test.
-  return { masteryJustAchieved: false, competencyCode };
+  return {
+    masteryJustAchieved: false,
+    competencyCode,
+    hintsUsed: insertSignals.hints_used ?? 0,
+    consecutiveWrong: insertSignals.consecutive_wrong ?? 0,
+  };
 }
 
 /**

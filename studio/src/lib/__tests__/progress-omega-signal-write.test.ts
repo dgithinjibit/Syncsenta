@@ -247,4 +247,68 @@ describe('the route stops writing the signals itself', () => {
 
     expect(source.match(/from\('learning_progress'\)/g)).toHaveLength(1);
   });
+
+  it('reports the stored pair to the scaffolding telemetry, not its own arithmetic', () => {
+    const source = readFileSync(join(process.cwd(), 'src/app/api/chat/route.ts'), 'utf8');
+
+    expect(source).toMatch(/hintsUsed:\s*progressResult\.hintsUsed/);
+    expect(source).toMatch(/consecutiveWrong:\s*progressResult\.consecutiveWrong/);
+    // The turn's intent is no longer evidence of what the row holds.
+    expect(source).not.toMatch(/hintsUsed:\s*newHintsUsed/);
+  });
+});
+
+describe('what the write returns', () => {
+  it('is the pair the row holds, so a claim cannot report itself as fact', async () => {
+    const db = signalDb(ROW);
+
+    const result = await updateLearningProgress('learner-1', 'M8-ALG.1', {
+      ...TURN,
+      signals: { hintsUsedAtLeast: 0, consecutiveWrongDelta: 2 },
+    }, db.client);
+
+    expect(result.hintsUsed).toBe(1);
+    expect(result.consecutiveWrong).toBe(3);
+  });
+
+  it('carries the stored pair through a retry, not the stale one it started with', async () => {
+    const competingTurn = (row: Row): Row => ({
+      ...row,
+      questions_answered: 9,
+      correct_answers: 7,
+      hints_used: 4,
+      consecutive_wrong: 3,
+    });
+    const db = signalDb(ROW, competingTurn);
+
+    const result = await updateLearningProgress('learner-1', 'M8-ALG.1', {
+      ...TURN,
+      signals: { hintsUsedAtLeast: 2, consecutiveWrongDelta: 1 },
+    }, db.client);
+
+    expect(result.hintsUsed).toBe(4);
+    expect(result.consecutiveWrong).toBe(4);
+  });
+
+  it('still reports the row to a caller that sent no signals', async () => {
+    const db = signalDb(ROW);
+
+    const result = await updateLearningProgress('learner-1', 'M8-ALG.1', TURN, db.client);
+
+    expect(result.hintsUsed).toBe(1);
+    expect(result.consecutiveWrong).toBe(1);
+  });
+
+  it('reports the pair a first write created', async () => {
+    const db = signalDb(null);
+
+    const result = await updateLearningProgress('learner-1', 'M8-ALG.1', {
+      ...TURN,
+      correctAnswers: 0,
+      signals: { hintsUsedAtLeast: 3, consecutiveWrongDelta: 1 },
+    }, db.client);
+
+    expect(result.hintsUsed).toBe(3);
+    expect(result.consecutiveWrong).toBe(1);
+  });
 });

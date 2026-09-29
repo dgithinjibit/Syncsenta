@@ -685,13 +685,10 @@ export async function POST(req: NextRequest) {
               omegaDecision?.scaffolding ?? 'Guided',
             );
 
-            // What this turn claims about hints, kept for the scaffolding telemetry below. The stored
-            // value is `max(this, the row at the moment of landing)`, and that arithmetic now lives in
-            // `updateLearningProgress()` — see the `signals` field on the write underneath.
-            const newHintsUsed = Math.max(body.hintsUsed ?? 0, contextRow?.hints_used ?? 0);
-
             // Write progress counters — correct_answers now actually increments
             // when classification.shouldIncrementCorrect is true (#1).
+            // `signals` carries this turn's claims as intents; `updateLearningProgress()` resolves them
+            // against the row at the moment the write lands and reports the stored pair back.
             const progressResult = await updateLearningProgress(user.id, competency.competencyCode, {
               competencyName:    competency.competencyName,
               subject:           body.subject,
@@ -743,8 +740,10 @@ export async function POST(req: NextRequest) {
                 decision:         omegaDecision,
                 attempts:         learningState.attempts,
                 correctAttempts:  learningState.correctAttempts,
-                hintsUsed:        newHintsUsed,
-                consecutiveWrong: contextRow?.consecutive_wrong ?? 0,
+                // The stored pair, from the write that landed — not this request's claim and not the
+                // value read before the answer existed.
+                hintsUsed:        progressResult.hintsUsed,
+                consecutiveWrong: progressResult.consecutiveWrong,
                 frustrationSignal: learningState.frustrationSignal,
                 answerQuality:    classification.quality,
               });
