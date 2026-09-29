@@ -138,13 +138,15 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `aa81219` | **Stage 3 opens** — one class-term's evidence folds to one hash, reproducibly by someone else |
 | `73066f7` | Stage 3's second brick — one learner's row can now be proved inside that hash, alone |
 | `3531e08` | the two repo-walking guards get filesystem budgets measured on this laptop instead of guessed |
+| `336a142` | that write-up: Stage 3 two bricks deep, §5's evidence row, §9's two re-runs |
+| `5f9c963` | **new branch `feat/safe-data-retrieval`** — the redaction half of a surface that can read production rows safely |
 
-Working tree clean. As of `3531e08`, `git rev-list --count origin/main..HEAD` printed **34**: nine for the
+Working tree clean. As of `5f9c963`, `git rev-list --count origin/main..HEAD` printed **36**: nine for the
 security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, three for the three
 read-modify-write races in the progress layer, one for the telemetry that was reporting the wrong pair, two
-for the evidence tree and its inclusion proofs, one for the guard budgets, and the rest are this map being
-brought up to date with them. Nothing here is pushed or deployed — see the
-`workflow` scope in §7 and the spent deploy cap below.
+for the evidence tree and its inclusion proofs, one for the guard budgets, one for the redaction policy, and
+the rest are this map being brought up to date with them. Nothing here is pushed or deployed — see the
+`workflow` scope in §7, the publish decision §7 now names, and the spent deploy cap below.
 The number is stated as what the command
 printed at a named commit rather than as a live total, because the next commit to this file changes it.
 
@@ -571,6 +573,54 @@ same gap as `aa81219`, and §10 item 8 is still the owner's to answer. And there
 any of this, so the build claim for `73066f7` and `3531e08` is nobody's evidence yet; the day's deploy was
 spent on PR #20.
 
+### `5f9c963`, on `feat/safe-data-retrieval` — the map's most-repeated "no" is a retrieval problem
+
+Ask why §5 says **no** so often in the "deployed" and "browser-verified" columns. It is not that the code is
+untestable; it is that checking it means reading rows out of the production database, and the production
+database holds children — names, guardian phone numbers, guardrail events, chat transcripts. A `SELECT *`
+onto this screen is a dump that can honestly be stored nowhere, which is why the six dangling `.sql` symlinks
+and the unread `supabase_production_schema.sql` have stayed unread for weeks. So the safety half of data
+retrieval was built first, on its own branch, before anything queries anything.
+
+`studio/src/lib/safe-retrieval/redact.ts` is a policy, not a client. A caller hands over a row and a table
+policy and gets back only what the policy named. Three properties carry the safety, and all three are
+fail-closed rather than fail-open:
+
+- **A column the policy does not name is absent.** Not null, not `undefined` under its key, not passed
+  through because it looked harmless. An allow-list whose default is inclusion is a deny-list wearing a
+  costume, and the whole reason a live export has never been safe to keep here is that nobody enumerated
+  what was in it.
+- **A non-scalar value refuses the row.** `jsonb` is where a dump hides — a `portfolio` blob can carry an
+  essay with a phone number in its body, and neither the policy author nor the reader would ever see the key
+  it sat under. So the row raises `NonScalarRetrievedValueError` instead of quietly dropping the column,
+  because a silent drop over unread content is exactly the thing that would let somebody call the output
+  "redacted" in good faith.
+- **Identifiers become salted, truncated digests.** A school roster is a few dozen guessable names, so an
+  unsalted hash of `full_name` is the name itself in an encoding nobody bothered to decode. The salt arrives
+  as a parameter, is refused below 16 characters, and is not in the file — which is the point: the secret
+  that makes the token meaningless has to come from somewhere that is not this repository. The token is
+  stable and type-tagged, so the same child is the same 16 hex characters across `learning_progress` and
+  `point_transactions` and the join that answers "did the award land" is possible without either table
+  naming her.
+
+Evidence, fresh at 21:48: the new file alone → **8 passed / 0 failed** (red observed first as
+`Cannot find module '../redact'`, 981 ms); `npx tsc --noEmit` → **exit 0** in 33.8 s.
+
+**What it does not do.** There is no retriever yet — nothing calls Supabase, no table has a registered
+policy, no route or script consumes this, and no live row has ever passed through it. The salt has no named
+environment variable, which the retriever half has to decide (the `ATTEST_KEY` pattern in Stage 3 is the
+nearest precedent). The full suite has not been re-run on this branch, because the laptop has ~1.1 GB free
+and one file's assertions plus a clean typecheck is what this commit actually claims. And the lint gate is
+unverified: `npx eslint` fails here with `Cannot find package 'eslint'`, so nothing in this commit has been
+seen by the repo's own ESLint config.
+
+**Where the branch sits, and what pushing it would do.** It is based on `336a142`, the current `main`, so it
+carries this map rather than diverging from it. The repository is **public**, which means
+`git push -u origin feat/safe-data-retrieval` would publish all 36 commits — including every paragraph above
+about who is blocked on what — and the range still contains `.github/workflows/rust-gates.yml`, so it needs
+the `workflow` scope in §7 as well. Both are the account holder's call, so the branch is local and the work
+is backed up nowhere; §7 item 9 names the two levers.
+
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
 Five commits, listed in §1's table: `372089c` S-1, `e584ff4` S-3, `f97dcc5` S-4, `a966b04` S-2,
@@ -941,6 +991,7 @@ claiming dashboards that rendered blank. `?` = not established.
 | Lesson generation (`/lesson-architect/*` on Render) | yes | yes | **not redeployed** | no |
 | Rust `/api/v1` backend | yes | no | **deployed nowhere** | no |
 | Evidence anchoring / Merkle verification (Stage 3) | yes — `attest/evidence-tree.ts`: canonical serialization, root, and per-learner inclusion proofs (`aa81219`, `73066f7`) | yes — 29 tests, red first, golden fixture | **no** — nothing has signed a root, no `evidence_anchors` table exists, no route serves a proof | no — and the rows it hashes are still invented: `learning_evidence` has no writer (§10 item 8) |
+| **Safe data retrieval** — a policy decides what a retrieved row may contain | yes — `lib/safe-retrieval/redact.ts`, on branch `feat/safe-data-retrieval` (`5f9c963`) | yes — 8 tests, red first as `Cannot find module`, `tsc --noEmit` exit 0 | **no** — the branch is unpushed, and there is no retriever, route, script or registered table policy behind it | no — no live row has ever passed through it |
 | Multi-tenancy, indigenous languages (Stage 5) | no | no | no | no |
 
 ### Omega Claw, measured 2026-09-29
@@ -1077,6 +1128,15 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 6. 144 open Dependabot findings.
 7. `@syncsenta.dev` has no DNS, which is why the demo and test accounts are hand-seeded.
 8. Revoke the test LLM keys when testing ends.
+9. **Decide whether this repository stays public, and what gets pushed to it.** `dgithinjibit/Syncsenta` is
+   public, and every branch here is cut from `main`, so a push publishes the whole map — 36 commits of which
+   party is blocked on which credential, the demo accounts' hand-seeded state, the compose file's default
+   `POSTGRES_PASSWORD`, and the fact that six committed `.sql` files are dangling absolute symlinks into a
+   machine nobody has. None of it trips the secret scan (all ten patterns print `0`, and the range check for
+   emails and `service_role` came back clean), so this is a disclosure judgement rather than a leak. Two
+   levers: make the repository private, or push only branches cut from `origin/main` with the map's commits
+   left out. Until one is chosen, the safety-retrieval branch and the last five evenings of work exist on one
+   3.7 GB laptop and nowhere else.
 
 ---
 
@@ -1305,6 +1365,15 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   from the TypeScript mirror under the real hyperon engine, and whether the card on `/student` actually
   paints, since the SSR HTML is a `Loading your record…` shell by design and no browser has looked at it
   since.
+- **`redactRow` has no caller, and that is the gap in the new branch, stated plainly.** Eight tests assert
+  what the function does with a row somebody hands it; nothing in `src` hands it one, because the retriever
+  half — the thing that selects columns, resolves a table's policy, and supplies the salt from a named
+  environment variable — does not exist yet. So the claim on the table above is "code and tests", and the
+  claim that a real production read would be safe is **not** made: a policy that nobody has written for
+  `profiles` or `chat_sessions` protects nobody. Two further gaps on this branch specifically: the full serial
+  suite was not re-run (the laptop had 1.1 GB free and the commit's assertions are in one file plus
+  `tsc --noEmit` → exit 0), and `npx eslint` cannot run here at all — `Cannot find package 'eslint'` — so the
+  repo's own lint config has never looked at this code.
 - KICD curriculum PDFs are still unread; Grade 12 pathways (#32) rest on secondary sources.
 - The archived roadmap's "82-88% complete", "85/100 security rating" and coverage figures have no
   reproducible command behind them and are not carried forward as evidence.
@@ -1367,6 +1436,36 @@ Things that are *not* proven, restated so nobody (including a future session) ha
    version string, and a new golden fixture. The tree is deliberately shaped so either answer is a field
    list, not a rewrite. My recommendation is the second, because an anchor over an empty table proves
    nothing a child did; but this changes what the hackathon demo claims, so it is yours.
+9. **The frontend: take the islands win where it stands, or move the render to Rust?** You asked for this as
+   a decision you can proceed on, so it is written as one, with the recommendation first.
+   - **What islands actually buy us.** Server components that render the learner's data and ship no JS for it
+     deletes the payload for the parts of `/student` that are read-only — the points card, the streak, the
+     transcript — and it removes the hydration-mismatch class of bug for that markup, which is the bug family
+     that produced the blank `/dashboard` and the CSP finding. It does **not** remove the auth, routing and
+     role-at-render decisions; it moves them from the browser to the request. So the honest framing is:
+     islands is a payload and correctness win on the read paths, not a fix for the write paths.
+   - **The cheap version, in place.** Audit `"use client"` in `studio/src/app` — most of those boundaries are
+     probably there because a file needed one `onClick`, not because the subtree is interactive — then push
+     the client leaves down and keep the data reads on the server. Measured cost: 20–30 minutes of reading
+     plus one `next build` to compare client bundle size before and after. No new dependency, no new language,
+     nothing the hackathon can't survive.
+   - **Why not Topcoat now.** It is real and it is going fast — `0.9.0` published 2026-09-24, 21 releases in
+     under six weeks, 5.7 k stars — and its shape fits this project: entirely server-rendered, no WASM, no
+     traditional hydration, signed and encrypted cookies, async server functions that talk to the database.
+     But its auth pipelines, form validation and multi-target deployment are the parts the README still calls
+     unfinished, and those are precisely the parts this app is made of; there is no 1.0 and no RFC track, and
+     the project's own words are "expect breaking changes". Building the 2030 product on a framework whose
+     auth story is unwritten is a bet the school data cannot absorb.
+   - **Why not Leptos now either.** Server-with-islands in Rust is the credible middle, but the WASM payload
+     for the interactive islands is exactly what costs a learner on a Kenyan phone and a metered connection,
+     and a Rust frontend rewrite is a two-machine decision — `cargo` cannot link on this laptop (§7), so the
+     work would have to be authored here and built elsewhere.
+   - **Recommendation, as a proceedable default:** keep Next.js through the hackathon, take the in-place
+     islands audit as the next frontend spoon (20–30 min, one build, a before/after number), and revisit
+     Topcoat or Leptos at the Stage 4 Rust rewrite, when the backend is one voice and there is a second
+     machine to build on. By 2030 the question will be whether Topcoat matured, not whether we guessed early.
+     Say the word and the audit is the next spoon; say "rewrite" and it becomes a Stage 4 item with a hardware
+     prerequisite, and I will write it here as that.
 
 ---
 
