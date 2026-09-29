@@ -298,63 +298,93 @@ export async function updateDailyActivity(
   const timeZone = options?.timeZone ?? undefined;
   const today = activityDateInTimeZone(timeZone);
 
-  // Check if record exists for today
-  const existingRes = await client
-    .from('daily_activity')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('activity_date', today)
-    .single();
-  const existing = existingRes.data as any | null;
+  let existing = await readDailyRow(client, userId, today);
 
-  if (existing) {
+  for (let attempt = 1; existing !== null; attempt++) {
     // Update existing record
     const newSubjects = updates.subjectsPracticed
       ? Array.from(new Set([...(existing.subjects_practiced || []), ...updates.subjectsPracticed]))
       : existing.subjects_practiced;
 
-    const updRes = await client
-        .from('daily_activity')
-        .update({
-          messages_sent: (existing?.messages_sent || 0) + (updates.messagesSent || 0),
-          sessions_started: (existing?.sessions_started || 0) + (updates.sessionsStarted || 0),
-          time_spent_minutes: (existing?.time_spent_minutes || 0) + (updates.timeSpentMinutes || 0),
-          subjects_practiced: newSubjects,
-        })
-        .eq('user_id', userId)
-        .eq('activity_date', today);
-    const { error } = updRes as any;
-
-    if (error) throw error;
-  } else {
-    // Calculate streak
-    const streak = await calculateStreak(userId, client, timeZone);
-
-    // Create new record
-    const insertRes = await client
+    // The same guard `learning_progress` carries now: these three counters are non-null columns whose
+    // values this arithmetic read, so an `UPDATE` that no longer matches them means another request
+    // already moved the row, and writing `messages_sent: 5` over its `6` would silently delete a
+    // message the learner really sent. The teacher's dashboard reads these numbers as evidence.
+    const { data: written, error } = await client
       .from('daily_activity')
-      .insert({
-        user_id: userId,
-        activity_date: today,
-        messages_sent: updates.messagesSent || 0,
-        sessions_started: updates.sessionsStarted || 0,
-        time_spent_minutes: updates.timeSpentMinutes || 0,
-        subjects_practiced: updates.subjectsPracticed || [],
-        daily_streak: streak,
-      });
-    const { error } = insertRes as any;
+      .update({
+        messages_sent: existing.messages_sent + (updates.messagesSent || 0),
+        sessions_started: existing.sessions_started + (updates.sessionsStarted || 0),
+        time_spent_minutes: existing.time_spent_minutes + (updates.timeSpentMinutes || 0),
+        subjects_practiced: newSubjects,
+      })
+      .eq('user_id', userId)
+      .eq('activity_date', today)
+      .eq('messages_sent', existing.messages_sent)
+      .eq('sessions_started', existing.sessions_started)
+      .eq('time_spent_minutes', existing.time_spent_minutes)
+      .select();
 
     if (error) throw error;
 
-    // Check for streak achievements
-    if (streak === 7) {
-      await awardAchievement(userId, 'streak_7', { streak: 7 }, client);
-    } else if (streak === 30) {
-      await awardAchievement(userId, 'streak_30', { streak: 30 }, client);
-    } else if (streak === 100) {
-      await awardAchievement(userId, 'streak_100', { streak: 100 }, client);
+    if (!(Array.isArray(written) && written.length === 0)) return;
+
+    if (attempt >= MAX_TRANSITION_ATTEMPTS) {
+      throw new Error(
+        `daily_activity for ${today} changed under every attempt; nothing was written`,
+      );
     }
+    existing = await readDailyRow(client, userId, today);
   }
+
+  // No row for today yet (or it was deleted mid-race): the streak is computed once, here, and
+  // `daily_streak` is not recomputed by the increments above.
+  const streak = await calculateStreak(userId, client, timeZone);
+
+  const insertRes = await client
+    .from('daily_activity')
+    .insert({
+      user_id: userId,
+      activity_date: today,
+      messages_sent: updates.messagesSent || 0,
+      sessions_started: updates.sessionsStarted || 0,
+      time_spent_minutes: updates.timeSpentMinutes || 0,
+      subjects_practiced: updates.subjectsPracticed || [],
+      daily_streak: streak,
+    });
+  const { error } = insertRes as any;
+
+  if (error) throw error;
+
+  // Check for streak achievements
+  if (streak === 7) {
+    await awardAchievement(userId, 'streak_7', { streak: 7 }, client);
+  } else if (streak === 30) {
+    await awardAchievement(userId, 'streak_30', { streak: 30 }, client);
+  } else if (streak === 100) {
+    await awardAchievement(userId, 'streak_100', { streak: 100 }, client);
+  }
+}
+
+/**
+ * Today's `daily_activity` row, or `null` when the learner has not started one.
+ *
+ * A read error is not raised here, matching what this function did before the guard existed: no row
+ * is the insert branch, and the unique `(user_id, activity_date)` constraint is what surfaces a real
+ * problem.
+ */
+async function readDailyRow(
+  client: ProgressClient,
+  userId: string,
+  activityDate: string,
+): Promise<DailyActivity | null> {
+  const { data } = await client
+    .from('daily_activity')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('activity_date', activityDate)
+    .single();
+  return (data ?? null) as DailyActivity | null;
 }
 
 /**
