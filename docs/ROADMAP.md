@@ -17,7 +17,9 @@
 ## 1. Where we are, on 2026-09-29
 
 **We are at the end of Stage 0 (the gate): coded and locally green, not yet deployed. Stage 1's
-three plumbing defects are fixed and tested; its fourth (the DDL) is approved and still unapplied.**
+three plumbing defects are fixed and tested, and its fourth — the gamification DDL — is applied to
+production and verified against the live catalog. Nothing in Stage 1 is now unapplied; what is left
+is the code that has to call it.**
 
 Evidence for that sentence, run on this machine on 2026-09-29 against the uncommitted batch:
 
@@ -26,13 +28,21 @@ Evidence for that sentence, run on this machine on 2026-09-29 against the uncomm
   `/login/student` are gone, and no remaining module imports them or calls `signUp()`.
 - `npx vitest run --no-file-parallelism` → **614 passed, 3 failed, 17 skipped** across 73 files
   (`VITEST_EXIT=1`). All three failures are in `src/lib/__tests__/schema-coverage.test.ts`, the
-  untracked re-baseline item already listed under Stage 1 — it is red because it hardcodes
-  `live.size === 26` while the recorded live catalog has 27 tables, and its allowlist names 21 of
-  the 38 tables shipped code reaches that production does not have. **It was red before this batch
-  and is red independently of it**; it is deliberately not committed until re-baselined, so CI stays
-  green and the finding stays here.
+  untracked re-baseline item already listed under Stage 1 — it is red because its hardcoded live
+  count does not match the catalog (read 2026-09-29: **35 public tables**), and its allowlist names
+  21 of the 38 tables shipped code reaches that production does not have. **It was red before this
+  batch and is red independently of it**; it is deliberately not committed until re-baselined, so CI
+  stays green and the finding stays here.
 - The new `auth-role-routing` suite: **47 passed**, run on its own first and again inside the full
   suite.
+- The gamification DDL, read back from production rather than asserted (2026-09-29, Supabase SQL
+  editor against `tumikgwhrbvirpjswlzh`): catalog counts agree, an inserted ledger row of 10 moved
+  `profiles.total_points` to 10, a direct `set total_points = 999999` still read 10,
+  `get_leaderboard('school', <id>, 5, <learner>)` returned `rank 1 / 10 / is_requester true`,
+  `award_points` as `authenticated` returned `42501 permission denied`, and after cleanup
+  `ledger_rows = 0` with `0` profiles whose cache disagrees with the ledger. Full output in the
+  migration file's V1–V7 block. Applying it also surfaced three defects that reading had missed —
+  see Stage 1, defect 4.
 
 A learner can, right now, on `https://sentastudio.vercel.app` (verified 2026-09-28 with curl against the deployed build):
 
@@ -54,7 +64,7 @@ deployments per day, so a batch of work earns one deploy rather than six):
 | `studio/src/lib/chat/subject-session.ts`, `studio/src/app/api/chat/route.ts` | Stage 1 defect 2 — a subject label resolves to a real competency code |
 | `studio/src/lib/time/activity-date.ts` (new), `progress-tracking.ts`, `home-data.ts`, `analytics-tab.tsx`, `export-report/route.ts` | Stage 1 defect 3 — calendar days and streaks use `Africa/Nairobi`, not UTC |
 | `studio/src/lib/__tests__/learner-activity-plumbing.test.ts` (new) | 16 tests covering defects 1–3 |
-| `supabase/migrations_live/20260929000000_gamification_and_school_scope.sql` (new) | Stage 1 defect 4 — points ledger, class scope, leaderboard RPC. Approved, not yet applied |
+| `supabase/migrations_live/20260929000000_gamification_and_school_scope.sql` (new) | Stage 1 defect 4 — points ledger, class scope, leaderboard RPC. **Applied to production and verified 2026-09-29**; the file is the record of what production holds, including the three fixes found by applying it |
 | `docs/research/ASI-DAPP-PATH.md` (new) | Stage 3 feasibility study |
 | Stage 0 auth files (`app/page.tsx`, `components/landing/`, `lib/auth/*`, `components/auth/*`, `/signup`, `/login`, `/signin`, `hooks/use-auth.ts`) | Signed-in visitors go straight to their role dashboard; sign-up flow deleted. Typecheck clean, 47 new tests green |
 | `studio/src/lib/__tests__/auth-role-routing.test.ts` (new) | The gate's lock — see Stage 0 exit evidence |
@@ -153,11 +163,13 @@ database actually received.
 - [x] **Defect 3** — streaks and `daily_activity` used UTC days; Kenya is UTC+3, so every evening
       session was credited to the wrong calendar day. `lib/time/activity-date.ts` is the single
       source for "today", and `profiles.timezone` is honoured where a learner has one.
-- [ ] **Defect 4 — gamification and class scope** (owner approved applying this 2026-09-29):
+- [x] **Defect 4 — gamification and class scope** (owner approved applying it 2026-09-29, on the
+      condition that the reason and the after-the-fact verification be written down; applied and
+      verified the same day):
       `supabase/migrations_live/20260929000000_gamification_and_school_scope.sql`.
       - `point_transactions` append-only ledger + `profiles.total_points` cache, maintained by an
-        `AFTER INSERT` trigger; a `BEFORE UPDATE` trigger makes `total_points` non-writable by the
-        row owner, because `profiles_update_own` is permissive over the whole row and a learner
+        `AFTER INSERT OR DELETE` trigger; a `BEFORE UPDATE` trigger makes `total_points` non-writable
+        by the row owner, because `profiles_update_own` is permissive over the whole row and a learner
         could otherwise award themselves anything.
       - `profiles.school_id` / `classroom_id` FKs. **Leaderboard scope: class** (owner's call).
       - `get_leaderboard(...)` / `award_points(...)` as `SECURITY DEFINER`; the leaderboard returns
@@ -165,11 +177,35 @@ database actually received.
         `SELECT`, which is why the RPC exists.
       - No backfill of `school_id` from `school_name`. Matching an aggregate by school *name* is how
         one school can read another's numbers; a null is honest, a guess is not.
-      - **Verification duty**: applied through the Supabase SQL editor, then re-read from the live
-        catalog (`information_schema`, `pg_policies`, `pg_trigger`) and from a real leaderboard call.
-        A migration that was pasted but never queried back does not count as applied.
+      - **Applied**: one transaction through the Supabase SQL editor against `tumikgwhrbvirpjswlzh`,
+        2026-09-29. Read back from `information_schema`, `pg_trigger`, `pg_policy`, `pg_proc.proacl`,
+        `pg_description` and a real `get_leaderboard` call — counts, behaviour and ACLs in the file's
+        VERIFICATION block, V1–V7.
+      - **Three defects only executing it found.** Reading had caught two earlier (the guard
+        reverting its own recompute; a client-callable award path). Applying and probing found:
+        (a) Supabase's `ALTER DEFAULT PRIVILEGES` had granted EXECUTE on both new functions to
+        `anon`, which `revoke … from public` does not undo — an anonymous caller with the
+        publishable key could reach a security-definer writer on a child's points ledger;
+        (b) `get_leaderboard`'s own-row branch scanned `profiles` directly, so it ignored the
+        requested scope and did not check the id belonged to the caller — a learner could pass
+        another learner's uuid and be shown their points; (c) the ledger trigger had no DELETE
+        coverage, so the "cache" could sit at 10 over an empty ledger. All three fixed in place and
+        re-verified; the fixes are written into the migration file, not just this paragraph.
+      - **Why this needed production**: the machine has no `psql`, `docker` or `supabase` CLI, so
+        there is no scratch Postgres to have found (a)–(c) in. That is the recorded reason for
+        applying under the owner's condition, and the recorded answer to "why not test it first".
+      - **Still open**: no classroom-scope functional test (production has 0 `school_classes` and 0
+        profiles with a `classroom_id`, so the class board has no rows to rank — code-reviewed only);
+        nothing in the app calls `award_points` yet, so the learner-visible surface is still zero
+        until the code task below lands.
+- [ ] **Code task opened by defect 4** — switch `points-system.ts` / `getStudentRank()` off the dead
+      client-side read-modify-write onto the RPCs: awards behind a route handler using the service
+      client, rank/board reads through `get_leaderboard` with scope `classroom`.
 - [ ] Re-baseline `schema-coverage.test.ts` (untracked since 2026-09-28; reports 38 gaps against a
-      21-name allowlist) so the allowlist reflects the live 34-table schema, not the repo's claims.
+      21-name allowlist) so the allowlist reflects the live schema — **35 public tables as read from
+      `information_schema` on 2026-09-29**, `point_transactions` included. The file's own hardcoded
+      counts (26, then 27, then 34 in various places) have all been guesses; re-baseline from this
+      read and nothing else.
 
 ### Stage 2 — Phase 2 analytics (from the real memory layer)
 
@@ -252,6 +288,17 @@ token, nothing value-bearing. Anchor at class-term granularity or coarser.
   via `git config`.
 - **Verification before completion.** "Should pass" is not a result. Each claim in §5 names the
   command or the query that produced it.
+- **A new Postgres function here is anon-reachable until `revoke … from anon` says otherwise.**
+  Supabase's `ALTER DEFAULT PRIVILEGES` grants EXECUTE to `anon`, `authenticated` and `service_role`
+  at create time; `revoke all … from public` does not touch those, because a default privilege is a
+  grant to each role and not to the pseudo-role PUBLIC. Prove it from `pg_proc.proacl` after the
+  migration, not from the text of the revoke. (Cost: defect 4's first application shipped
+  `award_points` to anonymous callers.)
+- **A security-definer RPC carries its own boundary.** RLS does not apply inside it, so any function
+  that reads on behalf of a caller has to check the scope *and* that the id it was handed belongs to
+  the caller — `auth.uid()` inside the body, not trust in the argument.
+- **A denormalized cache must be maintained on both write directions.** A trigger on INSERT only is
+  a second claim that drifts, not a cache. Read it back after a DELETE as well as after an INSERT.
 
 ---
 
@@ -269,7 +316,9 @@ claiming dashboards that rendered blank. `?` = not established.
 | Student tutor (`/api/chat`) | yes | yes | yes | yes (real streamed reply) |
 | Chat transcript + counters (Stage 1 defects 1–2) | yes | 16 tests pass | **no** | no |
 | Nairobi-timezone activity days and streaks (defect 3) | yes | same suite | no | no |
-| Points, streak rewards, class leaderboard (defect 4) | migration written | **no** — no local Postgres, psql, or CLI here | no | no |
+| Points ledger, scope columns, leaderboard + award RPCs (defect 4, **schema**) | yes | **yes — against production**, V1–V7 in the migration file: catalog read-back, award recompute, column-guard no-op, real `get_leaderboard` call, `42501` for `authenticated`, cleanup re-read | live in the database (applied 2026-09-29) | n/a — no UI reads it yet |
+| Points, streak rewards, class leaderboard (**learner-visible**) | **no** — `points-system.ts` is still dead code and no route calls `award_points` | no | no | no |
+| Classroom-scoped leaderboard with real rows | code exists | **no** — production has 0 `school_classes` and 0 profiles carrying a `classroom_id`, so there is nothing to rank | live RPC | no |
 | Teacher analytics from live tables | partial | no | no | no |
 | `get_teacher_students` / `get_teacher_alerts` | called by code | — | **the RPCs do not exist** | no |
 | Offline / PWA | service worker exists | never registered | — | **0% live** |
@@ -342,6 +391,9 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **Auth first — it is the gateway** | owner | Stage 0 before Stage 1 completion |
 | 2026-09-29 | **Rust rewrite precedes multi-tenancy: one voice** | owner | Stage 4 before Stage 5 |
 | 2026-09-29 | Production schema may be changed when the change is verifiable afterwards and the reason is recorded here | owner | §4 rule; §3 Stage 1 verification duty |
+| 2026-09-29 | **Gamification DDL applied to production and verified** (V1–V7 read back from the live catalog and a real `get_leaderboard` call) | owner's condition met by agent | Stage 1 defect 4's schema half is closed; the ledger is live and empty; the app still has to call it |
+| 2026-09-29 | **Applying and probing found three defects reading had missed** — `anon` EXECUTE survived `revoke … from public` because Supabase's default privileges grant per role; `get_leaderboard`'s own-row branch ignored scope and caller identity; the ledger trigger had no DELETE coverage | agent | Fixed in place, re-verified, written into the migration file. Standing lesson in §4: on this project a new function is anon-reachable until `revoke … from anon` says otherwise |
+| 2026-09-29 | Leaderboard's own-row lookup is caller-checked, not scope-free: a browser caller may only ever receive their row | agent | Any future RPC added here follows the same rule — the security-definer body carries the boundary, RLS cannot |
 
 ---
 
@@ -356,12 +408,24 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   **Piping vitest through `tail` reports exit code 0 even when tests fail**, so read the output file —
   the run's own `VITEST_EXIT` line, not the shell's.
 - `schema-coverage.test.ts` is the map's own blind spot made visible: 38 tables that shipped code
-  queries do not exist in production, against a 21-name allowlist, and its hardcoded live count says
-  26 where the recorded catalog says 27. Re-baseline it against the live catalog, then commit it.
-  Until then it stays untracked, because a committed red test would only teach people to ignore red.
-- The gamification DDL has never been executed anywhere. No `psql`, `pg_ctl`, `docker`, or
-  `supabase` CLI exists on this machine. It gets validated against a scratch database in the
-  Supabase SQL editor, and only then against the live catalog.
+  queries do not exist in production, against a 21-name allowlist, and its hardcoded live count is a
+  guess. Read from `information_schema` on 2026-09-29 the live count is **35 public tables**, which
+  matches none of the numbers this file has carried. Re-baseline it against that read, then commit
+  it. Until then it stays untracked, because a committed red test would only teach people to ignore
+  red.
+- The gamification DDL is now executed and verified **against production**, which is not the same as
+  having been tested: this machine has no `psql`, `pg_ctl`, `docker` or `supabase` CLI, so there was
+  no scratch database to try it on first. That is why three defects came out of the apply rather than
+  the review, and why §4 now records the default-privileges trap. The honest residual: the migration
+  has still never been run against an empty database, so a fresh environment built from
+  `migrations_live/` in order is unproven.
+- **Classroom-scope leaderboard is unproven in production.** The RPC's `classroom` branch was
+  code-reviewed and exercised only through the `school` branch, because `school_classes` has 0 rows
+  and no profile carries a `classroom_id`. Stage 5's tenancy work is what puts rows there; until
+  then the class board the owner asked for is verified as a query, not as a feature.
+- The learner-facing points surface is still zero, deliberately: nothing calls `award_points` yet,
+  so applying the schema changed no user-visible behaviour. Until the code task lands, §5's
+  "learner-visible" row stays `no`.
 - KICD curriculum PDFs are still unread; Grade 12 pathways (#32) rest on secondary sources.
 - The archived roadmap's "82-88% complete", "85/100 security rating" and coverage figures have no
   reproducible command behind them and are not carried forward as evidence.
