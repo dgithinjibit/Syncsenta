@@ -52,6 +52,18 @@ export interface StudentStats {
 }
 
 /**
+ * What one progress write accomplished.
+ *
+ * `masteryJustAchieved` is reported from the same branch that awards the `competency_mastered`
+ * badge, so a caller awarding points for the transition cannot double-pay and cannot miss it — the
+ * badge and the bonus are two reads of one fact.
+ */
+export interface ProgressUpdateResult {
+  masteryJustAchieved: boolean;
+  competencyCode: string;
+}
+
+/**
  * Update learning progress for a competency
  */
 export async function updateLearningProgress(
@@ -68,7 +80,7 @@ export async function updateLearningProgress(
     timeSpentMinutes?: number;
   },
   client: ProgressClient = supabase
-): Promise<void> {
+): Promise<ProgressUpdateResult> {
   // Check if progress record exists
   const existingRes = await client
     .from('learning_progress')
@@ -115,12 +127,15 @@ export async function updateLearningProgress(
     if (error) throw error;
 
     // Check for mastery achievement
-    if (masteryLevel === 'mastered' && existing.mastery_level !== 'mastered') {
+    const masteryJustAchieved = masteryLevel === 'mastered' && existing.mastery_level !== 'mastered';
+    if (masteryJustAchieved) {
       await awardAchievement(userId, 'competency_mastered', {
         competencyCode,
         competencyName: updates.competencyName,
       }, client);
     }
+
+    return { masteryJustAchieved, competencyCode };
   } else {
     // Create new record
     const progressPercentage = updates.questionsAnswered && updates.correctAnswers
@@ -145,6 +160,13 @@ export async function updateLearningProgress(
       });
 
     if (error) throw error;
+
+    // No transition is reported on a first write, because this branch has never awarded the
+    // `competency_mastered` badge either — points and badge stay reads of one fact, and reporting a
+    // transition here would pay points for a badge nobody issues. Reaching `mastered` on a single
+    // first write needs 20+ answers in one call, which no current caller does; recorded as a gap in
+    // docs/ROADMAP.md rather than fixed here without a test.
+    return { masteryJustAchieved: false, competencyCode };
   }
 }
 

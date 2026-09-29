@@ -17,16 +17,19 @@
 ## 1. Where we are, on 2026-09-29
 
 **We are at the end of Stage 0 (the gate): coded and locally green, not yet deployed. Stage 1's
-three plumbing defects are fixed and tested, and its fourth — the gamification DDL — is applied to
-production and verified against the live catalog. Nothing in Stage 1 is now unapplied; what is left
-is the code that has to call it.**
+three plumbing defects are fixed and tested, its fourth — the gamification DDL — is applied to
+production and verified against the live catalog, and the code that was left standing on the wrong
+side of that DDL now calls it: the mastery award goes through `award_points()` from `/api/chat`.
+So Stage 1 is unapplied nowhere and unwritten nowhere. What Stage 1 still lacks is a deploy and a
+learner-visible surface: nothing on the site shows a point yet, because the code that pays them is
+committed locally only.**
 
 Evidence for that sentence, run on this machine on 2026-09-29 against the uncommitted batch:
 
 - `npx tsc --noEmit` → **exit 0, no diagnostics.** This is what proves the deletions were clean:
   the sign-up page, the sign-up form, the wallet button, the quick-login component and
   `/login/student` are gone, and no remaining module imports them or calls `signUp()`.
-- `npx vitest run --no-file-parallelism` → **614 passed, 3 failed, 17 skipped** across 73 files
+- `npx vitest run --no-file-parallelism` → **627 passed, 3 failed, 17 skipped** across 74 files
   (`VITEST_EXIT=1`). All three failures are in `src/lib/__tests__/schema-coverage.test.ts`, the
   untracked re-baseline item already listed under Stage 1 — it is red because its hardcoded live
   count does not match the catalog (read 2026-09-29: **35 public tables**), and its allowlist names
@@ -35,6 +38,9 @@ Evidence for that sentence, run on this machine on 2026-09-29 against the uncomm
   stays green and the finding stays here.
 - The new `auth-role-routing` suite: **47 passed**, run on its own first and again inside the full
   suite.
+- The new `points-award-on-mastery` suite: **13 passed**, and it was 13 failing first — checked red
+  against `updateLearningProgress()` returning nothing, `awardCompetencyMastery` not existing, the
+  dead writer still in `points-system.ts`, and `/api/chat` unwired. See Stage 1's code task.
 - The gamification DDL, read back from production rather than asserted (2026-09-29, Supabase SQL
   editor against `tumikgwhrbvirpjswlzh`): catalog counts agree, an inserted ledger row of 10 moved
   `profiles.total_points` to 10, a direct `set total_points = 999999` still read 10,
@@ -55,20 +61,20 @@ A learner can, right now, on `https://sentastudio.vercel.app` (verified 2026-09-
 That is the whole verified surface. Everything else in this document is *written*, *tested*,
 *deployed*, or *browser-verified* — those are four different claims and §5 keeps them apart.
 
-Uncommitted locally as of this writing (nothing pushed, deliberately — Vercel caps
-deployments per day, so a batch of work earns one deploy rather than six):
+Committed locally, **nothing pushed** (deliberately — Vercel caps deployments per day, so a batch of
+work earns one deploy rather than six). `git diff origin/main HEAD` is the real delta, because PR #17
+was squash-merged and `origin/main..HEAD` overcounts; 36 files, +3117 / −1475 as of 2026-09-29.
 
-| Path | What it is |
+| Commit | What it is |
 |---|---|
-| `studio/src/lib/chat/chat-history-supabase.ts` | Stage 1 defect 1 — session `message_count` now tracks the transcript |
-| `studio/src/lib/chat/subject-session.ts`, `studio/src/app/api/chat/route.ts` | Stage 1 defect 2 — a subject label resolves to a real competency code |
-| `studio/src/lib/time/activity-date.ts` (new), `progress-tracking.ts`, `home-data.ts`, `analytics-tab.tsx`, `export-report/route.ts` | Stage 1 defect 3 — calendar days and streaks use `Africa/Nairobi`, not UTC |
-| `studio/src/lib/__tests__/learner-activity-plumbing.test.ts` (new) | 16 tests covering defects 1–3 |
-| `supabase/migrations_live/20260929000000_gamification_and_school_scope.sql` (new) | Stage 1 defect 4 — points ledger, class scope, leaderboard RPC. **Applied to production and verified 2026-09-29**; the file is the record of what production holds, including the three fixes found by applying it |
-| `docs/research/ASI-DAPP-PATH.md` (new) | Stage 3 feasibility study |
-| Stage 0 auth files (`app/page.tsx`, `components/landing/`, `lib/auth/*`, `components/auth/*`, `/signup`, `/login`, `/signin`, `hooks/use-auth.ts`) | Signed-in visitors go straight to their role dashboard; sign-up flow deleted. Typecheck clean, 47 new tests green |
-| `studio/src/lib/__tests__/auth-role-routing.test.ts` (new) | The gate's lock — see Stage 0 exit evidence |
-| `studio/src/lib/__tests__/schema-coverage.test.ts` (new, **red, do not commit yet**) | Stage 1 re-baseline item; committing it red would break CI |
+| `62acc87` | this map, rewritten to cover the work actually in flight; the previous map archived; `docs/research/ASI-DAPP-PATH.md` added |
+| `2a101a2` | Stage 1 defects 1–3 — transcript count, subject→competency resolution, Nairobi calendar days |
+| `2be809e` + `fd97acb` | Stage 1 defect 4 — the ledger DDL, then its apply and the three defects running it found. **Production holds this** |
+| `2916dd5` | Stage 0 — one gate: a signed-in visitor is never asked to sign in again; sign-up deleted |
+| uncommitted | the points code task below: `points-system.ts`, `progress-tracking.ts`, `/api/chat`, `types.ts`, `points-award-on-mastery.test.ts` |
+
+`studio/src/lib/__tests__/schema-coverage.test.ts` stays untracked until it is re-baselined: a
+committed red test only teaches people to ignore red.
 
 ---
 
@@ -195,12 +201,40 @@ database actually received.
         there is no scratch Postgres to have found (a)–(c) in. That is the recorded reason for
         applying under the owner's condition, and the recorded answer to "why not test it first".
       - **Still open**: no classroom-scope functional test (production has 0 `school_classes` and 0
-        profiles with a `classroom_id`, so the class board has no rows to rank — code-reviewed only);
-        nothing in the app calls `award_points` yet, so the learner-visible surface is still zero
-        until the code task below lands.
-- [ ] **Code task opened by defect 4** — switch `points-system.ts` / `getStudentRank()` off the dead
-      client-side read-modify-write onto the RPCs: awards behind a route handler using the service
-      client, rank/board reads through `get_leaderboard` with scope `classroom`.
+        profiles with a `classroom_id`, so the class board has no rows to rank — code-reviewed only).
+        The "nothing in the app calls `award_points`" half of this was closed the same day by the
+        code task below, and is **not deployed**, so the learner-visible surface is still zero.
+- [x] **Code task opened by defect 4 — awards** (2026-09-29): `points-system.ts` no longer contains a
+      client-side read-modify-write. It is now one export, `awardCompetencyMastery()`, which calls
+      `rpc('award_points')`; `lib/supabase/types.ts` learned `award_points` and `get_leaderboard`;
+      `updateLearningProgress()` returns `{ masteryJustAchieved, competencyCode }` from the same
+      branch that awards the `competency_mastered` badge, and `/api/chat` pays the bonus on that
+      signal with `supabaseAdmin` — the function is revoked for `authenticated`, so the route's
+      user-scoped client would get `42501`. Dead reads deleted rather than rewired:
+      `awardPointsForCorrectAnswer`, `awardMasteryBonus`, `awardSubjectMasteryBonus`,
+      `getStudentRank`, `getClassLeaderboard`, `getSchoolLeaderboard`,
+      `getWeeklyPointsBreakdown` — the module had **no importer anywhere in `src/`**, and per the
+      owner's rule the leaderboard stays unbuilt until a component references it.
+      Tested red-then-green by `points-award-on-mastery.test.ts` (13 tests).
+      - Two boundaries worth knowing about, both recorded in the module header rather than left as
+        surprises. There is **no default client** in `points-system.ts` on purpose — a browser cannot
+        open the ledger, so a module singleton would be a promise the migration broke deliberately.
+        And `point_transactions` has **no unique key** for "this competency already paid its mastery
+        bonus", so two concurrent transitions of the same competency could both append; the award is
+        issued on the transition branch, which makes it a race rather than a routine double-pay, and
+        `p_correlation_id` is the hook for a real idempotency key when one is added.
+      - First-write gap: `updateLearningProgress()` reports no transition on the *insert* branch,
+        because that branch has never awarded the badge either. Reaching `mastered` on a learner's
+        first progress row needs 20+ answers in one call, which no caller does today. Left as-is so
+        points and badge cannot diverge; closing it needs a test against the badge path, not just
+        the points path.
+- [ ] **Code task opened by defect 4 — reads**: rank and class board through `get_leaderboard` with
+      scope `classroom`. Blocked on the UI, not on the schema — `components/student/gamification-panel.tsx`
+      exists, is unmounted, and takes `points` / `badges` props. Mounting it is a Stage 1 learner-
+      visible task and needs one deploy to verify, so it is batched, not sprayed.
+- [ ] **Deploy the award path**, then browser-verify a learner who crosses into mastered actually
+      gains 50 points. `tsc --noEmit` and the unit suite are green locally on 2026-09-29; production
+      knows nothing about this code until a deploy is spent.
 - [ ] Re-baseline `schema-coverage.test.ts` (untracked since 2026-09-28; reports 38 gaps against a
       21-name allowlist) so the allowlist reflects the live schema — **35 public tables as read from
       `information_schema` on 2026-09-29**, `point_transactions` included. The file's own hardcoded
@@ -317,7 +351,8 @@ claiming dashboards that rendered blank. `?` = not established.
 | Chat transcript + counters (Stage 1 defects 1–2) | yes | 16 tests pass | **no** | no |
 | Nairobi-timezone activity days and streaks (defect 3) | yes | same suite | no | no |
 | Points ledger, scope columns, leaderboard + award RPCs (defect 4, **schema**) | yes | **yes — against production**, V1–V7 in the migration file: catalog read-back, award recompute, column-guard no-op, real `get_leaderboard` call, `42501` for `authenticated`, cleanup re-read | live in the database (applied 2026-09-29) | n/a — no UI reads it yet |
-| Points, streak rewards, class leaderboard (**learner-visible**) | **no** — `points-system.ts` is still dead code and no route calls `award_points` | no | no | no |
+| Points, mastery award in code (`awardCompetencyMastery` → `award_points`, `/api/chat`) | yes | yes — 13 tests, red-then-green; `tsc --noEmit` clean | **no** — local commit only | no |
+| Points, streak rewards, class leaderboard (**learner-visible**) | **no** — the ledger is written by code that is not deployed, and nothing renders a board | no | no | no |
 | Classroom-scoped leaderboard with real rows | code exists | **no** — production has 0 `school_classes` and 0 profiles carrying a `classroom_id`, so there is nothing to rank | live RPC | no |
 | Teacher analytics from live tables | partial | no | no | no |
 | `get_teacher_students` / `get_teacher_alerts` | called by code | — | **the RPCs do not exist** | no |
@@ -348,6 +383,7 @@ Grepped 2026-09-29 against `studio/src`. "No importer" means no page or componen
 | `app/login/student/page.tsx` **deleted**; `app/student/demo/page.tsx` re-pointed at `/signup` | **done 2026-09-29** | **cut / re-point** — the duplicate is gone, the old bookmark still lands somewhere |
 | `components/teacher/teacher-dashboard-new.tsx`, `student-list-view.tsx`, `phase2-teacher-dashboard.tsx` | no importer | **build** — they are the Stage 2 UI; mount them once their data exists |
 | `alerts-panel.tsx`, `quick-actions.tsx`, `student-detail-modal.tsx` | imported only by the unmounted dashboards | **build** — each needs a real RPC or table, listed in Stage 2 |
+| `lib/gamification/points-system.ts` — seven exported award/read functions, **no importer anywhere in `src/`** | ~~unreachable~~ **rewritten 2026-09-29** | **build** the award, **cut** the reads: `awardCompetencyMastery()` over `rpc('award_points')` is kept because `/api/chat` now calls it; `getStudentRank`, `getClassLeaderboard`, `getSchoolLeaderboard`, `getWeeklyPointsBreakdown` and the three client-side writers are deleted. Their replacement (`get_leaderboard`) is live in the database and waits on the unmounted `gamification-panel.tsx`, not on code |
 | `lib/telemetry/*` | zero importers | decide in Stage 4: Rust owns the telemetry path, or it goes |
 | `get_teacher_students`, `get_teacher_alerts` | called, do not exist | **build** as `SECURITY DEFINER` RPCs in Stage 2, or stop calling them |
 | `school_learning_aggregates` matched by school **name** | live | **fix** in Stage 1/5 — name matching is a cross-school read vector |
@@ -390,6 +426,7 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **No sign-ups. Four demo roles are the entry.** | owner | Sign-up flow is cut in Stage 0 |
 | 2026-09-29 | **Auth first — it is the gateway** | owner | Stage 0 before Stage 1 completion |
 | 2026-09-29 | **Rust rewrite precedes multi-tenancy: one voice** | owner | Stage 4 before Stage 5 |
+| 2026-09-29 | **Award only what the server already verified; pay points on the mastery transition, not on a single answer** | agent | Stage 1's code task. `updateLearningProgress()`'s transition is the one fact here that a learner cannot claim, and it already issues the badge, so points and badge read the same signal. Correct-answer, difficulty and streak awards stay unwritten until their inputs are decided |
 | 2026-09-29 | Production schema may be changed when the change is verifiable afterwards and the reason is recorded here | owner | §4 rule; §3 Stage 1 verification duty |
 | 2026-09-29 | **Gamification DDL applied to production and verified** (V1–V7 read back from the live catalog and a real `get_leaderboard` call) | owner's condition met by agent | Stage 1 defect 4's schema half is closed; the ledger is live and empty; the app still has to call it |
 | 2026-09-29 | **Applying and probing found three defects reading had missed** — `anon` EXECUTE survived `revoke … from public` because Supabase's default privileges grant per role; `get_leaderboard`'s own-row branch ignored scope and caller identity; the ledger trigger had no DELETE coverage | agent | Fixed in place, re-verified, written into the migration file. Standing lesson in §4: on this project a new function is anon-reachable until `revoke … from anon` says otherwise |
@@ -403,7 +440,8 @@ Things that are *not* proven, restated so nobody (including a future session) ha
 
 - `next build` has never been run locally on this batch, and will not be: it is the heaviest thing on
   a 3.7 GB machine and Vercel runs it anyway on deploy. What was run 2026-09-29: `tsc --noEmit`
-  **exit 0**, and `vitest run --no-file-parallelism` **614 passed / 3 failed / 17 skipped**, the three
+  **exit 0**, and `vitest run --no-file-parallelism` **627 passed / 3 failed / 17 skipped** across 74
+  files, the three
   failures all in the untracked, not-yet-re-baselined `schema-coverage.test.ts`.
   **Piping vitest through `tail` reports exit code 0 even when tests fail**, so read the output file —
   the run's own `VITEST_EXIT` line, not the shell's.
@@ -423,9 +461,14 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   code-reviewed and exercised only through the `school` branch, because `school_classes` has 0 rows
   and no profile carries a `classroom_id`. Stage 5's tenancy work is what puts rows there; until
   then the class board the owner asked for is verified as a query, not as a feature.
-- The learner-facing points surface is still zero, deliberately: nothing calls `award_points` yet,
-  so applying the schema changed no user-visible behaviour. Until the code task lands, §5's
-  "learner-visible" row stays `no`.
+- **The points code is unit-green and production-blind.** `award_points` now has a caller — but only
+  in a local commit. Nothing has been deployed since the ledger went in, so on
+  `sentastudio.vercel.app` a learner who masters a competency still gets 0 points, and the deployed
+  build could not reach the ledger if it wanted to: `types.ts` there has no `award_points` entry and
+  `points-system.ts` there is still the read-modify-write. The 13 tests assert the wiring at the
+  boundary of a fake client; they do not prove the real service key passes `42501`-free, and a
+  double-transition race has no idempotency key underneath it yet. What closes this is one deploy and
+  one real learner crossing into `mastered`, read back from `point_transactions`.
 - KICD curriculum PDFs are still unread; Grade 12 pathways (#32) rest on secondary sources.
 - The archived roadmap's "82-88% complete", "85/100 security rating" and coverage figures have no
   reproducible command behind them and are not carried forward as evidence.

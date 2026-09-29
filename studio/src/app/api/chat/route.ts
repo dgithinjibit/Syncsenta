@@ -66,6 +66,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 import { addChatMessage } from '@/lib/chat/chat-history-supabase';
 import { updateDailyActivity, updateLearningProgress } from '@/lib/progress/progress-tracking';
+import { awardCompetencyMastery } from '@/lib/gamification/points-system';
 import { PLATFORM_TIME_ZONE } from '@/lib/time/activity-date';
 import { getLearningTrack } from '@/lib/learning-track-policy';
 import { formatPedagogyConstraintBlock } from '@/curriculum/pedagogy';
@@ -665,7 +666,7 @@ export async function POST(req: NextRequest) {
 
             // Write progress counters — correct_answers now actually increments
             // when classification.shouldIncrementCorrect is true (#1).
-            await updateLearningProgress(user.id, competency.competencyCode, {
+            const progressResult = await updateLearningProgress(user.id, competency.competencyCode, {
               competencyName:    competency.competencyName,
               subject:           body.subject,
               grade:             verifiedGrade,
@@ -674,6 +675,25 @@ export async function POST(req: NextRequest) {
               correctAnswers:    classification.shouldIncrementCorrect ? 1 : 0,
               timeSpentMinutes:  Math.ceil(latencyMs / 60000),
             }, supabase);
+
+            // Points follow the badge. `updateLearningProgress` reports the transition it just
+            // wrote, which is a server-classified fact a learner cannot claim from a browser, and
+            // the award goes through `award_points()` on the service client — the function is
+            // revoked for anon and authenticated, so passing `supabase` here would 42501.
+            // Failures are logged rather than thrown because the learner's answer has already been
+            // delivered; losing a reward must not lose the rest of this block's telemetry.
+            if (progressResult.masteryJustAchieved) {
+              try {
+                const awarded = await awardCompetencyMastery(
+                  user.id,
+                  progressResult.competencyCode,
+                  supabaseAdmin,
+                );
+                console.info(`[/api/chat] awarded ${awarded} points for ${progressResult.competencyCode}`);
+              } catch (awardError) {
+                console.error('[/api/chat] Failed to award mastery points:', awardError);
+              }
+            }
 
             // Persist live hints_used + consecutive_wrong so the next Omega
             // decision cycle reads real values.
