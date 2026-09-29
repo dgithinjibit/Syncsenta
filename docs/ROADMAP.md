@@ -109,10 +109,10 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `9f86916` | this §1, §5, §7, §8, §9 and the scoreboard, written against the four commits above |
 | `bc61765` | O-4 — the blocked-topic boundary is on every request path, and refuses in the learner's own language |
 
-Working tree clean. `HEAD` is **14 commits ahead of `origin/main`** (`git rev-list --left-right count
-origin/main...HEAD` → `0 14`); the last eight of those are the security gate plus O-1/O-2, and the
-newest four are the Rust slice. Nothing here is pushed or deployed — see the `workflow` scope in §7 and
-the spent deploy cap below.
+Working tree clean. `HEAD` is **18 commits ahead of `origin/main`** (`git rev-list --left-right count
+origin/main...HEAD` → `0 18`): nine for the security gate and O-1/O-2, four for the Rust engine slice, and
+the rest are this map being brought up to date with them, plus O-4. Nothing here is pushed or deployed —
+see the `workflow` scope in §7 and the spent deploy cap below.
 
 ### The Rust slice, 2026-09-29 — three defects in the engine, found and fixed locally
 
