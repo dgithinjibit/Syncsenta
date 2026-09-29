@@ -226,11 +226,14 @@ is needed.
   against the baseline, holds an allowlist of the tables that may only shrink, and
   pins the six dangling symlinks so a seventh cannot creep
   in. Checked red by dropping in a file that queried `zzz_ghost_table`.
-  **That gate is not green yet and is still untracked:** it reports 38 gaps against
-  the 21-name allowlist, because the list was written before the export and its
-  regex over-collects. Re-baselining it against `supabase/migrations_live/` is the
-  remaining work; until then treat its numbers as a measurement in progress, and do
-  not read the suite as green because of it.
+  **That gate is green and committed as of 2026-09-29**, re-baselined against what production
+  actually holds: the 2026-09-28 capture plus the files named in `APPLIED_LIVE_MIGRATIONS`, a union
+  of **35 public tables** — the count read independently from `information_schema` the same day.
+  Shipped code reaches 49 tables and **30 of them do not exist in production**; that list is the
+  allowlist and it may only shrink. Applying a migration means adding its filename to
+  `APPLIED_LIVE_MIGRATIONS` in the same commit, or the gate overstates the gap. An earlier version
+  of this file reported 26 live tables and 21 gaps; both numbers were reading a stale snapshot, and
+  the 27-vs-26 discrepancy was a regex reading `AS` out of a string literal as a table name.
 - PR #17 `fix/render-build-and-student-surface` was **squash-merged into `main` as
   `328344b` on 2026-09-28**, which means the branch's own commits are not ancestors
   of `main` and `git rev-list origin/main..HEAD` overcounts by all of them; measure

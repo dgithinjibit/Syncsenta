@@ -24,18 +24,17 @@ So Stage 1 is unapplied nowhere and unwritten nowhere. What Stage 1 still lacks 
 learner-visible surface: nothing on the site shows a point yet, because the code that pays them is
 committed locally only.**
 
-Evidence for that sentence, run on this machine on 2026-09-29 against the uncommitted batch:
+Evidence for that sentence, run on this machine on 2026-09-29:
 
 - `npx tsc --noEmit` → **exit 0, no diagnostics.** This is what proves the deletions were clean:
   the sign-up page, the sign-up form, the wallet button, the quick-login component and
   `/login/student` are gone, and no remaining module imports them or calls `signUp()`.
-- `npx vitest run --no-file-parallelism` → **627 passed, 3 failed, 17 skipped** across 74 files
-  (`VITEST_EXIT=1`). All three failures are in `src/lib/__tests__/schema-coverage.test.ts`, the
-  untracked re-baseline item already listed under Stage 1 — it is red because its hardcoded live
-  count does not match the catalog (read 2026-09-29: **35 public tables**), and its allowlist names
-  21 of the 38 tables shipped code reaches that production does not have. **It was red before this
-  batch and is red independently of it**; it is deliberately not committed until re-baselined, so CI
-  stays green and the finding stays here.
+- `npx vitest run --no-file-parallelism` → **631 passed, 0 failed, 17 skipped** across 74 files
+  (`VITEST_EXIT=0`). The suite is green end to end for the first time in this batch: the three
+  failures that had been sitting in `schema-coverage.test.ts` were a stale snapshot, and Stage 1's
+  re-baseline item closed it the same day. It is committed green, not deleted — and it was
+  re-checked red by dropping in a call site for a `zzz_ghost_table`, so its greenness means
+  something.
 - The new `auth-role-routing` suite: **47 passed**, run on its own first and again inside the full
   suite.
 - The new `points-award-on-mastery` suite: **13 passed**, and it was 13 failing first — checked red
@@ -71,10 +70,11 @@ was squash-merged and `origin/main..HEAD` overcounts; 36 files, +3117 / −1475 
 | `2a101a2` | Stage 1 defects 1–3 — transcript count, subject→competency resolution, Nairobi calendar days |
 | `2be809e` + `fd97acb` | Stage 1 defect 4 — the ledger DDL, then its apply and the three defects running it found. **Production holds this** |
 | `2916dd5` | Stage 0 — one gate: a signed-in visitor is never asked to sign in again; sign-up deleted |
-| uncommitted | the points code task below: `points-system.ts`, `progress-tracking.ts`, `/api/chat`, `types.ts`, `points-award-on-mastery.test.ts` |
+| uncommitted | the points code task below: `points-system.ts`, `progress-tracking.ts`, `/api/chat`, `types.ts`, `points-award-on-mastery.test.ts`, and the re-baselined `schema-coverage.test.ts` |
 
-`studio/src/lib/__tests__/schema-coverage.test.ts` stays untracked until it is re-baselined: a
-committed red test only teaches people to ignore red.
+Both test files were committed once green — see Stage 1's re-baseline item. The rule that kept
+`schema-coverage.test.ts` out of the tree for a day was that a committed red test only teaches
+people to ignore red; it is no longer red.
 
 ---
 
@@ -235,11 +235,24 @@ database actually received.
 - [ ] **Deploy the award path**, then browser-verify a learner who crosses into mastered actually
       gains 50 points. `tsc --noEmit` and the unit suite are green locally on 2026-09-29; production
       knows nothing about this code until a deploy is spent.
-- [ ] Re-baseline `schema-coverage.test.ts` (untracked since 2026-09-28; reports 38 gaps against a
-      21-name allowlist) so the allowlist reflects the live schema — **35 public tables as read from
-      `information_schema` on 2026-09-29**, `point_transactions` included. The file's own hardcoded
-      counts (26, then 27, then 34 in various places) have all been guesses; re-baseline from this
-      read and nothing else.
+- [x] Re-baselined `schema-coverage.test.ts` and **committed it green** (2026-09-29). It was 3 red on
+      a stale snapshot; it now reads production as the 2026-09-28 capture **plus** the two migrations
+      applied since, listed by name in `APPLIED_LIVE_MIGRATIONS` rather than globbed — an unapplied
+      draft must not be able to widen "production" by being saved into `migrations_live/`. That
+      union reaches **35**, and `information_schema` was read independently the same day at **35**,
+      which is the cross-check the file now asserts.
+      - Shipped code reaches 49 tables; **30 of them do not exist in production** and are named in
+        the allowlist, down from 21 on the old (wrong) live set — `chat_sessions`,
+        `learning_progress`, `chat_messages`, `daily_activity`, `achievements`, `api_usage`,
+        `omega_scaffolding_events` and `point_transactions` came off it by being applied. The count
+        went *up* because the previous list predated a decade of LMS/teacher/voice call sites it had
+        never actually enumerated against a correct live set.
+      - Also fixed: its `CREATE TABLE` regex was reading `AS` as a table name out of a string
+        literal inside the baseline (`…command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', …)`), which
+        is the arithmetic error behind "the file's own hardcoded count says 26 where the catalog says
+        27". 93 tables are repo-defined, 72 never applied.
+      - Still checked red on purpose, by dropping a file that queries `zzz_ghost_table` — two tests
+        fail, deleting it restores seven green. A gate that cannot fail is not a gate.
 
 ### Stage 2 — Phase 2 analytics (from the real memory layer)
 
@@ -445,12 +458,17 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   failures all in the untracked, not-yet-re-baselined `schema-coverage.test.ts`.
   **Piping vitest through `tail` reports exit code 0 even when tests fail**, so read the output file —
   the run's own `VITEST_EXIT` line, not the shell's.
-- `schema-coverage.test.ts` is the map's own blind spot made visible: 38 tables that shipped code
-  queries do not exist in production, against a 21-name allowlist, and its hardcoded live count is a
-  guess. Read from `information_schema` on 2026-09-29 the live count is **35 public tables**, which
-  matches none of the numbers this file has carried. Re-baseline it against that read, then commit
-  it. Until then it stays untracked, because a committed red test would only teach people to ignore
-  red.
+- `schema-coverage.test.ts` is green and committed as of 2026-09-29, which changes what the gap means
+  rather than removing it. **30 tables that shipped code queries do not exist in production** — every
+  one is a runtime PostgREST "Could not find the table" error with a learner's name on it, and the
+  teacher roster (`teacher_students`), the alert path (`student_alerts`), `omega_decisions`,
+  `payment_transactions` and the whole `lms_*` cluster are in that list. What the gate still does not
+  prove: the live set is *derived* from the 2026-09-28 capture plus a named list of applied
+  migrations, not re-read from `information_schema` on each run, so it only stays honest if
+  `APPLIED_LIVE_MIGRATIONS` is edited when a migration goes in. The independent cross-check that
+  holds it truthful today is the 2026-09-29 read of **35 public tables**, against which the union was
+  checked once. It is not wired to a live query, because this machine cannot reach the database
+  except through a browser session.
 - The gamification DDL is now executed and verified **against production**, which is not the same as
   having been tested: this machine has no `psql`, `pg_ctl`, `docker` or `supabase` CLI, so there was
   no scratch database to try it on first. That is why three defects came out of the apply rather than
