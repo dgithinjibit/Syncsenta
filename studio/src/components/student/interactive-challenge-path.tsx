@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { answerFeedback, hintFeedback } from '@/lib/omega-claw-copy';
 
 interface ChallengeNode {
   id: string;
@@ -86,11 +87,7 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
   const handleHint = async () => {
     setIsChecking(true);
     const result = await postOmegaClaw('hint', { hint_level: hintLevel });
-    setFeedback(
-      typeof result?.hint === 'string'
-        ? `Guided hint ${result.hintLevel ?? hintLevel}: ${result.hint}. Look again, then choose an answer.`
-        : 'Start by noticing the input, action, or evidence the question is asking you to identify.',
-    );
+    setFeedback(hintFeedback(result));
     setHintLevel((level) => Math.min(level + 1, 4));
     setIsChecking(false);
   };
@@ -105,19 +102,9 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
       explained: activeNode.id === 'explain-your-thinking' && correct,
     });
 
-    if (correct) {
-      setFeedback(
-        result?.nextAction === 'celebrate-transfer'
-          ? 'Correct. Now transfer the idea to a new example before continuing.'
-          : 'Correct. Explain why it works, then continue.',
-      );
-      if (!completed.includes(activeNode.id)) setCompleted((current) => [...current, activeNode.id]);
-    } else {
-      setFeedback(
-        result?.nextAction === 'scaffold-retry'
-          ? 'Not quite yet. The next step is a smaller clue: look for evidence and explainable reasoning.'
-          : 'Not quite yet. Look for the step that shows evidence and explainable reasoning.',
-      );
+    setFeedback(answerFeedback(result, correct));
+    if (correct && !completed.includes(activeNode.id)) {
+      setCompleted((current) => [...current, activeNode.id]);
     }
     setIsChecking(false);
   };
