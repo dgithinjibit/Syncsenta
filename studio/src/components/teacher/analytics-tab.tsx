@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, Users, Target, MessageSquare, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { activityDateInTimeZone, activityDateOffset } from '@/lib/time/activity-date';
 
 interface AnalyticsTabProps {
   teacherId: string;
@@ -59,12 +60,16 @@ export function AnalyticsTab({ teacherId, className }: AnalyticsTabProps) {
   };
 
   const loadWeeklyActivity = async () => {
-    // Get last 7 days of activity
+    // Get last 7 days of activity.
+    //
+    // The day labels must be built on the same boundary `daily_activity` is
+    // written on (Africa/Nairobi, see lib/time/activity-date.ts). Deriving them
+    // from the teacher's browser clock and UTC meant a teacher in Nairobi
+    // between 21:00 and 23:59 was querying a day the learners had not started
+    // yet, and the chart read as an empty class.
     const days = [];
     for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      days.push(date.toISOString().split('T')[0]);
+      days.push(activityDateOffset(i));
     }
 
     const { data: students } = await supabase
@@ -80,9 +85,6 @@ export function AnalyticsTab({ teacherId, className }: AnalyticsTabProps) {
 
     const activityData = await Promise.all(
       days.map(async (day) => {
-        const nextDay = new Date(day);
-        nextDay.setDate(nextDay.getDate() + 1);
-
         const { data: activity } = await supabase
           .from('daily_activity')
           .select('messages_sent, time_spent_minutes')
@@ -94,7 +96,13 @@ export function AnalyticsTab({ teacherId, className }: AnalyticsTabProps) {
         const activeStudents = activity?.length || 0;
 
         return {
-          date: new Date(day).toLocaleDateString('en-US', { weekday: 'short' }),
+          // Pinned to UTC: `day` is a calendar date, so interpreting it in the
+          // teacher's own zone could relabel Monday as Sunday for anyone behind
+          // UTC.
+          date: new Date(`${day}T00:00:00Z`).toLocaleDateString('en-US', {
+            weekday: 'short',
+            timeZone: 'UTC',
+          }),
           messages: totalMessages,
           time: Math.round(totalTime / 60), // Convert to hours
           students: activeStudents,
@@ -198,8 +206,8 @@ export function AnalyticsTab({ teacherId, className }: AnalyticsTabProps) {
 
     const studentIds = students.map((s) => s.student_id);
 
-    // Get today's activity
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's activity (platform day, matching how learners' rows are written)
+    const today = activityDateInTimeZone();
     const { data: todayActivity } = await supabase
       .from('daily_activity')
       .select('messages_sent, time_spent_minutes')
@@ -207,9 +215,7 @@ export function AnalyticsTab({ teacherId, className }: AnalyticsTabProps) {
       .eq('activity_date', today);
 
     // Get yesterday's activity for comparison
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = activityDateOffset(1);
     const { data: yesterdayActivity } = await supabase
       .from('daily_activity')
       .select('messages_sent, time_spent_minutes')

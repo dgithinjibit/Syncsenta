@@ -67,6 +67,83 @@ export function defaultCompetencyForSubject(slug: string): {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// General-chat competency
+//
+// The tutor surfaces do not always know a competency slug. `/student/mwalimu`
+// (MwalimuChat) and any free-question entry point send only `{ grade, subject }`
+// where `subject` is a display label — "Mathematics", "Environmental
+// Activities", or the component default "General".
+//
+// That used to mean `/api/chat` received `competencyCode: undefined`, and every
+// memory-layer write behind that gate (`learning_progress`,
+// `omega_scaffolding_events`) was skipped: the learner chatted, and the teacher
+// and parent views still showed nothing. This resolves a label to the same
+// `<PREFIX>general` row the subject page already uses, so a free question is
+// tracked instead of lost.
+//
+// Unrecognised labels get their own `tutor.<label>.general` row rather than
+// being folded into a registry subject — a wrong subject attribution is worse
+// than a row with an unusual code, and the code is visible in the table.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function slugifySubjectLabel(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const SUBJECT_LABEL_TO_SLUG: Record<string, string> = Object.fromEntries(
+  Object.entries(SUBJECT_REGISTRY).flatMap(([slug, meta]) => [
+    [slugifySubjectLabel(meta.label), slug],
+    [slugifySubjectLabel(slug), slug],
+  ]),
+);
+
+// The KICD curriculum files and `profiles.subjects` use the design-document
+// names ("Environmental Activities", "English Language Activities"), which are
+// not the registry labels. Without these aliases a learner's free questions
+// would be tracked under a second code for a subject that already has one.
+const CURRICULUM_NAME_ALIASES: Record<string, string> = {
+  'mathematics-activities': 'mathematics',
+  'english-activities': 'english',
+  'english-language-activities': 'english',
+  'kiswahili-activities': 'kiswahili',
+  'kiswahili-language-activities': 'kiswahili',
+  'environmental-activities': 'environmental',
+  'creative-activities': 'creative',
+  'arts-and-creative-activities': 'creative',
+  'social-studies-activities': 'social-studies',
+  'religious-education-activities': 'cre',
+  'cre-activities': 'cre',
+  'indigenous-language-activities': 'indigenous',
+  'agriculture-and-nutrition': 'environmental',
+  'science-and-technology': 'environmental',
+  'integrated-science': 'environmental',
+};
+
+for (const [alias, slug] of Object.entries(CURRICULUM_NAME_ALIASES)) {
+  SUBJECT_LABEL_TO_SLUG[alias] = slug;
+}
+
+export function generalCompetencyForSubjectLabel(subject: string): {
+  competencyCode: string;
+  competencyName: string;
+} {
+  const normalized = slugifySubjectLabel(subject);
+  if (!normalized) return { competencyCode: 'tutor.general.general', competencyName: 'General' };
+
+  const slug = SUBJECT_LABEL_TO_SLUG[normalized];
+  if (slug) return defaultCompetencyForSubject(slug);
+
+  return {
+    competencyCode: `tutor.${normalized}.general`,
+    competencyName: `${subject.trim()} — General`,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // XP & Level
 // ─────────────────────────────────────────────────────────────────────────────
 

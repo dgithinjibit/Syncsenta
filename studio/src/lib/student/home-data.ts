@@ -12,14 +12,21 @@
  * zero and the learner's name came from `generateFriendlyName()`. Nothing about
  * a real child survived a cold start.
  *
- * `chat_sessions` and `profiles.total_points` are different: they are Supabase
- * tables, written by `/api/chat` and the gamification layer, protected by RLS
- * with `auth.uid() = user_id`, and they are in the generated database types. So
- * this module reads only those, and when a learner has no rows it reports that
- * honestly rather than substituting demo content.
+ * `chat_sessions` is different: it is a Supabase table, written by `/api/chat`
+ * and protected by RLS with `auth.uid() = user_id`. So this module reads only
+ * real rows, and when a learner has none it reports that honestly rather than
+ * substituting demo content.
+ *
+ * One caveat worth keeping visible: `profiles.total_points` is in the generated
+ * types but not in the live schema yet (supabase/migrations_live has no points
+ * columns), so the points read below is expected to fail until the gamification
+ * migration is applied. That is why it uses `maybeSingle()` and reports `null`
+ * rather than a number: "no points recorded" is the truth; "0" would be a
+ * guess dressed up as data.
  */
 
 import type { Database } from '@/lib/supabase/types';
+import { PLATFORM_TIME_ZONE, activityDateInTimeZone } from '@/lib/time/activity-date';
 
 type ChatSession = Database['public']['Tables']['chat_sessions']['Row'];
 
@@ -51,20 +58,38 @@ const EMPTY: StudentHomeData = {
   points: null,
 };
 
-/** Turn a YYYY-MM-DD into the UTC midnight that indexes it. */
-function toDay(value: string): string {
-  return value.slice(0, 10);
+/**
+ * The calendar day a timestamp falls on in the platform zone.
+ *
+ * `daily_activity.activity_date` is written on the learner's own day boundary
+ * (lib/time/activity-date.ts), and a streak read here has to agree with it —
+ * otherwise the student home and the progress row disagree for anyone working
+ * between 21:00 and 23:59 UTC, which is 00:00–02:59 in Nairobi.
+ */
+function toDay(value: string, timeZone: string = PLATFORM_TIME_ZONE): string {
+  const moment = new Date(value);
+  if (Number.isNaN(moment.getTime())) return value.slice(0, 10);
+  return activityDateInTimeZone(timeZone, moment);
+}
+
+/** `YYYY-MM-DD` for "now" in the platform zone, as a UTC-midnight Date. */
+function platformDayCursor(moment: Date, timeZone: string): Date {
+  return new Date(`${activityDateInTimeZone(timeZone, moment)}T00:00:00Z`);
 }
 
 /**
  * Consecutive-day count ending today (or yesterday — a streak is not broken
  * until a full day has passed without activity).
  */
-export function computeStreakDays(dates: string[], today = new Date()): number {
-  const days = new Set(dates.map(toDay).filter(Boolean));
+export function computeStreakDays(
+  dates: string[],
+  today = new Date(),
+  timeZone: string = PLATFORM_TIME_ZONE
+): number {
+  const days = new Set(dates.map((d) => toDay(d, timeZone)).filter(Boolean));
   if (days.size === 0) return 0;
 
-  const cursor = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const cursor = platformDayCursor(today, timeZone);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
 
   // Allow the streak to be "still alive" if the learner last worked yesterday.

@@ -8,6 +8,7 @@
 import { supabase } from '../supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../supabase/types';
+import { activityDateInTimeZone, activityDateOffset } from '../time/activity-date';
 
 /**
  * Every function here defaults to the browser singleton, which is correct in a
@@ -202,6 +203,11 @@ export async function getLearningProgress(
 
 /**
  * Update daily activity
+ *
+ * `options.timeZone` decides which calendar day the counters land on. Pass the
+ * learner's `profiles.timezone`; the default is the platform zone because a
+ * streak read by a teacher or parent has to be counted on the same boundary the
+ * learner lived through (see lib/time/activity-date.ts).
  */
 export async function updateDailyActivity(
   userId: string,
@@ -211,9 +217,11 @@ export async function updateDailyActivity(
     timeSpentMinutes?: number;
     subjectsPracticed?: string[];
   },
-  client: ProgressClient = supabase
+  client: ProgressClient = supabase,
+  options?: { timeZone?: string | null }
 ): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+  const timeZone = options?.timeZone ?? undefined;
+  const today = activityDateInTimeZone(timeZone);
 
   // Check if record exists for today
   const existingRes = await client
@@ -245,7 +253,7 @@ export async function updateDailyActivity(
     if (error) throw error;
   } else {
     // Calculate streak
-    const streak = await calculateStreak(userId, client);
+    const streak = await calculateStreak(userId, client, timeZone);
 
     // Create new record
     const insertRes = await client
@@ -276,10 +284,15 @@ export async function updateDailyActivity(
 
 /**
  * Calculate current streak
+ *
+ * Compares against the same calendar-day boundary `updateDailyActivity()` wrote
+ * with, so a streak cannot be broken by the host clock being ahead of the
+ * learner's.
  */
 async function calculateStreak(
   userId: string,
-  client: ProgressClient = supabase
+  client: ProgressClient = supabase,
+  timeZone?: string | null
 ): Promise<number> {
   const streakRes = await client
     .from('daily_activity')
@@ -291,8 +304,8 @@ async function calculateStreak(
   const error = (streakRes as any).error;
   if (error || !data || data.length === 0) return 1;
 
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const today = activityDateInTimeZone(timeZone);
+  const yesterday = activityDateOffset(1, timeZone);
 
   // If most recent activity is today, return existing streak
   if (data[0].activity_date === today) {
