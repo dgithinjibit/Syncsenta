@@ -115,11 +115,13 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `c71aa18` | a mastery transition can be reported only once, by the request that actually caused it |
 | `9110da3` | the same guard on `daily_activity`, where a lost write deletes a message the learner really sent |
 | `224d47a` | the third read-modify-write of the day — the columns that decide the next difficulty — folded into the guard |
+| `fe44af9` | the scaffolding telemetry reports the pair the row holds, not the pair the request assumed |
 
-Working tree clean. As of `224d47a`, `git rev-list --count origin/main..HEAD` printed **27**: nine for the
+Working tree clean. As of `fe44af9`, `git rev-list --count origin/main..HEAD` printed **29**: nine for the
 security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, three for the three
-read-modify-write races in the progress layer, and the rest are this map being brought up to date with
-them. Nothing here is pushed or deployed — see the `workflow` scope in §7 and the spent deploy cap below.
+read-modify-write races in the progress layer, one for the telemetry that was reporting the wrong pair,
+and the rest are this map being brought up to date with them. Nothing here is pushed or deployed — see the
+`workflow` scope in §7 and the spent deploy cap below.
 The number is stated as what the command
 printed at a named commit rather than as a live total, because the next commit to this file changes it.
 
@@ -381,14 +383,60 @@ at `.eq('competency_code', competencyCode)` inside `progress-tracking.ts`. That 
 a guard dropped — the competency scoping is now a condition on the write rather than a WHERE clause nobody
 checked.
 
-**What it does not fix.** The scaffolding telemetry still reports `hintsUsed: newHintsUsed` and
+**What it does not fix.** The scaffolding telemetry still reported `hintsUsed: newHintsUsed` and
 `consecutiveWrong: contextRow?.consecutive_wrong ?? 0` (`route.ts:746-747`) — the turn's intent and the
 pre-write value, not the stored pair. That is unchanged from before this commit, so
-`omega_scaffolding_events` remains an analytics stream whose numbers describe the request, not the row —
+`omega_scaffolding_events` remained an analytics stream whose numbers describe the request, not the row —
 and nothing reads it yet, which is why §9 keeps it as a latent gap rather than a live wrong number. The other thing nobody has
 done yet, again: none of this has met a real database — the writes are proven against fakes that speak
 PostgREST's `data: []` on a missed guard, and §9's standing gap about the real service key and RLS
-admission is untouched by it.
+admission is untouched by it. *(The first of those two is closed by `fe44af9` below; the second is still
+open, and the line numbers above are as they stood at `224d47a`.)*
+
+### `fe44af9`, the same day — the telemetry was reporting the request, so the write now reports the row
+
+`224d47a` moved the arithmetic inside the guard and left the caller computing its own copy of the answer
+for the analytics payload. Two consequences of that, both real. The observable one: `omega_scaffolding_events`
+was fed `Math.max(body.hintsUsed, contextRow.hints_used)` and `contextRow.consecutive_wrong` — a browser's
+claim and the value the row held *before the answer existed*, while the engine's next decision was being
+made from the pair that had just landed. The structural one: the insert branch had a second hand-written
+copy of the same three rules (`hints_used: hintsUsedAtLeast ?? 0`, `consecutive_wrong: min(delta ?? 0, 10)`,
+`reset → 0`) sitting where the guard could never reach it, so a change to `omegaSignalPatch()` would leave
+first writes behind.
+
+Fixed by making the write tell the truth about itself. `ProgressUpdateResult` gains `hintsUsed` and
+`consecutiveWrong`, resolved per attempt from the same `signalPatch` the guarded `UPDATE` carries, so the
+writer that lost the race reports `3 + 1 = 4` rather than the `2` its stale read implied; a caller that sent
+no signals is handed back what the row already holds. The insert branch calls the same `omegaSignalPatch()`
+with `{ hints_used: 0, consecutive_wrong: 0 }` — which is why that helper now takes
+`Pick<LearningProgress, 'hints_used' | 'consecutive_wrong'>` instead of a whole row: passing a fabricated
+row would have needed an `as LearningProgress` cast, and the no-`any`/no-cast rule in `AGENTS.md` is
+better served by narrowing the parameter than by lying about the argument. `/api/chat` reads
+`progressResult.hintsUsed` / `progressResult.consecutiveWrong`, and `newHintsUsed` is deleted. The grep that
+carried `224d47a`'s claim carries this one too: `grep -n "hints_used = \|consecutive_wrong = " src/lib/progress/progress-tracking.ts`
+→ **three lines** (`:129`, `:133`, `:135`), all inside `omegaSignalPatch()`, which has exactly two call
+sites — `:207` against the row the write is conditioned on and `:281` against zeros for the insert. One
+derivation, reached from both branches.
+
+Evidence: 5 more tests in the same file, under `describe('what the write returns')`, **all failing before
+the change** (the file went 8 → 13): a claim of fewer hints than the row holds is reported as the row's
+number, not the claim; the pair survives a retry as the value the losing writer added to; a caller with no
+signals still gets the row back; a first write reports what it created. `npx tsc --noEmit` → **exit 0**;
+`npx vitest run --no-file-parallelism` → **793 passed / 0 failed / 17 skipped** across **90 files**
+(`Test Files 90 passed | 1 skipped (91)`), re-run fresh for this entry at 19:16 rather than quoted from the
+commit.
+
+**What it does not fix.** The rest of the scaffolding payload is still the pre-answer read: `attempts` and
+`correctAttempts` come from `learningState`, built at `route.ts:468` from the row read at `:360` — before
+this turn's answer was classified — so an event row describes the state the engine reasoned from rather than
+the state the turn produced. That is arguably what a scaffolding-effectiveness table should hold, and it is
+left alone deliberately rather than quietly redefined. The same pre-answer read still feeds the decision
+itself at `route.ts:472`, where `hints_used: Math.max(dbHintsUsed, clientHintsUsed)` is recomputed for the
+in-memory learning state; this turn's difficulty is therefore chosen from the stale row plus the client's
+claim, which is unavoidable for a request already in flight and is what the next request reads correctly.
+`omega_scaffolding_events` still has no reader in `src` (§9), so neither pair has ever been compared in a
+dashboard. And the gap that has now survived four commits unchanged: none of it has met a real database or
+a browser, so `next build` and the deploy remain other people's evidence.
 
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
@@ -927,7 +975,7 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **The mirror freeze is about the pack's restatement (`omega-claw-rules.ts`), not the app's HTTP layer** | agent, reading the owner's "*No ts now, just rust*" strictly | `omega-claw-rules.ts` is still 230 lines and untouched since `c69af07`, so O-4's safety module and O-5's persistence are not extensions of the mirror. Consequence the owner must rule on at cut-over: `POST /api/omega-claw/challenge` has **no Rust counterpart** — the service routes scope, activity-check, progression and hint only — so Rust must grow a persistence route or the path stops persisting. §10 |
 | 2026-09-29 | **Guard the write in the application rather than add a ledger constraint, and say which half that leaves open** | agent | `c71aa18`. The double-pay is a read-modify-write with no condition on its `UPDATE`, and an optimistic lock on the four columns the arithmetic read fixes both the lost answer and the double transition without touching a live school schema — which this machine cannot test against an empty database (§9's own admission). The half it leaves: a `mastered` competency that dips below 90% and re-crosses is still paid twice, because refusing that needs an index on the ledger — `correlation_id` is already a column, and nothing uses it for uniqueness. §10 |
 | 2026-09-29 | **Guard on the numbers the arithmetic read, never on a nullable array — and treat "the same bug is one function away" as part of the fix** | agent | `9110da3`. `daily_activity` got the same optimistic lock, but `subjects_practiced` is `string[] \| null`, so making it a guard predicate would let a `null`-vs-`[]` difference reject a write that should land; it is re-unioned from the fresh row on each attempt instead. The wider rule: after guarding one read-modify-write, grep the file for the shape rather than assuming the next function is different — that grep is what found this one, and §9's bullet is what it found next. |
-| 2026-09-29 | **A guarded write takes intents, not pre-computed totals** — the caller says "at least this many hints, one more wrong, or reset it" and the row resolves it | agent | `224d47a`. A total computed from a read taken before the answer exists is stale by construction, and a retry loop would only re-file the same stale number; resolving `max()` / `min(row + delta, 10)` / reset inside the attempt that lands is what makes the loser's write additive instead of destructive. Consequence for the next caller of `updateLearningProgress()`: pass `signals` on the same call, never a second `UPDATE` after it. |
+| 2026-09-29 | **A guarded write reports what it wrote** — otherwise the caller keeps a private copy of the arithmetic and the analytics inherit it | agent | `fe44af9`. `224d47a` put the resolution in the guard but left `/api/chat` recomputing the pair for `omega_scaffolding_events`, so the table recorded a browser's claim and the pre-answer snapshot while the row held something else; `ProgressUpdateResult` now carries `hintsUsed` / `consecutiveWrong` out of the attempt that landed. Consequence for the next caller: read the result, do not re-derive it — and a helper whose rules must apply to an insert as well as an update takes the columns it reads (`Pick<…, 'hints_used' \| 'consecutive_wrong'>`), which is what let the insert pass zeros instead of casting a fake row. |
 
 ---
 
@@ -959,6 +1007,10 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   17 skipped** across **90 files** (`Test Files 90 passed | 1 skipped (91)` — 89 + the new
   `progress-omega-signal-write.test.ts`). `learner-activity-plumbing.test.ts` moved with the code it
   guards, so its count is unchanged.
+  Re-run an eighth time for `fe44af9`, fresh at 19:16 rather than quoted from the commit: `tsc --noEmit`
+  **exit 0** and **793 passed / 0 failed / 17 skipped** across **90 files**
+  (`Test Files 90 passed | 1 skipped (91)`) — five tests added to the same file, no test file added or
+  removed, which is what "the write reports what it wrote" should look like in these numbers.
   That newest tree has had **no `next build` and no Vercel deploy**, because the day's deploy was spent on
   PR #20 — so for the commits since, the build claim is nobody's evidence yet, and §1's "committed, not
   deployed" is the accurate status.
@@ -1028,17 +1080,22 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   by nothing, so a competency that re-crosses `mastered` after an accuracy dip is still paid twice. §10
   asks whether to close that with DDL. Closing the *first* half needs no deploy — it needs one chat
   conversation that reaches mastery, read back from the table.
-- **The scaffolding telemetry reports the request, not the row.** `route.ts:746-747` sends
-  `hintsUsed: newHintsUsed` (the turn's claim, floored against the pre-write read) and
-  `consecutiveWrong: contextRow?.consecutive_wrong ?? 0` (the value *before* this turn's write) into
-  `omega_scaffolding_events`. That is pre-existing and unchanged by `224d47a`, which guarded the write but
-  left the analytics payload deriving its numbers from the same early read at `:360`. Nothing reads that
-  table today — `grep -rn "omega_scaffolding_events" src` returns writers, the file-header comments and
-  schema-coverage tests only — so the gap is latent rather than live: whoever builds the
-  scaffolding-effectiveness view on it inherits a stream that describes learner intent and a stale
-  snapshot, not the state the engine actually used. Closing it means reading the row back after the
-  guarded write, or having `updateLearningProgress()` return the stored pair — the second is cheaper and
-  adds no query.
+- **The scaffolding telemetry now reports the row; the table still has no reader.** `224d47a` guarded the
+  write but left `route.ts` feeding `omega_scaffolding_events` `hintsUsed: newHintsUsed` (the turn's claim,
+  floored against the pre-write read) and `consecutiveWrong: contextRow?.consecutive_wrong ?? 0` (the value
+  *before* this turn's write), both derived from the early read at `:360`. `fe44af9` closes that with the
+  cheaper of the two options named here — `updateLearningProgress()` returns the stored pair instead of the
+  caller re-deriving it, so no extra query and no second read to go stale. What remains in this bullet is
+  the part no code change can close: `grep -rn "omega_scaffolding_events" src` re-run for this entry returns
+  **14** hits across 6 files, and exactly one of them is a query — the `.from(…).insert()` at
+  `route.ts:753`. The other thirteen are prose: the file headers and mapping comments in
+  `scaffolding-telemetry.ts:9/16/31/51`, the post-mortem comments at `route.ts:31`/`:304` and
+  `subject-session.ts:79`, the docstring at `progress-tracking.ts:74`, and the name-lists in
+  `learner-activity-plumbing.test.ts` and `schema-coverage.test.ts`. So the stream is now truthful and still
+  unread — whoever builds the scaffolding-effectiveness view inherits correct numbers and no dashboard that
+  shows them. Also unchanged: `attempts` and
+  `correctAttempts` in the same payload are still the pre-answer read, which describes what the engine
+  reasoned from rather than what the turn produced.
   What *is* closed, because it is easy to assume the newest endpoint sits outside the guards: the O-5
   challenge path calls `updateLearningProgress()` (`src/lib/omega-agent/omega-claw-challenge.ts:187`), and
   `c71aa18`, `9110da3` and `224d47a` between them guard every read-modify-write in the tutor's own row —
