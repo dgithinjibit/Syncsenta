@@ -17,6 +17,7 @@ import type {
   LiteracyScheduleAudit,
 } from '@/types/curriculum';
 import { grade6AI, grade7AI, grade8AI, grade9AI, grade10AI, grade11AI, grade12AI } from './senior-school/ai';
+import { parseGradeLevel } from './grade-level';
 import { BLOCKCHAIN_LITERACY_VERSION, blockchainStrandsByGrade } from './blockchain';
 import { AI_LITERACY_VERSION } from './senior-school/ai';
 import { grade4Kiswahili } from './upper-primary/kiswahili';
@@ -28,7 +29,8 @@ import { grade1EnvironmentalActivities } from './lower-primary/environmental-act
  * Get all subjects available for a given grade
  */
 export function getSubjectsForGrade(grade: GradeInput): SubjectInfo[] {
-  const normalizedGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
+  const normalizedGrade = parseGradeLevel(grade);
+  if (!normalizedGrade) return [];
 
   // Lower Primary (PP1-Grade 3)
   if (['PP1', 'PP2', 'Grade1', 'Grade2', 'Grade3'].includes(normalizedGrade)) {
@@ -92,7 +94,8 @@ export function getSubjectsForGrade(grade: GradeInput): SubjectInfo[] {
  * This is a simplified version - full data will be ported from scheme-scribe-ai
  */
 export function getHardcodedStrands(grade: GradeInput, subject: string): StrandInfo[] {
-  const normalizedGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
+  const normalizedGrade = parseGradeLevel(grade);
+  if (!normalizedGrade) return [];
   const key = `${normalizedGrade}-${subject}`;
 
   if (subject === 'AI Literacy') {
@@ -103,21 +106,20 @@ export function getHardcodedStrands(grade: GradeInput, subject: string): StrandI
     return blockchainStrandsByGrade[normalizedGrade] || [];
   }
 
-  if (subject === 'Kiswahili' && String(grade).replace(/\s+/g, '') === 'Grade4') {
+  if (subject === 'Kiswahili' && normalizedGrade === 'Grade4') {
     return grade4Kiswahili;
   }
 
-  if (subject === 'Science and Technology' && String(grade).replace(/\s+/g, '') === 'Grade4') {
+  if (subject === 'Science and Technology' && normalizedGrade === 'Grade4') {
     return grade4ScienceTechnology;
   }
 
-  if (subject === 'Environmental Activities' && String(grade).replace(/\s+/g, '') === 'Grade1') {
+  if (subject === 'Environmental Activities' && normalizedGrade === 'Grade1') {
     return grade1EnvironmentalActivities;
   }
 
   if (subject === 'Kiswahili Language Activities') {
-    const lowerGrade = String(grade).replace(/\s+/g, '');
-    return ({ Grade1: grade1Kiswahili, Grade2: grade2Kiswahili, Grade3: grade3Kiswahili } as Record<string, StrandInfo[]>)[lowerGrade] || [];
+    return ({ Grade1: grade1Kiswahili, Grade2: grade2Kiswahili, Grade3: grade3Kiswahili } as Record<string, StrandInfo[]>)[normalizedGrade] || [];
   }
   
   // Mathematics strands (simplified example)
@@ -258,10 +260,13 @@ export function getLiteracyEnvelope(
   grade: GradeLevel | string,
   subject: string,
 ): LiteracyCurriculumEnvelope | null {
-  const canonicalGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
+  const canonicalGrade = parseGradeLevel(grade);
+  if (!canonicalGrade) return null;
   const canonicalSubject = subject === 'AI' ? 'AI Literacy' : subject;
   if (canonicalSubject !== 'AI Literacy' && canonicalSubject !== 'Blockchain Literacy') return null;
   if (getHardcodedStrands(canonicalGrade, canonicalSubject).length === 0) return null;
+  // `canonicalGrade` is a registry key, so this number is always 1-12; the band
+  // could previously be decided by `NaN` when the input was an unvalidated string.
   const numericGrade = Number(canonicalGrade.replace(/\D/g, ''));
   return {
     curriculumId: `${canonicalGrade}|${canonicalSubject}`,
@@ -289,6 +294,13 @@ export function getLiteracyScheduleAudit(
 ): LiteracyScheduleAudit | null {
   const envelope = getLiteracyEnvelope(grade, subject);
   if (!envelope) return null;
+  // Both of these are divisors or multiplicands below. A zero or NaN week count
+  // used to reach `Math.ceil(authoredLessons / lessonsPerWeek)` and
+  // `Math.max(0, standardAnnualWeeks - requiredWeeks)`, which put `NaN` in a
+  // teacher-facing audit row. There is no lesson content that can be audited
+  // against a term of unknown length, so the honest answer is null.
+  if (!Number.isFinite(standardAnnualWeeks) || standardAnnualWeeks <= 0) return null;
+  if (!Number.isFinite(envelope.lessonsPerWeek) || envelope.lessonsPerWeek <= 0) return null;
   const strands = getHardcodedStrands(envelope.grade, envelope.subject);
   const authoredLessons = strands.reduce(
     (total, strand) => total + strand.subStrands.reduce((sum, subStrand) => sum + (subStrand.lessons ?? 0), 0),
@@ -444,7 +456,8 @@ export function getCurriculumData(
   grade: GradeLevel | string,
   subject: string
 ): CurriculumData | null {
-  const normalizedGrade = String(grade).replace(/\s+/g, '') as GradeLevel;
+  const normalizedGrade = parseGradeLevel(grade);
+  if (!normalizedGrade) return null;
   const subjects = getSubjectsForGrade(normalizedGrade);
   const strands = getHardcodedStrands(normalizedGrade, subject);
   
