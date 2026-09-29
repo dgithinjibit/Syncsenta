@@ -79,14 +79,19 @@ is now on `sentastudio.vercel.app`. Read back from production with curl the same
 `200 {"nextAction":"celebrate-transfer",…,"unlocksTransfer":false}`; `{outcome:"maybe"}` → `400`; and
 both endpoints anonymous → `401`, not the old `503`.
 
-**Also 2026-09-29, Stage 3 opened: the first brick of the verifiable-evidence track is code.** `aa81219` puts
-a canonical evidence tree in `studio/src/lib/attest/` — one class-term's learning evidence to one Merkle root,
-with a golden fixture and 20 tests pinning the serialization rules a third party would have to reproduce
-without asking us anything. It is the Stage 3 piece that needs no signing key, no table, no deploy and no
-browser, which is why it is first and not last. Stage 3's remaining Phase 0 boxes (`sign.ts`,
-`evidence_anchors`, `/api/verify/[anchorId]`, the inclusion proofs, the consent gate) are open, and §10's new
-item asks what the first anchor should commit to at all, because the table the research note names has no
-writer. The full write-up is §1's `aa81219` subsection.
+**Also 2026-09-29, Stage 3 is two bricks deep: the tree, and a proof that one learner is inside it.**
+`aa81219` puts a canonical evidence tree in `studio/src/lib/attest/` — one class-term's learning evidence to
+one Merkle root, with a golden fixture and tests pinning the serialization rules a third party would have to
+reproduce without asking us anything. `73066f7` adds `buildInclusionProof` / `verifyInclusionProof` over the
+same fold, so a party who already knows a learner's id can be shown that their row is in the anchored set
+without being shown anybody else's. Both are the Stage 3 pieces that need no signing key, no table, no deploy
+and no browser, which is why they are first and not last. Stage 3's remaining Phase 0 boxes (`sign.ts`,
+`evidence_anchors`, `/api/verify/[anchorId]`, the consent gate) are open, and §10's new item asks what the
+first anchor should commit to at all, because the table the research note names has no writer. The full
+write-ups are §1's `aa81219` and `73066f7` subsections.
+
+One of today's two full-suite failures was not this code's, and saying so took measurements: `3531e08` raises
+the filesystem budgets of the two repo-walking guards that timed out under load. §9 carries both numbers.
 
 CI's `install / typecheck / test / build` job is **red on `main` for a reason that is not this code**:
 one suite, `production-readiness-regressions.test.ts`, dies with `Error: Node.js detected but native
@@ -131,11 +136,14 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `fe44af9` | the scaffolding telemetry reports the pair the row holds, not the pair the request assumed |
 | `6be90dd` | that write-up, and the §9 gap it closes restated as "truthful and still unread" |
 | `aa81219` | **Stage 3 opens** — one class-term's evidence folds to one hash, reproducibly by someone else |
+| `73066f7` | Stage 3's second brick — one learner's row can now be proved inside that hash, alone |
+| `3531e08` | the two repo-walking guards get filesystem budgets measured on this laptop instead of guessed |
 
-Working tree clean. As of `aa81219`, `git rev-list --count origin/main..HEAD` printed **31**: nine for the
+Working tree clean. As of `3531e08`, `git rev-list --count origin/main..HEAD` printed **34**: nine for the
 security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, three for the three
-read-modify-write races in the progress layer, one for the telemetry that was reporting the wrong pair, one
-for the evidence tree, and the rest are this map being brought up to date with them. Nothing here is pushed or deployed — see the
+read-modify-write races in the progress layer, one for the telemetry that was reporting the wrong pair, two
+for the evidence tree and its inclusion proofs, one for the guard budgets, and the rest are this map being
+brought up to date with them. Nothing here is pushed or deployed — see the
 `workflow` scope in §7 and the spent deploy cap below.
 The number is stated as what the command
 printed at a named commit rather than as a live total, because the next commit to this file changes it.
@@ -508,6 +516,61 @@ hand-worked reconstruction of the five-row fold that does not go through the loo
 `evidence_anchors` migration and `/api/verify/[anchorId]` are still open below, and none of the four Stage 3
 pieces has a key, a table, or a request behind it yet.
 
+### `73066f7` + `3531e08`, the same evening — the proof, and two guards that needed measuring
+
+`buildInclusionProof(records, evidenceId)` answers one question for one learner: *is this row inside the set
+whose root we signed?* It has to answer it without handing over the rest of the class, which is what
+`docs/research/ASI-DAPP-PATH.md` Phase 0 item 4 asks of `/api/verify/[anchorId]` — the party who already knows
+a learner id gets a proof and learns nothing about the other children.
+
+The design decision is that the proof is **produced by the fold, not described alongside it**. `aa81219` had
+`computeEvidenceRoot` fold the tree internally; this pulls that fold into `parentLevel()` — one level up,
+pairs hashed, an odd trailing node promoted — and both the root and the proof climb with it. So the path
+cannot disagree with the root about what an odd level does, and a mirrored implementation in another language
+has one rule to copy rather than two that happen to match today. A leaf that travelled alone up an odd-sized
+level emits `{ promote: true }` instead of a copy of itself as its own sibling; the fixture's fifth row is
+proved by `[{promote}, {promote}, {combine: n0123, side: 'left'}]`, which is the promote-odd rule seen from
+inside a proof, and that is where a duplicated-last implementation shows up.
+
+`verifyInclusionProof` re-folds from the steps alone and returns a boolean rather than throwing, for the same
+reason the leaderboard RPC refuses instead of explaining: a verifier that distinguishes "wrong proof" from
+"wrong shape" tells an attacker how close they are, and the route wants one yes/no answer either way.
+
+**The gap the reviewer pass found was my own.** Re-reading the finished function — not the tests, the
+function — `verifyInclusionProof` never looked at `proof.version`. The literal type says it cannot be
+anything else, and the type checker then refused to let me *write* the forged object:
+
+```
+error TS2352: Conversion of type '{ version: "syncsenta-evidence-v2"; … }' to type 'InclusionProof'
+may be a mistake because neither type sufficiently overlaps with the other.
+```
+
+That rejection is the finding, not an annoyance. The route receives this object from a stored anchor row or a
+caller's POST, so whatever the type promises does not survive `JSON.parse`; a verifier that folded without
+reading the name would have approved a `v2` proof under `v1`'s rules, which is precisely the drift the version
+string exists to stop. Test written first, observed failing `expected true to be false`, then the check. The
+file is at **29 tests**; `npx tsc --noEmit` → **exit 0**.
+
+**`3531e08` is the other half of the evening, and it is about a measurement rather than a defect.** The full
+serial run at 20:27 came back **819 passed / 2 failed / 17 skipped**, and both failures were
+`Test timed out` — `grade-cast-guard`'s walk of every `.ts`/`.tsx` under `src` at 6.36 s against vitest's 5 s
+default, and `schema-coverage`'s four-tree symlink walk at 29.3 s against the 20 s its own comment had
+justified with a single 7.2 s observation. Run alone, the same two files take 0.49 s and 9.4 s, so the
+assertions were never the problem: a filesystem budget set from one warm run was. Both guards walk the
+repository, and `aa81219` put two more `.ts` files into the tree they walk, so the honest reading is that my
+own work makes them marginally slower every day — the budgets are now 40 s and 60 s with the measured range
+written down next to them, no assertion touched.
+
+Evidence, fresh at 21:28: `npx vitest run --no-file-parallelism` → **822 passed / 0 failed / 17 skipped**
+across **91 files** (`Test Files 91 passed | 1 skipped (92)`) in 52.69 s; `tsc --noEmit` **exit 0**; the
+evidence-tree file alone is **29 passed**.
+
+**What it does not do.** There is still no key, no table, no route: nothing has signed a root, nothing stores
+one, and no HTTP request has ever asked for a proof. The proofs have never been built over rows that exist —
+same gap as `aa81219`, and §10 item 8 is still the owner's to answer. And there has been no `next build` on
+any of this, so the build claim for `73066f7` and `3531e08` is nobody's evidence yet; the day's deploy was
+spent on PR #20.
+
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
 Five commits, listed in §1's table: `372089c` S-1, `e584ff4` S-3, `f97dcc5` S-4, `a966b04` S-2,
@@ -773,12 +836,16 @@ Merkle-root design and put it on the implementation track (hackathon registratio
       row (`learning_evidence` has no writer, reader or generated type — §10 asks which evidence the first
       anchor commits to), and the fixture's recorded root is this implementation's own output, corroborated by
       an independently hand-worked five-row fold rather than by a second language.
+- [x] Per-learner inclusion proofs in the same module — `buildInclusionProof` / `verifyInclusionProof`,
+      climbing the identical `parentLevel` fold, with an odd node carried as `{ promote: true }` rather than
+      duplicated. `73066f7`, 2026-09-29: 29 tests in the file, the last one written red against a verifier
+      that ignored `proof.version`. Still nothing behind it but a function — no route, no stored root.
 - [ ] `studio/src/lib/attest/sign.ts` — Ed25519 via Node `crypto`; key from `ATTEST_KEY`; refuses to
       run silently if absent.
 - [ ] `/api/verify/[anchorId]` — public, rate-limited: root, version, signature, key, per-learner
       inclusion proof for a party who already knows the learner id. Never enumerates children. The proof
-      functions themselves (`buildInclusionProof` / `verifyInclusionProof` over the same ordering and promote-
-      odd rule) do not exist yet and belong with the tree, not the route.
+      functions it needs now exist (`73066f7`); what is missing is the anchor row to read them from and the
+      route itself.
 - [ ] Anchor job gated on `learner_consents` — no anchor over a learner without a current consent row.
 - [ ] "Verification" card on the parent report and teacher portfolio.
 
@@ -860,7 +927,7 @@ claiming dashboards that rendered blank. `?` = not established.
 | Nairobi-timezone activity days and streaks (defect 3) | yes | same suite | **yes** (`ef394e4`) | no |
 | Points ledger, scope columns, leaderboard + award RPCs (defect 4, **schema**) | yes | **yes — against production**, V1–V7 in the migration file: catalog read-back, award recompute, column-guard no-op, real `get_leaderboard` call, `42501` for `authenticated`, cleanup re-read | live in the database (applied 2026-09-29) | n/a — no UI reads it yet |
 | Points, mastery award in code (`awardCompetencyMastery` → `award_points`, `/api/chat`) | yes | yes — 13 tests, red-then-green; `tsc --noEmit` clean | **yes** (`ef394e4`) | **no** — nothing has earned 50 points yet; the ledger is live and still empty |
-| Points, streak rewards, class leaderboard (**learner-visible**) | **partly** — a balance and a streak already render on `/student` (`app/student/page.tsx:214`, `:240`) reading `profiles.total_points` via `lib/student/home-data.ts:179`, and XP/level render on the subject header from `point_transactions` (`lib/chat/subject-session.ts:162`); what does not exist in any mounted component is a **rank or a class board** — `get_leaderboard()` has zero callers in `src`, and `gamification-panel.tsx` is unmounted | no | the reads are deployed (`ef394e4`), the awarding code is not | no — the balance is there but the ledger is empty, so it shows `0`/`—` and nobody has seen it move |
+| Points, streak rewards, class leaderboard (**learner-visible**) | **partly** — a balance and a streak already render on `/student` (`app/student/page.tsx:215`, `:243`) reading `profiles.total_points` via `lib/student/home-data.ts:179`, and XP/level render on the subject header from `point_transactions` (`lib/chat/subject-session.ts:162`); what does not exist in any mounted component is a **rank or a class board** — `get_leaderboard()` has zero callers in `src`, and `gamification-panel.tsx` is unmounted | no | the reads are deployed (`ef394e4`), the awarding code is not | no — the balance is there but the ledger is empty, so it shows `0`/`—` and nobody has seen it move |
 | Classroom-scoped leaderboard with real rows | code exists | **no** — production has 0 `school_classes` and 0 profiles carrying a `classroom_id`, so there is nothing to rank | live RPC | no |
 | Teacher analytics from live tables | partial | no | no | no |
 | `get_teacher_students` / `get_teacher_alerts` | called by code | — | **the RPCs do not exist** | no |
@@ -873,7 +940,7 @@ claiming dashboards that rendered blank. `?` = not established.
 | Offline / PWA | service worker exists | never registered | — | **0% live** |
 | Lesson generation (`/lesson-architect/*` on Render) | yes | yes | **not redeployed** | no |
 | Rust `/api/v1` backend | yes | no | **deployed nowhere** | no |
-| Evidence anchoring / Merkle verification (Stage 3) | no | no | no | no |
+| Evidence anchoring / Merkle verification (Stage 3) | yes — `attest/evidence-tree.ts`: canonical serialization, root, and per-learner inclusion proofs (`aa81219`, `73066f7`) | yes — 29 tests, red first, golden fixture | **no** — nothing has signed a root, no `evidence_anchors` table exists, no route serves a proof | no — and the rows it hashes are still invented: `learning_evidence` has no writer (§10 item 8) |
 | Multi-tenancy, indigenous languages (Stage 5) | no | no | no | no |
 
 ### Omega Claw, measured 2026-09-29
@@ -1093,6 +1160,14 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   Re-run a ninth time for `aa81219`: `tsc --noEmit` **exit 0** and **813 passed / 0 failed / 17 skipped**
   across **91 files** (`Test Files 91 passed | 1 skipped (92)`) — one new file,
   `src/lib/attest/__tests__/evidence-tree.test.ts`, carrying 20 tests.
+  Re-run a tenth time at 20:27, with the proofs in but the budgets not yet moved: **819 passed / 2 failed /
+  17 skipped**, and both failures were `Test timed out` — `grade-cast-guard` at 6.36 s against vitest's 5 s
+  default, `schema-coverage`'s symlink walk at 29.3 s against the 20 s its own comment had justified with a
+  single 7.2 s measurement. Run alone the same two files take 0.49 s and 9.4 s. The 819 already included all
+  26 of the evidence-tree tests then written, so nothing about the new module failed; what failed was a
+  filesystem budget guessed from one warm run, which is `3531e08`.
+  Re-run an eleventh time at 21:28 for `73066f7` and `3531e08`: `tsc --noEmit` **exit 0** and **822 passed /
+  0 failed / 17 skipped** across **91 files** (`Test Files 91 passed | 1 skipped (92)`) in 52.69 s.
   That newest tree has had **no `next build` and no Vercel deploy**, because the day's deploy was spent on
   PR #20 — so for the commits since, the build claim is nobody's evidence yet, and §1's "committed, not
   deployed" is the accurate status.
@@ -1183,7 +1258,8 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   `c71aa18`, `9110da3` and `224d47a` between them guard every read-modify-write in the tutor's own row —
   counters, mastery transition, daily counters, and the two difficulty signals.
 - **The evidence tree has never hashed a row that exists, and its golden root is self-produced.**
-  `aa81219` proves the *rules* — 20 tests, including a five-row fold worked by hand from the leaf hashes
+  `aa81219` proves the *rules* — with `73066f7`'s proofs the file is at 29 tests, including a five-row fold
+  worked by hand from the leaf hashes
   upward that does not pass through the implementation's loop — and proves nothing about the data. Two
   separate gaps sit here. First, `learning_evidence` is in the production catalog and has no writer, reader
   or generated type in `studio/src`, so there is no class-term to anchor yet; which evidence the first anchor
@@ -1192,6 +1268,20 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   not derived from an independent one; the honest form of that claim is that a second language's mirror is
   what would actually falsify it, and `docs/research/ASI-DAPP-PATH.md` Phase 1's Python verifier is the
   deliverable that closes it. Nothing here needs a deploy, which is why it was built first.
+  A third gap is specific to the proofs: they have never been over the wire. `verifyInclusionProof` is typed
+  to take an `InclusionProof`, and the route will hand it a parsed JSON body, which is how a `version` field
+  the type says is impossible reached the code — the one genuine defect this evening's re-read found. The
+  version check is in, and its test forges the object through `as unknown as` precisely because a single
+  assertion would not compile. What is still unproven is every other field a caller can send: `steps` as a
+  non-array is caught, `combine` as a non-string is not refused so much as folded into a different hash, and
+  `leafIndex` is trusted by the reader while the verifier ignores it. That belongs with the route's input
+  validation, not with the fold.
+- **The repo-walking guards have a runtime range, not a runtime.** `grade-cast-guard` measured 0.49 s alone
+  and 6.36 s inside the full serial run; `schema-coverage`'s symlink walk 7.2 s and 9.4 s and 29.3 s on three
+  observations of the same assertion. Every one of those was a pass, and one of them was a red suite. Treat a
+  "the suite takes N seconds" claim from this laptop as a sample, and when one of these two files fails with
+  `Test timed out`, run it alone before believing there is a regression — `3531e08` left the measured ranges in
+  the comments next to the budgets so the next person does not have to re-derive them.
 - **The blocked-topic boundary (O-4) has never met a real request.** 29 tests cover the translator and the
   wire shape, and the route assertions check *source order* — that `detectBlockedOmegaClawContent(` appears
   before the first provider marker in each of the five route files — not that the route runs. Nobody has
