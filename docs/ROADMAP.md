@@ -21,8 +21,12 @@ three plumbing defects are fixed and tested, its fourth — the gamification DDL
 production and verified against the live catalog, and the code that was left standing on the wrong
 side of that DDL now calls it: the mastery award goes through `award_points()` from `/api/chat`.
 So Stage 1 is unapplied nowhere and unwritten nowhere. What Stage 1 still lacks is a deploy and a
-learner-visible surface: nothing on the site shows a point yet, because the code that pays them is
-committed locally only.**
+learner-visible result: the points **are** on the learner's home page and on the subject header — read from
+`profiles.total_points` and `point_transactions` (`src/lib/student/home-data.ts:179`,
+`src/lib/chat/subject-session.ts:162`), both maintained by the applied DDL — but the code that *pays*
+them is committed locally only, so on production today those surfaces honestly show what an unawarded ledger
+holds. What has no surface at all is rank and the class board: `get_leaderboard()` exists and is granted to
+`authenticated`, and nothing in `src` calls it (§3 Stage 1's open read task).**
 
 **Later the same day: the owner's security gate — items 1–4 of `docs/SCOPE-SECURITY-AND-OMEGA.md` — is
 closed, with every one of its four criteria backed by a guard suite that was checked red first. Five
@@ -75,6 +79,15 @@ is now on `sentastudio.vercel.app`. Read back from production with curl the same
 `200 {"nextAction":"celebrate-transfer",…,"unlocksTransfer":false}`; `{outcome:"maybe"}` → `400`; and
 both endpoints anonymous → `401`, not the old `503`.
 
+**Also 2026-09-29, Stage 3 opened: the first brick of the verifiable-evidence track is code.** `aa81219` puts
+a canonical evidence tree in `studio/src/lib/attest/` — one class-term's learning evidence to one Merkle root,
+with a golden fixture and 20 tests pinning the serialization rules a third party would have to reproduce
+without asking us anything. It is the Stage 3 piece that needs no signing key, no table, no deploy and no
+browser, which is why it is first and not last. Stage 3's remaining Phase 0 boxes (`sign.ts`,
+`evidence_anchors`, `/api/verify/[anchorId]`, the inclusion proofs, the consent gate) are open, and §10's new
+item asks what the first anchor should commit to at all, because the table the research note names has no
+writer. The full write-up is §1's `aa81219` subsection.
+
 CI's `install / typecheck / test / build` job is **red on `main` for a reason that is not this code**:
 one suite, `production-readiness-regressions.test.ts`, dies with `Error: Node.js detected but native
 WebSocket not found`, i.e. Supabase's `realtime-js` needing Node 22 while `studio-gates.yml` pins
@@ -116,11 +129,13 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `9110da3` | the same guard on `daily_activity`, where a lost write deletes a message the learner really sent |
 | `224d47a` | the third read-modify-write of the day — the columns that decide the next difficulty — folded into the guard |
 | `fe44af9` | the scaffolding telemetry reports the pair the row holds, not the pair the request assumed |
+| `6be90dd` | that write-up, and the §9 gap it closes restated as "truthful and still unread" |
+| `aa81219` | **Stage 3 opens** — one class-term's evidence folds to one hash, reproducibly by someone else |
 
-Working tree clean. As of `fe44af9`, `git rev-list --count origin/main..HEAD` printed **29**: nine for the
+Working tree clean. As of `aa81219`, `git rev-list --count origin/main..HEAD` printed **31**: nine for the
 security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, three for the three
-read-modify-write races in the progress layer, one for the telemetry that was reporting the wrong pair,
-and the rest are this map being brought up to date with them. Nothing here is pushed or deployed — see the
+read-modify-write races in the progress layer, one for the telemetry that was reporting the wrong pair, one
+for the evidence tree, and the rest are this map being brought up to date with them. Nothing here is pushed or deployed — see the
 `workflow` scope in §7 and the spent deploy cap below.
 The number is stated as what the command
 printed at a named commit rather than as a live total, because the next commit to this file changes it.
@@ -438,6 +453,61 @@ claim, which is unavoidable for a request already in flight and is what the next
 dashboard. And the gap that has now survived four commits unchanged: none of it has met a real database or
 a browser, so `next build` and the deploy remain other people's evidence.
 
+### `aa81219`, the same day — Stage 3 opens with the part that needs no chain and no deploy
+
+Everything before this section is Stage 0 and Stage 1. This is the first brick of Stage 3, chosen precisely
+because it is the brick that does not need the owner's SQL editor, a deploy, or a browser: the canonical
+evidence tree from `docs/research/ASI-DAPP-PATH.md` Phase 0, item 2. `studio/src/lib/attest/evidence-tree.ts`
+turns one class-term's evidence rows into one hash, and the property that makes the hash worth publishing is
+that **someone who does not trust us can reproduce it** — so the file is a serialization contract, and its
+rules are asserted rather than described.
+
+The contract, as pinned by 20 tests in
+`studio/src/lib/attest/__tests__/evidence-tree.test.ts`:
+
+1. `syncsenta-evidence-v1` commits to fifteen `learning_evidence` columns and ignores every other key, so a
+   caller may hand over `SELECT *` rows. `created_at`, `event_id`, `reviewed_by` and `reviewed_at` are
+   outside the version deliberately: a teacher reviewing evidence next term must not change the root that
+   term was anchored under.
+2. Keys are sorted by code point *at emit time*, not by object iteration order — ECMAScript iterates
+   integer-like keys numerically, so a rubric keyed `"1"`, `"2"`, `"10"` would serialize in a different order
+   from one keyed `"10"`, `"2"`, `"1"` if the implementation trusted `Object.keys` after sorting. The
+   fixture carries exactly that rubric.
+3. Absent and `null` are the same leaf, because PostgREST, the SQL editor and a CSV export disagree about
+   which they emit.
+4. `captured_at` is rendered `YYYY-MM-DDTHH:MM:SSZ`, so `+03:00` and `.000000` cannot fork the tree. Second
+   precision is the deliberate cost; two rows differing only in microseconds still differ in `id`. A string
+   that is not a moment throws instead of being hashed.
+5. Leaves are ordered by lowercase canonical uuid; an id outside that form is refused, because an ordering
+   rule a Python mirror sorts differently is not a public contract. Duplicate ids are refused: the order
+   would be ambiguous.
+6. The fold pairs hex sha256 digests, promotes an odd node rather than duplicating it, and binds the top node
+   as `sha256("syncsenta-evidence-root-v1|<leafCount>|<top>")`, so the root states how many rows it stands
+   for. An empty set throws — a predictable hash over nothing would read as a class-term that happened.
+
+Two things were wrong before the code was, which is the part of red-green that is easy to skip: the
+"whitespace-free" assertion tripped on a space inside a real learning outcome, and the "every committed field
+changes the leaf" loop tripped the uuid guard by appending `-changed` to an id. Both were test bugs, and both
+guards were correct.
+
+Evidence: `npx vitest run src/lib/attest/__tests__/evidence-tree.test.ts` **RED 4 failed / 14 passed** at the
+first pass (module unresolvable, then the four pins), **20 passed** after; `npx tsc --noEmit` → **exit 0**;
+`npx vitest run --no-file-parallelism` → **813 passed / 0 failed / 17 skipped** across **91 files**
+(`Test Files 91 passed | 1 skipped (92)`), up from 793 across 90.
+
+**What it does not do.** It has never hashed a row that exists: `learning_evidence` is in the production
+catalog (`supabase/live_schema_export/01_objects.sql:144`) and has **zero writers, zero readers and no
+generated type in `studio/src`** — `grep -rn -i learning_evidence studio/src` returns **2** lines, and both of
+them are the comments in this new module. So the source
+of the first real anchor is an open question for the owner, and it is §10's new item, not a detail: either the
+capture path gets built, or the anchor commits to the evidence the tutor actually produces today
+(`learning_progress`, `daily_activity`, `chat_sessions`), which would be a different field set and a new
+version string. The recorded root in the fixture is the implementation's own output, pinned once; what makes
+it load-bearing is that the ordering, key-sort, null and time rules are each asserted independently, plus a
+hand-worked reconstruction of the five-row fold that does not go through the loop. `sign.ts`, the
+`evidence_anchors` migration and `/api/verify/[anchorId]` are still open below, and none of the four Stage 3
+pieces has a key, a table, or a request behind it yet.
+
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
 Five commits, listed in §1's table: `372089c` S-1, `e584ff4` S-3, `f97dcc5` S-4, `a966b04` S-2,
@@ -696,12 +766,19 @@ Merkle-root design and put it on the implementation track (hackathon registratio
 **Phase 0 — verification without a chain (this is the part that must exist regardless)**
 - [ ] `evidence_anchors` migration: `school_id`, `class_id`, `term_label`, `root_hash`,
       `canonicalization_version`, `attestation_signature`, `public_key_jwk`, `anchor_tx_ref` nullable.
-- [ ] `studio/src/lib/attest/evidence-tree.ts` — deterministic canonical serialization over one
-      class-term's evidence, hashed to a Merkle root, with a golden-file fixture.
+- [x] `studio/src/lib/attest/evidence-tree.ts` — deterministic canonical serialization over one
+      class-term's evidence, hashed to a Merkle root, with a golden-file fixture. `aa81219`, 2026-09-29:
+      20 tests, written red first, contract rules enumerated in §1's `aa81219` subsection and in the file's
+      own header. Two things it did **not** do, both recorded rather than smoothed: it has never hashed a real
+      row (`learning_evidence` has no writer, reader or generated type — §10 asks which evidence the first
+      anchor commits to), and the fixture's recorded root is this implementation's own output, corroborated by
+      an independently hand-worked five-row fold rather than by a second language.
 - [ ] `studio/src/lib/attest/sign.ts` — Ed25519 via Node `crypto`; key from `ATTEST_KEY`; refuses to
       run silently if absent.
 - [ ] `/api/verify/[anchorId]` — public, rate-limited: root, version, signature, key, per-learner
-      inclusion proof for a party who already knows the learner id. Never enumerates children.
+      inclusion proof for a party who already knows the learner id. Never enumerates children. The proof
+      functions themselves (`buildInclusionProof` / `verifyInclusionProof` over the same ordering and promote-
+      odd rule) do not exist yet and belong with the tree, not the route.
 - [ ] Anchor job gated on `learner_consents` — no anchor over a learner without a current consent row.
 - [ ] "Verification" card on the parent report and teacher portfolio.
 
@@ -783,7 +860,7 @@ claiming dashboards that rendered blank. `?` = not established.
 | Nairobi-timezone activity days and streaks (defect 3) | yes | same suite | **yes** (`ef394e4`) | no |
 | Points ledger, scope columns, leaderboard + award RPCs (defect 4, **schema**) | yes | **yes — against production**, V1–V7 in the migration file: catalog read-back, award recompute, column-guard no-op, real `get_leaderboard` call, `42501` for `authenticated`, cleanup re-read | live in the database (applied 2026-09-29) | n/a — no UI reads it yet |
 | Points, mastery award in code (`awardCompetencyMastery` → `award_points`, `/api/chat`) | yes | yes — 13 tests, red-then-green; `tsc --noEmit` clean | **yes** (`ef394e4`) | **no** — nothing has earned 50 points yet; the ledger is live and still empty |
-| Points, streak rewards, class leaderboard (**learner-visible**) | **no** — the award is deployed but nothing renders a board or a balance | no | no | no |
+| Points, streak rewards, class leaderboard (**learner-visible**) | **partly** — a balance and a streak already render on `/student` (`app/student/page.tsx:214`, `:240`) reading `profiles.total_points` via `lib/student/home-data.ts:179`, and XP/level render on the subject header from `point_transactions` (`lib/chat/subject-session.ts:162`); what does not exist in any mounted component is a **rank or a class board** — `get_leaderboard()` has zero callers in `src`, and `gamification-panel.tsx` is unmounted | no | the reads are deployed (`ef394e4`), the awarding code is not | no — the balance is there but the ledger is empty, so it shows `0`/`—` and nobody has seen it move |
 | Classroom-scoped leaderboard with real rows | code exists | **no** — production has 0 `school_classes` and 0 profiles carrying a `classroom_id`, so there is nothing to rank | live RPC | no |
 | Teacher analytics from live tables | partial | no | no | no |
 | `get_teacher_students` / `get_teacher_alerts` | called by code | — | **the RPCs do not exist** | no |
@@ -976,6 +1053,8 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **Guard the write in the application rather than add a ledger constraint, and say which half that leaves open** | agent | `c71aa18`. The double-pay is a read-modify-write with no condition on its `UPDATE`, and an optimistic lock on the four columns the arithmetic read fixes both the lost answer and the double transition without touching a live school schema — which this machine cannot test against an empty database (§9's own admission). The half it leaves: a `mastered` competency that dips below 90% and re-crosses is still paid twice, because refusing that needs an index on the ledger — `correlation_id` is already a column, and nothing uses it for uniqueness. §10 |
 | 2026-09-29 | **Guard on the numbers the arithmetic read, never on a nullable array — and treat "the same bug is one function away" as part of the fix** | agent | `9110da3`. `daily_activity` got the same optimistic lock, but `subjects_practiced` is `string[] \| null`, so making it a guard predicate would let a `null`-vs-`[]` difference reject a write that should land; it is re-unioned from the fresh row on each attempt instead. The wider rule: after guarding one read-modify-write, grep the file for the shape rather than assuming the next function is different — that grep is what found this one, and §9's bullet is what it found next. |
 | 2026-09-29 | **A guarded write reports what it wrote** — otherwise the caller keeps a private copy of the arithmetic and the analytics inherit it | agent | `fe44af9`. `224d47a` put the resolution in the guard but left `/api/chat` recomputing the pair for `omega_scaffolding_events`, so the table recorded a browser's claim and the pre-answer snapshot while the row held something else; `ProgressUpdateResult` now carries `hintsUsed` / `consecutiveWrong` out of the attempt that landed. Consequence for the next caller: read the result, do not re-derive it — and a helper whose rules must apply to an insert as well as an update takes the columns it reads (`Pick<…, 'hints_used' \| 'consecutive_wrong'>`), which is what let the insert pass zeros instead of casting a fake row. |
+| 2026-09-29 | **The anchor commits to what the learner did, not to what a teacher later said about it** — review columns stay outside `syncsenta-evidence-v1` | agent, following the research note's own argument | `aa81219`. `reviewed_by` / `reviewed_at` / `created_at` / `event_id` are excluded so a review next term cannot move the root that term was anchored under; callers may still pass whole `SELECT *` rows, because keys outside the version are ignored. The version *is* the field set, so adding one means `v2` and a new golden fixture, not an edit |
+| 2026-09-29 | **Where a public contract meets an ECMAScript quirk, refuse the input rather than normalise it quietly** | agent | Same commit: an evidence `id` that is not a lowercase canonical uuid throws instead of being sorted by whatever the host defaults to (a Python mirror would sort it differently); a `captured_at` that is not a moment throws instead of becoming a hash of a typo; an empty class-term throws instead of producing a predictable root. Sub-second precision *is* normalised away, and the asymmetry is written into the file header — the difference being that second-precision is stated as the rule, so a mirror can copy it |
 
 ---
 
@@ -1011,6 +1090,9 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   **exit 0** and **793 passed / 0 failed / 17 skipped** across **90 files**
   (`Test Files 90 passed | 1 skipped (91)`) — five tests added to the same file, no test file added or
   removed, which is what "the write reports what it wrote" should look like in these numbers.
+  Re-run a ninth time for `aa81219`: `tsc --noEmit` **exit 0** and **813 passed / 0 failed / 17 skipped**
+  across **91 files** (`Test Files 91 passed | 1 skipped (92)`) — one new file,
+  `src/lib/attest/__tests__/evidence-tree.test.ts`, carrying 20 tests.
   That newest tree has had **no `next build` and no Vercel deploy**, because the day's deploy was spent on
   PR #20 — so for the commits since, the build claim is nobody's evidence yet, and §1's "committed, not
   deployed" is the accurate status.
@@ -1100,6 +1182,16 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   challenge path calls `updateLearningProgress()` (`src/lib/omega-agent/omega-claw-challenge.ts:187`), and
   `c71aa18`, `9110da3` and `224d47a` between them guard every read-modify-write in the tutor's own row —
   counters, mastery transition, daily counters, and the two difficulty signals.
+- **The evidence tree has never hashed a row that exists, and its golden root is self-produced.**
+  `aa81219` proves the *rules* — 20 tests, including a five-row fold worked by hand from the leaf hashes
+  upward that does not pass through the implementation's loop — and proves nothing about the data. Two
+  separate gaps sit here. First, `learning_evidence` is in the production catalog and has no writer, reader
+  or generated type in `studio/src`, so there is no class-term to anchor yet; which evidence the first anchor
+  commits to is §10's item 8, and the answer may change the fifteen fields and therefore the version string.
+  Second, the fixture's recorded root and five leaf hashes were produced by this implementation and pinned,
+  not derived from an independent one; the honest form of that claim is that a second language's mirror is
+  what would actually falsify it, and `docs/research/ASI-DAPP-PATH.md` Phase 1's Python verifier is the
+  deliverable that closes it. Nothing here needs a deploy, which is why it was built first.
 - **The blocked-topic boundary (O-4) has never met a real request.** 29 tests cover the translator and the
   wire shape, and the route assertions check *source order* — that `detectBlockedOmegaClawContent(` appears
   before the first provider marker in each of the five route files — not that the route runs. Nobody has
@@ -1175,6 +1267,16 @@ Things that are *not* proven, restated so nobody (including a future session) ha
    schema, and both can be applied and read back the way the gamification migration was — the
    verification loop you authorised for that work. I will not rewrite a live function or add an index to
    a school's ledger on an assumption, so this is your call.
+8. **What evidence does the first anchor actually commit to?** The research note names `learning_evidence`
+   (`docs/research/ASI-DAPP-PATH.md` Phase 0, item 2) and `aa81219` built the tree over exactly that column
+   set — and then the grep showed the table has no writer, no reader and no generated type anywhere in
+   `studio/src`. It exists in production and nothing touches it. So either the capture path that fills it
+   gets built (a Stage 1/2-sized feature: the tutor, sandbox and uploads would each write an evidence row),
+   or the anchor commits to the evidence the app really produces today — `learning_progress` per competency,
+   `daily_activity` per day, `chat_sessions` per session — which is a different fifteen columns, a new
+   version string, and a new golden fixture. The tree is deliberately shaped so either answer is a field
+   list, not a rewrite. My recommendation is the second, because an anchor over an empty table proves
+   nothing a child did; but this changes what the hackathon demo claims, so it is yours.
 
 ---
 
