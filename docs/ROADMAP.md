@@ -111,12 +111,14 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `37cfa98` | this §1's commit count, corrected to what `git rev-list` printed rather than what it used to print |
 | `c117bef` | O-5 — the challenge path is a `learning_progress` row, graded by the server, and wired to the ledger |
 | `81401f4` | this §1 subsection, §5's two new rows, §8's three decisions, §9's two gaps and the scoreboard's item 9 |
+| `f1c409a` | the counts in that write-up, tied to the commands that printed them |
+| `c71aa18` | a mastery transition can be reported only once, by the request that actually caused it |
 
-Working tree clean. As of `81401f4`, `git rev-list --count origin/main..HEAD` printed **21**: nine for the
-security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, and the rest are this
-map being brought up to date with them. Nothing here is pushed or deployed — see the `workflow` scope in §7
-and the spent deploy cap below. The number is stated as what the command printed at a named commit rather
-than as a live total, because the next commit to this file changes it.
+Working tree clean. As of `c71aa18`, `git rev-list --count origin/main..HEAD` printed **23**: nine for the
+security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, one for the ledger
+race, and the rest are this map being brought up to date with them. Nothing here is pushed or deployed —
+see the `workflow` scope in §7 and the spent deploy cap below. The number is stated as what the command
+printed at a named commit rather than as a live total, because the next commit to this file changes it.
 
 ### The Rust slice, 2026-09-29 — three defects in the engine, found and fixed locally
 
@@ -255,6 +257,42 @@ future fake of that client mutates in place, it will fail the same way and hide 
 What is *not* proven: nothing here is deployed, so no real session has written a row, which means the
 RLS admission question is open in exactly the way §9 already records for `/api/mwalimu` — the write is
 proven against a fake that speaks the query shapes, not against the database that owns the policies.
+
+### `c71aa18`, the same day — the double-pay that O-5 made worth fixing
+
+O-5 attached the challenge path to the points ledger, and the line the ledger inherits is
+`updateLearningProgress()`. Reading that function for a different reason turned up a defect that has been
+live since Stage 1's award was wired, in the plainest possible way: it selects a row, adds to the
+counters in JavaScript, and writes the totals back with **no condition on the `UPDATE`**. Two requests
+for one competency — a learner double-tapping an answer, a tutor turn and a challenge answer landing in
+the same second, a client retrying a slow stream — both read `proficient` at 19 answers, both compute
+the crossing, both write, and **both report `masteryJustAchieved: true`**. The learner is paid 50 points
+twice and gets two `competency_mastered` badges for one achievement, and one of the two answers is lost
+outright because the second write files totals derived from a row that no longer exists. The doc comment
+on `ProgressUpdateResult` had been asserting the opposite since it was written.
+
+Fixed with an optimistic lock rather than new DDL: the `UPDATE` now carries the four columns the
+arithmetic read plus `mastery_level`, so PostgREST lands it only while those still hold and answers
+`data: []` when they do not. A writer whose numbers went stale re-reads and recomputes — up to three
+attempts, then it raises `learning_progress for <code> changed under every attempt; nothing was written`
+instead of looping against a writer that never stops. The badge and the points hang off the same
+returned boolean, so the loser can award neither. Two behaviours are deliberately preserved: `data: null`
+still counts as landed (that is what a client which does not report matched rows returns, including every
+injected double in this repo), and a read error still falls through to the insert branch rather than
+throwing, which is what it did before the guard existed.
+
+Evidence: 8 tests in `progress-transition-race.test.ts`, **RED at 5 failed / 3 passed** — the three that
+passed on the old code are exactly the shapes this change must not disturb (an uncontested write, a row
+already `mastered`, a competency's first insert). `npx tsc --noEmit` → **exit 0**;
+`npx vitest run --no-file-parallelism` → **775 passed / 0 failed / 17 skipped** across 88 files.
+
+**What it does not fix, stated as a gap rather than a footnote.** `point_transactions` has no unique key
+beyond its own `id`, and `mastered` is recomputed from scratch on every write, so a competency whose
+accuracy later drops below 90% falls to `proficient` and is paid a second time when it re-crosses.
+`mastered_at` is sticky, so the fact needed to refuse that already exists in the row, and the schema even
+reserved a `correlation_id` column for idempotency — but nothing indexes either of them, so refusing needs
+one more DDL statement on a live school database this machine has never been able to exercise against an
+empty schema. That is §10's question, not a §5 claim.
 
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
@@ -791,6 +829,7 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **Challenge progress goes into `learning_progress`, not a new table** — one row per node under `omega-claw:<node id>` | agent | O-5, commit `c117bef`. No DDL, no §29 migration-history question opened, and the path reads through the same owner-policy table the tutor already writes. The cost: `mastered` for a challenge node means 20 answers, so a 3-node path cannot reach it — stated as 0/3 in §5 rather than hidden by inventing a second, lower threshold |
 | 2026-09-29 | **The server grades the answer on any path that can reach the ledger** | agent | Same commit. `/api/omega-claw/progression` still accepts the client's `correct` because it only chooses wording; `/api/omega-claw/challenge` compares the submitted text against the node list it owns and ignores the claim. A rule pack that pays children cannot take "I was right" from the child |
 | 2026-09-29 | **The mirror freeze is about the pack's restatement (`omega-claw-rules.ts`), not the app's HTTP layer** | agent, reading the owner's "*No ts now, just rust*" strictly | `omega-claw-rules.ts` is still 230 lines and untouched since `c69af07`, so O-4's safety module and O-5's persistence are not extensions of the mirror. Consequence the owner must rule on at cut-over: `POST /api/omega-claw/challenge` has **no Rust counterpart** — the service routes scope, activity-check, progression and hint only — so Rust must grow a persistence route or the path stops persisting. §10 |
+| 2026-09-29 | **Guard the write in the application rather than add a ledger constraint, and say which half that leaves open** | agent | `c71aa18`. The double-pay is a read-modify-write with no condition on its `UPDATE`, and an optimistic lock on the four columns the arithmetic read fixes both the lost answer and the double transition without touching a live school schema — which this machine cannot test against an empty database (§9's own admission). The half it leaves: a `mastered` competency that dips below 90% and re-crosses is still paid twice, because refusing that needs an index on the ledger — `correlation_id` is already a column, and nothing uses it for uniqueness. §10 |
 
 ---
 
@@ -812,6 +851,8 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   **747 passed / 0 failed / 17 skipped** across 86 files. Re-run a fourth time after O-5: `tsc --noEmit`
   **exit 0** and **767 passed / 0 failed / 17 skipped** across **87 files** (86 + the new
   `omega-claw-challenge-progress.test.ts`; the route tests went into the existing `omega-claw` directory).
+  Re-run a fifth time after the ledger race: `tsc --noEmit` **exit 0** and **775 passed / 0 failed /
+  17 skipped** across **88 files** (87 + `progress-transition-race.test.ts`).
   That newest tree has had **no `next build` and no Vercel deploy**, because the day's deploy was spent on
   PR #20 — so for the commits since, the build claim is nobody's evidence yet, and §1's "committed, not
   deployed" is the accurate status.
@@ -873,9 +914,14 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   crossing into `mastered` and a `point_transactions` row appearing: the ledger still has 0 rows for
   every account, because the verification award from the DDL apply was cleaned up, and `/student`
   therefore renders `—` rather than a number. The 13 tests assert the wiring at the boundary of a fake
-  client; they do not prove the real service key passes `42501`-free on the deployed function, and a
-  double-transition race still has no idempotency key underneath it. Closing this needs no deploy —
-  it needs one chat conversation that reaches mastery, read back from the table.
+  client; they do not prove the real service key passes `42501`-free on the deployed function. The
+  double-transition race is now closed at the writer and not in the ledger: `c71aa18` guards the `UPDATE`
+  so two concurrent requests cannot both report the transition, but `point_transactions` still has no
+  unique key beyond its own `id` (`sed -n '117,119p' supabase/migrations_live/20260929000000_gamification_and_school_scope.sql`
+  → `id uuid primary key`), and the `correlation_id` column the schema reserved for idempotency is indexed
+  by nothing, so a competency that re-crosses `mastered` after an accuracy dip is still paid twice. §10
+  asks whether to close that with DDL. Closing the *first* half needs no deploy — it needs one chat conversation that reaches mastery, read back from
+  the table.
 - **The blocked-topic boundary (O-4) has never met a real request.** 29 tests cover the translator and the
   wire shape, and the route assertions check *source order* — that `detectBlockedOmegaClawContent(` appears
   before the first provider marker in each of the five route files — not that the route runs. Nobody has
@@ -926,10 +972,9 @@ Things that are *not* proven, restated so nobody (including a future session) ha
    there is Render account access at all — there is no `RENDER_API_KEY` in this environment, so I cannot
    deploy or even read the service's build log from here.
 5. **Push now, or hold the batch for the deploy cap?** One Vercel deploy was spent today on PR #20 and the
-   cap is daily. Twenty-one are unpushed as of §1's named commit, and six of those —
-   O-4, three doc corrections, O-5 and this write-up — have tests and a `tsc` gate but no build behind
-   them, so pushing without deploying leaves §1's "committed, not deployed" as the accurate status either
-   way.
+   cap is daily. §1 names the count and the split; everything since `9f86916` has tests and a `tsc` gate
+   but no build behind it, so pushing without deploying leaves "committed, not deployed" as the accurate
+   status either way.
 6. **Does the Rust service grow a persistence route, or does the challenge path stop persisting at
    cut-over?** O-5 put the node list, the grading and the `learning_progress` write behind
    `/api/omega-claw/challenge` — an endpoint that exists only in TypeScript. The Rust service's four routes
@@ -938,6 +983,20 @@ Things that are *not* proven, restated so nobody (including a future session) ha
    state, gone on refresh. It needs either a Rust `challenge` route that writes `learning_progress` and
    calls `award_points()`, or a decision that the path stays on the app while the rules move. This is the
    owner's call, not mine, because it decides what "cut-over" covers.
+7. **Do you want the ledger to refuse a second mastery award, which is one `CREATE UNIQUE INDEX`?**
+   `c71aa18` stopped two concurrent requests from both reporting the transition, but the database will
+   still pay a learner twice for one competency if their accuracy dips below 90% and later recovers:
+   `mastery_level` is recomputed from scratch on every write, while `mastered_at` is sticky and already
+   carries the fact needed to refuse. Note that the schema was designed for this and stopped half short:
+   `point_transactions.correlation_id` exists (`:140`) and `award_points()` accepts
+   `p_correlation_id` (`:395`) — but nothing indexes it, so the column that was meant to make an award
+   idempotent currently makes it merely traceable. Either a partial unique index on
+   `(user_id, correlation_id) where correlation_id is not null` plus deterministic ids from the callers,
+   or a narrower one on `(user_id, competency_code) where transaction_type = 'competency_mastered'`.
+   Both are DDL on the production database this machine has never been able to exercise against an empty
+   schema, and both can be applied and read back the way the gamification migration was — the
+   verification loop you authorised for that work. I will not rewrite a live function or add an index to
+   a school's ledger on an assumption, so this is your call.
 
 ---
 
