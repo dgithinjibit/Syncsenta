@@ -106,6 +106,8 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `d984a26` | Rust engine, defect 3 — the pack loads once, `activities_for()` exists, the transfer gate answers instead of raising |
 | `2d857a5` | `GET /:grade/scope` now returns `{grade, scope, activities[]}` — the shape O-3's card needs |
 | `2f37915` | `rust-gates.yml` (unpushed — no `workflow` scope) and `docs/architecture/decision-one-rule-voice.md`, the ADR that answers "can the frontend be Rust?" |
+| `9f86916` | this §1, §5, §7, §8, §9 and the scoreboard, written against the four commits above |
+| `bc61765` | O-4 — the blocked-topic boundary is on every request path, and refuses in the learner's own language |
 
 Working tree clean. `HEAD` is **14 commits ahead of `origin/main`** (`git rev-list --left-right count
 origin/main...HEAD` → `0 14`); the last eight of those are the security gate plus O-1/O-2, and the
@@ -154,14 +156,56 @@ checklist.
 
 **What runs next is scoped in `docs/SCOPE-SECURITY-AND-OMEGA.md`** — a 10-item scoreboard the owner
 dictated on 2026-09-29 ("*do not build a single new feature or touch the reasoning engine until your
-codebase is hardened*", then "*code this omegaclaw to around 90%*"). Items 1–4 are the security gate and
-are **closed**; 5–6 (O-1, O-2) are **closed**, 7–9 are Omega Claw and still open, and 10 (the MeTTa engine
+codebase is hardened*", then "*code this omegaclaw to around 90%*"). Read as counts, not vibes:
+`grep -c '^- \[x\]' docs/SCOPE-SECURITY-AND-OMEGA.md` → **7**, `grep -c '^- \[ \]'` → **3**. Items 1–4 are
+the security gate and are **closed**; 5–6 (O-1, O-2) and 8 (O-4) are **closed**; 7 (O-3) and 9 (O-5) are
+Omega Claw and still open — O-3 blocked on a decision recorded in §10 — and 10 (the MeTTa engine
 actually executing the pack) cannot be ticked from this
 machine, which is why 9/10 is the ceiling rather than a rounding choice. The file also records which of
 the directive's five claims are still true on `main` today: the SSRF one is already closed and guarded
 by a test, the randomness one is real but one file deeper, the XSS one is the worst item there, the
 "format string injection" one is mis-described but has a real defect under it, and "PR #8 failed CodeQL"
 is not true of current `main` — CodeQL is green and still misses the sink, so green is not evidence.
+
+### O-4, the same day — six rules that gated nothing, and why the fix is a translator
+
+`grep -rn isBlockedOmegaClawTopic studio/src` returned the mirror and its own tests, and nothing else. So
+the pack's six `(omega-claw-blocked-topic …)` rows were documentation: a child asking "how do I start a
+mining wallet to keep my coins safe" got an answer, because the matcher only recognises the canonical
+identifiers (`wallet-custody`) and no child types those. `bc61765` adds
+`src/lib/omega-agent/omega-claw-safety.ts` as the translation layer between what a learner writes and what
+the pack declares, and puts it on **all five** paths that reach a provider: `/api/chat` and the four
+`/api/generate/*` proxies.
+
+Two decisions inside it are worth keeping, because they are the parts a future session would otherwise
+"fix" and break:
+
+- **Triggers are word sets that must all appear, not phrases.** Filler between the words is exactly what a
+  child writes ("start a mining wallet to keep my coins"), while a bare word ("wallet", "invest", "hack")
+  would refuse the approved lesson — "what is a crypto wallet", "our class hackathon", "where does
+  investment come from in Social Studies".
+- **There is no allow-list, deliberately.** `responsible-digital-citizenship` and `ai-data-literacy` are
+  activity rows in the *same pack*, so refusing "personal data" outright would refuse the curriculum the
+  boundary exists to protect. The triggers encode the thing the pack actually blocks — *eliciting or acting
+  on* data ("their phone number", "my … wallet", "without permission") — and four tests pin the
+  false-positive cases that reasoning depends on: a Grade 4 question about a phone number's digits, a
+  password-safety lesson and a school hackathon all stay in scope.
+
+The learner sees a refusal as an **answer**, streamed through the same SSE contract the tutor pane already
+reads (`refusalEventStream()`, and its tests read it back through the real `consumeTutorStream()`), because
+a `Response.json({ error })` renders as "the tutor could not answer right now" — the same words an outage
+produces. It sits before the session row, the transcript write and the quota read: the blocked text leaves
+no trace and costs no tokens. A teacher gets a `400` that names the rule, the words that tripped and the
+approved alternative, because a teacher is the one person who can argue with a boundary.
+
+Evidence: 29 new tests, RED at 13 failed then at 6 failed before the code landed. `npx tsc --noEmit` →
+**exit 0**. Full suite → **747 passed / 0 failed / 17 skipped** across 86 files. One unrelated fix in the
+same commit: `schema-coverage`'s four-tree walk measured 7.2 s on this laptop and died on vitest's 5 s
+default, so it now declares 20 s — assertion unchanged, and the file passes alone.
+
+What is *not* proven: this has never been deployed, so no real learner request has met it, and the guard
+tests assert source ordering (`the detect call sits before the first provider marker in each route file`)
+rather than running the route. Both are listed in §9.
 
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
@@ -561,15 +605,16 @@ Percentages, each with its denominator:
 | …of those, how many can a client ask the deployed app about? | 6 families | **3/6 = 50%** (next-action, hint, transfer) | `find studio/src/app/api/omega-claw -name route.ts` → 2 files; scope and activity have no route |
 | …against the Rust service's own surface? | 4 Rust routes | **2/4 = 50%** | `grep '\.route(' handlers/omega_claw.rs` |
 | Do the deployed answers match the pack? | 3 probes | **3/3** — clamping, action copy, unknown-outcome `400` | signed-in curl above |
-| Is the safety boundary enforced on any request path? | 6 blocked topics | **0/6 = 0%** | `grep -rn isBlockedOmegaClawTopic studio/src` → mirror + tests only |
+| Is the safety boundary enforced on any request path? | 6 blocked topics | **6/6 = 100%** as of `bc61765` — and **0/6** for every hour before it | `grep -rln detectBlockedOmegaClawContent studio/src/app/api` → chat + all four `/api/generate/*`; the drift lock in `omega-claw-safety.test.ts` parses the pack and refuses a topic with no trigger |
 | Is learner progress persisted? | — | **0** — `completed` is React state; no write | `interactive-challenge-path.tsx:71` |
 | Is the Rust engine live? | 1 service | **0 deployed, 0 CI runs** — and as of 2026-09-29 it is no longer 0 *correct*: three defects that made it answer `blocked` to everything are fixed locally (`.github/workflows/rust-gates.yml` exists on disk but is unpushed, so no runner has executed `cargo`) | no `cargo` step pushed to `.github/workflows/` |
 
 **Headline, stated as a denominator rather than a vibe: of the 35 rule statements in the pack, 35 are
 mirrored in code the app runs, 10 are reachable over a deployed HTTP endpoint (the 4 next-action and 4
 hint rows plus the 2 transfer rows; the 6 scope and 13 activity rows have a route only on the undeployed
-Rust service, and the 6 blocked topics are wired to nothing), and 0 have ever been executed by the MeTTa
-runtime the project claims.** What changed on 2026-09-29 is not the second number — it is the last one's
+Rust service), and the 6 blocked topics gated nothing until `bc61765` today — they now gate five request
+paths, none of which is deployed yet. And 0 rules have ever been executed by the MeTTa runtime the project
+claims.** What changed on 2026-09-29 is not the second number — it is the last one's
 cause: the fallback engine was run locally for the first time and answered `blocked` to its own two tests
 until three defects were fixed (§1). The learner-facing card that renders them has 3 hardcoded nodes, of
 which **1 of 3** (`ai-input-output`) is a legal Grade 6 activity in the pack; `blockchain-consensus` is a
@@ -673,6 +718,9 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | A percentage for this project must name its denominator and its command, or it is not reported | agent (from the owner's standing rule) | §8 already forbids a single progress %; §5's Omega table is what compliance looks like — 35 mirrored / 10 reachable over HTTP / 0 executed by MeTTa, each from a greppable count |
 | 2026-09-29 | **Learner-facing wording comes from the API response, not the component** — `hintMessage` and `nextActionMessage` are rendered; the five hardcoded sentences and the `nextAction === '…'` comparisons are deleted | agent | O-1, commit `371c884`. The server's string is the one the rule pack's tests cover, so a component-local paraphrase can be green and still disagree with the engine. `hintFeedback()` also refuses to print `result.hint`, which is a MeTTa symbol (`isolate-step`), not a sentence |
 | 2026-09-29 | **Omega Claw grade membership is decided in exactly one place: `SCOPE_BY_GRADE`.** Two local grade tests deleted; `s1`/`s2`/`s3` are accepted as a named superset in the teacher module | agent | O-2, commit `d476c20`. One card was returning `null` for a `Grade-6` profile the pack covers, and the teacher module was independently telling a teacher that Grade 6 was out of scope. Task #22 must rule on the band labels — the Rust service does not accept them today, so "one voice" inherits this widening or breaks those classes |
+| 2026-09-29 | **A safety rule is not implemented until a request path asks it** — the boundary moves from `isBlockedOmegaClawTopic()` (0 callers) to a translator on all five provider paths | agent | O-4, commit `bc61765`. `/api/chat` refuses before the session row, the transcript write and the quota read; the four `/api/generate/*` proxies answer a `400` naming rule + trigger + alternative. Consequence for the next feature that touches a learner: the check goes before the provider, or it does not count as a check |
+| 2026-09-29 | **No allow-list beside the blocked-topic triggers; the triggers are written so the approved lesson is not their target** | agent | Same commit. `responsible-digital-citizenship` and `ai-data-literacy` are rows in the same pack, so an allow-list would be a second voice deciding what the first means. Three tests pin the consequence: phone-number digits in a math question, "never share my password", and a class hackathon must all stay answerable |
+| 2026-09-29 | **A refusal is streamed as an answer, not returned as an error** | agent | `refusalEventStream()` emits one delta + `[DONE]` with the same headers, and its tests read it through the real `consumeTutorStream()`. A `Response.json({ error })` would render as "the tutor could not answer right now" — indistinguishable from an outage, which teaches a child that asking breaks the app |
 | 2026-09-29 | **CI runs the Rust tests**, against a Postgres service container, because 64 `sqlx::query!` macros cannot compile without a live schema | owner | `.github/workflows/rust-gates.yml` (unpushed, §7) runs migrations then `cargo test`. The same constraint blocks the first Render build unless `DATABASE_URL` exists before it — recorded in §1's ADR. Longer-term fix: `sqlx prepare --locked` and a committed `.sqlx/` |
 | 2026-09-29 | **The TypeScript mirror is frozen, not extended; it is cut at cut-over, not patched** | owner ("*No ts now, just rust*") | O-1/O-2's canonical parser stays where it is, but no new capability is added to the mirror. Consequence: O-3's card cannot list approved activities until the Rust service answers in production, because the Rust route exists and the mirror has no listing getter — see §10 |
 | 2026-09-29 | **The frontend stays Next.js; Rust decides, Next.js renders** | agent, answering the owner's "*can we have frontend as rust instead of next js?*" | Measured rather than felt: 246 `.tsx` files and 129,501 lines of `.ts`+`.tsx` would be rewritten, Vercel cannot host a long-lived Axum process, and an Axum+HTMX rebuild re-derives every bug fixed this week. What the owner actually wanted — one voice for the rules — is got by the API shape `{grade, scope, activities[]}`, not by a rewrite. Full argument in `docs/architecture/decision-one-rule-voice.md` |
@@ -694,8 +742,9 @@ Things that are *not* proven, restated so nobody (including a future session) ha
 - The same two commands were re-run after the security gate landed: `tsc --noEmit` **exit 0**, suite
   **686 passed / 0 failed / 17 skipped** across 81 files. Re-run again after O-1 and O-2: **exit 0** and
   **714 passed / 0 failed / 17 skipped** across 83 files, which is the gate's 686 plus 28 tests that
-  belong to those two commits and nothing else. That newest tree has had **no `next build` and
-  no Vercel deploy**, because the day's deploy was spent on PR #20 — so for these seven commits the build
+  belong to those two commits and nothing else. Re-run a third time after O-4: `tsc --noEmit` **exit 0** and
+  **747 passed / 0 failed / 17 skipped** across 86 files. That newest tree has had **no `next build` and
+  no Vercel deploy**, because the day's deploy was spent on PR #20 — so for the commits since, the build
   claim is nobody's evidence yet, and §1's "committed, not deployed" is the accurate status.
 - **`/api/mwalimu` has never touched the real database.** S-4's 21 tests drive `readLearnerState()` and
   `recordTutorTurn()` through an injected fake client, which proves the query shapes and the arithmetic,
@@ -735,6 +784,14 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   client; they do not prove the real service key passes `42501`-free on the deployed function, and a
   double-transition race still has no idempotency key underneath it. Closing this needs no deploy —
   it needs one chat conversation that reaches mastery, read back from the table.
+- **The blocked-topic boundary (O-4) has never met a real request.** 29 tests cover the translator and the
+  wire shape, and the route assertions check *source order* — that `detectBlockedOmegaClawContent(` appears
+  before the first provider marker in each of the five route files — not that the route runs. Nobody has
+  posted "how do I start a mining wallet" to a deployed `/api/chat` and read the refusal in a browser, and
+  no teacher has seen the `400`. The trigger lists are also a judgement, not a derivation: they were written
+  from six pack identifiers plus how children phrase things, and the three false-positive tests (phone-number
+  digits, "never share my password", a class hackathon) are the only thing standing between a tighter pack
+  and a tutor that refuses CBC curriculum. Closing this needs one deploy and one typed sentence.
 - **Omega Claw's Rust side has now been executed — but not by `cargo`, and that is the whole gap.** The
   engine was run locally on 2026-09-29 through a transcription of the fallback evaluator's own source
   against the real pack (`~/.cache/syncsenta-probe/run.sh` → **`CHECKS=31 FAILURES=0`**), which is how the

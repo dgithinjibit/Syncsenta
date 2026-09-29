@@ -19,6 +19,11 @@ grep -c '^- \[ \]' docs/SCOPE-SECURITY-AND-OMEGA.md    # left
 9 of 10 = 90%. The one that cannot be ticked from here is #10, which is why 90% is the honest ceiling
 for this session and not a rounding choice.
 
+Read on 2026-09-29, after O-4: **7 ticked, 3 left** — items 1–4 (the security gate), 5 (O-1) and 6 (O-2)
+from earlier, and 8 (O-4) from `bc61765`. What remains is 7 (O-3, whose remaining half is blocked on a
+decision the owner owes — ROADMAP §10), 9 (O-5, progress persistence and the 50-point award), and 10 (the
+engine running under `cargo`, which needs the `workflow` scope and a deploy).
+
 - [x] **1. S-1 — print-window XSS sink removed.** `components/generate-scheme-of-work-dialog.tsx:73`
   builds a whole HTML document by string interpolation and feeds it to `windowWin.document.write`,
   including `${formData.grade}`, `${formData.subject}`, `${formData.strand}`,
@@ -187,13 +192,28 @@ constant pinning the module to one grade is what let the second parser drift.
   is blocked on a decision the owner owes (ROADMAP §10 item 3): the card must read either the undeployed
   Rust service or the frozen mirror, and "No ts now, just rust" rules the second out unless the owner
   says otherwise.
-- [ ] **8. O-4 — the safety boundary gates something.** 6 `(omega-claw-blocked-topic …)` rules exist
+- [x] **8. O-4 — the safety boundary gates something.** 6 `(omega-claw-blocked-topic …)` rules exist
   (crypto-trading, investment-advice, wallet-custody, unsupervised-attack, public-deployment,
   unnecessary-personal-data), `isBlockedOmegaClawTopic()` implements them, 17 tests pass — and no request
   path calls it. `grep -rn isBlockedOmegaClawTopic studio/src` returns only the mirror and its tests.
   A child asking "how do I start a mining wallet" is answered today. **Fix:** check the learner message
   in `/api/chat` and the topic field in the generation routes; refuse with the reason named. This is also
   the item that makes the platform defensible in front of a Kenyan school. ~1 hour.
+  **CLOSED 2026-09-29, commit `bc61765`.** The reason it had not been closed by the mirror alone is that
+  the mirror matches canonical identifiers, and a child types "how do I start a mining wallet to keep my
+  coins safe" — so the fix is a translator, `src/lib/omega-agent/omega-claw-safety.ts`, whose triggers are
+  word-*sets* (all must appear) rather than phrases, and whose pack drift-lock parses
+  `data/omega_claw_rules.metta` instead of restating it. It is wired ahead of the provider on all five
+  paths: `/api/chat` streams a child-readable refusal (one delta + `[DONE]`, verified through the real
+  `consumeTutorStream()` reader — a JSON error would look like an outage to a learner) before the session
+  row, the transcript write and the quota read, so no token is spent and the blocked text leaves no trace;
+  the four `/api/generate/*` proxies answer `400` naming rule + trigger + approved alternative. 29 new
+  tests, RED at 13 then 6. Deliberately **no allow-list**: `responsible-digital-citizenship` and
+  `ai-data-literacy` are rows in the same pack, so three tests pin the false positives instead — a Grade 4
+  question about a phone number's digits, a "never share my password" lesson and a class hackathon stay
+  answerable. Two things this does not claim: the boundary has never met a deployed request (§9), and
+  `isBlockedOmegaClawTopic()` itself is now the only blocked-topic export with no caller — its sibling
+  `omegaClawBlockedTopic()` is what the translator asks. Cut or keep at cut-over, that is #22's call.
 - [ ] **9. O-5 — progress persists and pays.** `completed` is React state (`:71`), so a refresh erases a
   learner's path; `learning_progress` and `omega_scaffolding_events` are both live tables since the
   2026-09-28 memory migration. **Fix:** write the node completion through the existing
