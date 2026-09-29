@@ -53,7 +53,12 @@ import {
   buildScaffoldingEventPayload,
   payloadToDbRow,
 } from '@/lib/omega-agent/scaffolding-telemetry';
-import { buildDynamicSystemPrompt, buildLearningState, masteryPercent } from '@/lib/chat/subject-session';
+import {
+  buildDynamicSystemPrompt,
+  buildLearningState,
+  masteryPercent,
+  generalCompetencyForSubjectLabel,
+} from '@/lib/chat/subject-session';
 import { getLearningSession, updateLearningSession } from '@/lib/session/session-persistence';
 import type { LearningSession } from '@/lib/session/session-persistence';
 import { checkChatRateLimit } from '@/lib/session/rate-limit-upstash';
@@ -61,6 +66,8 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 import { addChatMessage } from '@/lib/chat/chat-history-supabase';
 import { updateDailyActivity, updateLearningProgress } from '@/lib/progress/progress-tracking';
+import { awardCompetencyMastery } from '@/lib/gamification/points-system';
+import { PLATFORM_TIME_ZONE } from '@/lib/time/activity-date';
 import { getLearningTrack } from '@/lib/learning-track-policy';
 import { formatPedagogyConstraintBlock } from '@/curriculum/pedagogy';
 import { formatPlanePostureLine } from '@/curriculum/learning-planes';
@@ -209,10 +216,17 @@ export async function POST(req: NextRequest) {
   const profile = authenticatedUser
     ? (await supabase
         .from('profiles')
-        .select('subscription_tier, grade, full_name, date_of_birth, language_preference')
+        .select('subscription_tier, grade, full_name, date_of_birth, language_preference, timezone')
         .eq('id', authenticatedUser.id)
         .single()).data
-    : { subscription_tier: 'free', grade: null, full_name: 'Development learner', date_of_birth: null, language_preference: 'mixed' as const };
+    : {
+        subscription_tier: 'free',
+        grade: null,
+        full_name: 'Development learner',
+        date_of_birth: null,
+        language_preference: 'mixed' as const,
+        timezone: PLATFORM_TIME_ZONE,
+      };
 
   if (!profile) {
     return Response.json({ error: 'Profile not found', detail: 'Please complete your profile' }, { status: 400 });
@@ -255,6 +269,22 @@ export async function POST(req: NextRequest) {
 
   const verifiedGrade = profile.grade || body.grade;
   const learningTrack = getLearningTrack(body.subject);
+
+  // Which `learning_progress` row this turn belongs to.
+  //
+  // The subject page sends an explicit `competencyCode`, but the free-question
+  // tutor (MwalimuChat / student-chat-view) only knows a grade and a subject
+  // label, so `body.competencyCode` was undefined and every write gated on it
+  // was skipped: `learning_progress` and `omega_scaffolding_events` stayed
+  // empty while the learner was actually chatting. Deriving the subject's
+  // general competency keeps one row per subject as the memory layer's anchor
+  // instead of dropping the turn's evidence on the floor.
+  const competency = body.competencyCode
+    ? {
+        competencyCode: body.competencyCode,
+        competencyName: body.competencyName ?? body.competencyCode,
+      }
+    : generalCompetencyForSubjectLabel(body.subject);
 
   // Every student turn now passes through the MeTTa session boundary before
   // Omega selects the tutoring policy.  The graph is intentionally scoped to
@@ -321,10 +351,18 @@ export async function POST(req: NextRequest) {
     cbcStage: cbcStageForGrade(verifiedGrade),
   };
 
-  // Pick the row that matches competencyCode if provided, else use most-recent
-  const contextRow = body.competencyCode
-    ? masteryRows?.find((r) => r.competency_code === body.competencyCode || r.competency_name === body.competencyCode)
-    : masteryRows?.[0];
+  // Use the row for this turn's competency when it exists. When the code was
+  // derived from the subject label rather than chosen by the learner, fall back
+  // to the most recent practice in the subject so a first free question still
+  // gets history in the prompt. An explicitly requested competency with no row
+  // stays "no history" — attributing a different competency's mastery to it
+  // would feed the tutor a wrong level.
+  const contextRow =
+    masteryRows?.find(
+      (r) =>
+        r.competency_code === competency.competencyCode ||
+        r.competency_name === competency.competencyCode,
+    ) ?? (body.competencyCode ? undefined : masteryRows?.[0]);
 
   if (contextRow) {
     learnerContext.currentCompetency  = contextRow.competency_name;
@@ -434,7 +472,7 @@ export async function POST(req: NextRequest) {
       subject:         body.subject,
       consecutiveWrong: contextRow?.consecutive_wrong ?? 0,
       masteryPct:      currentMasteryPct,
-      competencyName:  contextRow?.competency_name ?? body.competencyCode ?? body.subject,
+      competencyName:  contextRow?.competency_name ?? competency.competencyName,
       studentName:     body.studentName || profile.full_name || undefined,
     });
 
@@ -596,7 +634,7 @@ export async function POST(req: NextRequest) {
               sessionsStarted: body.sessionId ? 0 : 1,
               timeSpentMinutes: Math.ceil(latencyMs / 60000),
               subjectsPracticed: [body.subject],
-            }, supabase);
+            }, supabase, { timeZone: profile.timezone });
           } catch (e) { console.error('[/api/chat] Failed to update daily activity:', e); }
         }
 
@@ -604,7 +642,7 @@ export async function POST(req: NextRequest) {
         // classifyAnswerQuality() replaces the old "ends with ?" heuristic.
         // It looks at BOTH the student message and the assistant response to
         // determine whether the student actually got the answer right.
-        if (body.competencyCode && !isDevChat && authenticatedUser) {
+        if (!isDevChat && authenticatedUser) {
           try {
             // Retrieve the Omega state attached before the stream.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -628,8 +666,8 @@ export async function POST(req: NextRequest) {
 
             // Write progress counters — correct_answers now actually increments
             // when classification.shouldIncrementCorrect is true (#1).
-            await updateLearningProgress(user.id, body.competencyCode, {
-              competencyName:    body.competencyName || body.competencyCode,
+            const progressResult = await updateLearningProgress(user.id, competency.competencyCode, {
+              competencyName:    competency.competencyName,
               subject:           body.subject,
               grade:             verifiedGrade,
               questionsAsked:    1,
@@ -637,6 +675,25 @@ export async function POST(req: NextRequest) {
               correctAnswers:    classification.shouldIncrementCorrect ? 1 : 0,
               timeSpentMinutes:  Math.ceil(latencyMs / 60000),
             }, supabase);
+
+            // Points follow the badge. `updateLearningProgress` reports the transition it just
+            // wrote, which is a server-classified fact a learner cannot claim from a browser, and
+            // the award goes through `award_points()` on the service client — the function is
+            // revoked for anon and authenticated, so passing `supabase` here would 42501.
+            // Failures are logged rather than thrown because the learner's answer has already been
+            // delivered; losing a reward must not lose the rest of this block's telemetry.
+            if (progressResult.masteryJustAchieved) {
+              try {
+                const awarded = await awardCompetencyMastery(
+                  user.id,
+                  progressResult.competencyCode,
+                  supabaseAdmin,
+                );
+                console.info(`[/api/chat] awarded ${awarded} points for ${progressResult.competencyCode}`);
+              } catch (awardError) {
+                console.error('[/api/chat] Failed to award mastery points:', awardError);
+              }
+            }
 
             // Persist live hints_used + consecutive_wrong so the next Omega
             // decision cycle reads real values.
@@ -647,14 +704,14 @@ export async function POST(req: NextRequest) {
                 consecutive_wrong: newConsecutiveWrong,
               })
               .eq('user_id', user.id)
-              .eq('competency_code', body.competencyCode);
+              .eq('competency_code', competency.competencyCode);
 
             // ── Scaffolding outcome telemetry (#4) ───────────────────────────
             // Fire-and-forget — analytics data, not critical path.
             if (omegaDecision && learningState) {
               const eventPayload = buildScaffoldingEventPayload({
                 userId:           user.id,
-                competencyCode:   body.competencyCode,
+                competencyCode:   competency.competencyCode,
                 sessionId:        sessionId,
                 decision:         omegaDecision,
                 attempts:         learningState.attempts,
@@ -686,7 +743,7 @@ export async function POST(req: NextRequest) {
                     alert:   omegaEnrichment.teacherAlert,
                     urgency: omegaEnrichment.alertUrgency,
                     nextActivityType: omegaEnrichment.nextActivityType,
-                    competencyCode:   body.competencyCode,
+                    competencyCode:   competency.competencyCode,
                     learningTrack,
                   })}\n\n`,
                 ),

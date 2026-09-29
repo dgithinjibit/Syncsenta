@@ -2,10 +2,29 @@
  * Sign In Page — split layout: brand panel left, form right
  */
 
+import { redirect } from 'next/navigation';
 import { SignInForm } from '@/components/auth/sign-in-form';
+import { getSignedInDestination } from '@/lib/auth/signed-in-destination';
+import { safeRedirectTarget } from '@/lib/auth/redirect-target';
 import { BookOpen, Brain, Zap } from 'lucide-react';
 
-export default function SignInPage() {
+/**
+ * This page is the destination for every "you need a session" redirect, so it
+ * has to be able to say no: a visitor who arrives here already signed in goes
+ * straight to their workspace (or to the `next` target they were originally
+ * heading for) instead of being asked for credentials a second time.
+ */
+export const dynamic = 'force-dynamic';
+
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
+  const next = safeRedirectTarget(searchParams?.next);
+  const destination = await getSignedInDestination(next);
+  if (destination) redirect(destination);
+
   return (
     <main className="min-h-screen flex">
       {/* Left brand panel — hidden on mobile */}
@@ -54,7 +73,7 @@ export default function SignInPage() {
               Continue your learning journey
             </p>
           </div>
-          <SignInForm />
+          <SignInForm next={next} />
         </div>
       </div>
     </main>

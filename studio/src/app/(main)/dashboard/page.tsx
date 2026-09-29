@@ -45,7 +45,7 @@ export default async function DashboardPage() {
   // for both, which used to mean "go sign in" — but this visitor is already
   // signed in, and /login is now an alias for /auth/signin, so following it
   // would bounce them back to the form they just left. The one screen that can
-  // actually help is profile completion.
-  const home = getRoleHome(profile?.role);
-  redirect(home === '/login' ? '/auth/onboarding' : home);
+  // actually help is profile completion, which is what the second argument
+  // asks for; `/` resolves the same way through `getSignedInDestination()`.
+  redirect(getRoleHome(profile?.role, '/auth/onboarding'));
 }

@@ -208,13 +208,40 @@ export async function addChatMessage(
     throw error;
   }
 
-  // Update session's last_message_at. Message count is optional.
-  await client
-    .from('chat_sessions')
-    .update({
-      last_message_at: new Date().toISOString(),
-    })
-    .eq('id', sessionId);
+  // Keep the session row's `last_message_at` and `message_count` in step with
+  // the transcript.
+  //
+  // `message_count` is what the student home, the teacher report export and
+  // getChatStatistics() read for "messages sent". It used to be left at its
+  // insert default of 0, so every one of those surfaces reported zero activity
+  // for sessions that had a full transcript in `chat_messages`.
+  //
+  // The count is taken from `chat_messages` itself rather than
+  // `message_count + 1`: Supabase has no atomic increment, so a read-then-write
+  // would lose turns when two messages arrive together, while the real count is
+  // self-correcting and repairs pre-existing sessions too.
+  //
+  // Best-effort on purpose — the message is already persisted, so a failed
+  // counter update must not throw the turn away.
+  try {
+    const lastMessageAt = new Date().toISOString();
+    const { count } = await client
+      .from('chat_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('session_id', sessionId);
+
+    await client
+      .from('chat_sessions')
+      .update({
+        last_message_at: lastMessageAt,
+        // Only write the counter when the count actually came back; a failed
+        // read answers `count: null` and must not blank the stored number.
+        ...(typeof count === 'number' ? { message_count: count } : {}),
+      })
+      .eq('id', sessionId);
+  } catch (error) {
+    console.error('Error updating chat session counters:', error);
+  }
 
   return data.id;
 }

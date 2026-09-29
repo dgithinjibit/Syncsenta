@@ -15,13 +15,28 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getRoleHome } from '@/lib/auth/role-home';
 
 const DEMO_ACCOUNTS = [
-  { role: 'student',  label: '🎒 Join as Student',  email: 'student01@syncsenta.dev',  password: 'Demo@Student01' },
-  { role: 'teacher',  label: '📚 Join as Teacher',  email: 'teacher01@syncsenta.dev',  password: 'Demo@Teacher01' },
-  { role: 'parent',   label: '👨‍👩‍👧 Join as Parent',   email: 'parent01@syncsenta.dev',   password: 'Demo@Parent01' },
-  { role: 'head',     label: '🏫 Join as Head',      email: 'head01@syncsenta.dev',      password: 'Demo@Head01' },
+  { role: 'student', label: 'Student' },
+  { role: 'teacher', label: 'Teacher' },
+  { role: 'parent', label: 'Parent' },
+  { role: 'head', label: 'Head teacher' },
 ] as const;
 
-export function SignInForm() {
+/**
+ * The `next` target the visitor was originally heading for, resolved on the
+ * server by `/auth/signin` and passed down as a prop.
+ *
+ * Middleware attaches it when it bounces someone off a workspace
+ * (`/auth/signin?next=/student/mathematics`), and this form used to ignore it:
+ * signing in always landed the visitor on their role home, so the page they
+ * were actually trying to reach was lost on every protected-route sign-in. It
+ * arrives validated — `safeRedirectTarget()` is what keeps `//example.com` from
+ * turning the sign-in form into an open redirect.
+ */
+type SignInFormProps = {
+  next?: string | null;
+};
+
+export function SignInForm({ next }: SignInFormProps) {
   const router = useRouter();
   const { signIn } = useAuth();
 
@@ -38,7 +53,10 @@ export function SignInForm() {
     setLoading(true);
     try {
       const profile = await signIn(email, password);
-      router.push(getRoleHome(profile?.role));
+      // Their intended page wins over the role home; a signed-in visitor whose
+      // role does not map anywhere goes to profile completion, not back to this
+      // form — `/login` is where unmapped roles used to loop.
+      router.push(next ?? getRoleHome(profile?.role, '/auth/onboarding'));
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
     } finally {
@@ -71,24 +89,25 @@ export function SignInForm() {
         </Alert>
       )}
 
-      {/* Demo accounts — try the app instantly */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
-        <p className="text-xs font-semibold text-blue-800">🚀 Try a demo account — no sign-up needed</p>
-        <div className="grid grid-cols-2 gap-2">
+      {/* Demo workspaces — one line, no styling of its own. */}
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Or look around a workspace without creating an account:
+        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
           {DEMO_ACCOUNTS.map((account) => (
-            <Button
+            <button
               key={account.role}
               type="button"
-              variant="outline"
-              className="h-10 text-xs font-medium border-blue-200 bg-white hover:bg-blue-50"
               onClick={() => handleDemoLogin(account)}
               disabled={isAnyLoading}
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline disabled:opacity-50"
             >
-              {demoLoading === account.role
-                ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                : null}
+              {demoLoading === account.role ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : null}
               {account.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
@@ -98,7 +117,7 @@ export function SignInForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-background px-3 text-muted-foreground">or sign in with email</span>
+          <span className="bg-background px-3 text-muted-foreground">sign in with email</span>
         </div>
       </div>
 
@@ -154,9 +173,9 @@ export function SignInForm() {
       </form>
 
       <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{' '}
-        <a href="/auth/signup" className="font-medium text-primary hover:underline">
-          Sign up free
+        No account yet?{' '}
+        <a href="/signup" className="font-medium text-primary hover:underline">
+          Open a demo workspace
         </a>
       </p>
     </div>

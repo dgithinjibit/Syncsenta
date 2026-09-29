@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { getSignedInDestination } from '@/lib/auth/signed-in-destination';
 
 /**
  * `/signin` is the Firebase-era sign-in page and is now a redirect.
@@ -19,14 +20,19 @@ export const dynamic = 'force-dynamic';
 
 // Next.js 14 hands `searchParams` to a server page as a plain object; the
 // Promise form only arrived in 15, so awaiting it here would be misleading.
-export default function SignInAliasPage({
+export default async function SignInAliasPage({
   searchParams,
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
+  const next = typeof searchParams?.next === 'string' ? searchParams.next : undefined;
+
+  // Someone with a live session has no reason to be signing in again.
+  const destination = await getSignedInDestination(next);
+  if (destination) redirect(destination);
+
   const query = new URLSearchParams();
-  const next = searchParams?.next;
-  if (typeof next === 'string' && next) query.set('next', next);
+  if (next) query.set('next', next);
 
   const suffix = query.toString();
   redirect(suffix ? `/auth/signin?${suffix}` : '/auth/signin');

@@ -618,6 +618,41 @@ export interface Database {
           achievements_earned: number;
         }[];
       };
+      // Lives in production since supabase/migrations_live/20260929000000_gamification_and_school_scope.sql.
+      // Granted to service_role ONLY: anon and authenticated were revoked explicitly, because Supabase's
+      // ALTER DEFAULT PRIVILEGES had already handed EXECUTE to anon at create time (see the migration's
+      // defect 4). Every amount is an argument, so a browser-callable award function is a point printer.
+      award_points: {
+        Args: {
+          p_user_id: string;
+          p_competency_code: string;
+          p_transaction_type: 'correct_answer' | 'competency_mastered' | 'subject_mastered' | 'weekly_engagement';
+          p_base_points: number;
+          p_difficulty_bonus?: number;
+          p_streak_bonus?: number;
+          p_mastery_bonus?: number;
+          p_policy_version?: string | null;
+          p_correlation_id?: string | null;
+        };
+        Returns: number;
+      };
+      // Mediated leaderboard read: returns display name and points, never a profile row. Granted to
+      // authenticated; the requester's own row is scope-checked and cannot be someone else's.
+      get_leaderboard: {
+        Args: {
+          p_scope: 'classroom' | 'school';
+          p_scope_id: string;
+          p_limit?: number;
+          p_student_id?: string | null;
+        };
+        Returns: {
+          rank: number;
+          student_id: string;
+          display_name: string;
+          total_points: number;
+          is_requester: boolean;
+        }[];
+      };
       claim_sandbox_artifact: {
         Args: { p_worker_id: string };
         Returns: {

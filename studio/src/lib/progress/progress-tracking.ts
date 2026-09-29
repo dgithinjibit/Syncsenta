@@ -8,6 +8,7 @@
 import { supabase } from '../supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../supabase/types';
+import { activityDateInTimeZone, activityDateOffset } from '../time/activity-date';
 
 /**
  * Every function here defaults to the browser singleton, which is correct in a
@@ -51,6 +52,18 @@ export interface StudentStats {
 }
 
 /**
+ * What one progress write accomplished.
+ *
+ * `masteryJustAchieved` is reported from the same branch that awards the `competency_mastered`
+ * badge, so a caller awarding points for the transition cannot double-pay and cannot miss it — the
+ * badge and the bonus are two reads of one fact.
+ */
+export interface ProgressUpdateResult {
+  masteryJustAchieved: boolean;
+  competencyCode: string;
+}
+
+/**
  * Update learning progress for a competency
  */
 export async function updateLearningProgress(
@@ -67,7 +80,7 @@ export async function updateLearningProgress(
     timeSpentMinutes?: number;
   },
   client: ProgressClient = supabase
-): Promise<void> {
+): Promise<ProgressUpdateResult> {
   // Check if progress record exists
   const existingRes = await client
     .from('learning_progress')
@@ -114,12 +127,15 @@ export async function updateLearningProgress(
     if (error) throw error;
 
     // Check for mastery achievement
-    if (masteryLevel === 'mastered' && existing.mastery_level !== 'mastered') {
+    const masteryJustAchieved = masteryLevel === 'mastered' && existing.mastery_level !== 'mastered';
+    if (masteryJustAchieved) {
       await awardAchievement(userId, 'competency_mastered', {
         competencyCode,
         competencyName: updates.competencyName,
       }, client);
     }
+
+    return { masteryJustAchieved, competencyCode };
   } else {
     // Create new record
     const progressPercentage = updates.questionsAnswered && updates.correctAnswers
@@ -144,6 +160,13 @@ export async function updateLearningProgress(
       });
 
     if (error) throw error;
+
+    // No transition is reported on a first write, because this branch has never awarded the
+    // `competency_mastered` badge either — points and badge stay reads of one fact, and reporting a
+    // transition here would pay points for a badge nobody issues. Reaching `mastered` on a single
+    // first write needs 20+ answers in one call, which no current caller does; recorded as a gap in
+    // docs/ROADMAP.md rather than fixed here without a test.
+    return { masteryJustAchieved: false, competencyCode };
   }
 }
 
@@ -202,6 +225,11 @@ export async function getLearningProgress(
 
 /**
  * Update daily activity
+ *
+ * `options.timeZone` decides which calendar day the counters land on. Pass the
+ * learner's `profiles.timezone`; the default is the platform zone because a
+ * streak read by a teacher or parent has to be counted on the same boundary the
+ * learner lived through (see lib/time/activity-date.ts).
  */
 export async function updateDailyActivity(
   userId: string,
@@ -211,9 +239,11 @@ export async function updateDailyActivity(
     timeSpentMinutes?: number;
     subjectsPracticed?: string[];
   },
-  client: ProgressClient = supabase
+  client: ProgressClient = supabase,
+  options?: { timeZone?: string | null }
 ): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+  const timeZone = options?.timeZone ?? undefined;
+  const today = activityDateInTimeZone(timeZone);
 
   // Check if record exists for today
   const existingRes = await client
@@ -245,7 +275,7 @@ export async function updateDailyActivity(
     if (error) throw error;
   } else {
     // Calculate streak
-    const streak = await calculateStreak(userId, client);
+    const streak = await calculateStreak(userId, client, timeZone);
 
     // Create new record
     const insertRes = await client
@@ -276,10 +306,15 @@ export async function updateDailyActivity(
 
 /**
  * Calculate current streak
+ *
+ * Compares against the same calendar-day boundary `updateDailyActivity()` wrote
+ * with, so a streak cannot be broken by the host clock being ahead of the
+ * learner's.
  */
 async function calculateStreak(
   userId: string,
-  client: ProgressClient = supabase
+  client: ProgressClient = supabase,
+  timeZone?: string | null
 ): Promise<number> {
   const streakRes = await client
     .from('daily_activity')
@@ -291,8 +326,8 @@ async function calculateStreak(
   const error = (streakRes as any).error;
   if (error || !data || data.length === 0) return 1;
 
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const today = activityDateInTimeZone(timeZone);
+  const yesterday = activityDateOffset(1, timeZone);
 
   // If most recent activity is today, return existing streak
   if (data[0].activity_date === today) {

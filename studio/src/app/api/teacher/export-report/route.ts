@@ -1,11 +1,16 @@
 /**
  * Student Report Export API
- * 
- * Generates and exports student progress reports in PDF or CSV format.
+ *
+ * Generates and exports student progress reports as JSON or CSV.
+ *
+ * There is no PDF branch here, and the header used to claim there was. A PDF
+ * report is a Phase 2 deliverable ("automated report card generation") rather
+ * than an existing capability, so the comment now matches the code.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { activityDateOffset } from '@/lib/time/activity-date';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,14 +80,14 @@ export async function POST(request: NextRequest) {
       .order('last_message_at', { ascending: false })
       .limit(10);
 
-    // Fetch daily activity (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Fetch daily activity (last 30 days), on the same day boundary the rows
+    // are written on — see lib/time/activity-date.ts.
+    const windowStart = activityDateOffset(30);
     const { data: activity } = await supabase
       .from('daily_activity')
       .select('*')
       .eq('user_id', studentId)
-      .gte('activity_date', thirtyDaysAgo.toISOString().split('T')[0])
+      .gte('activity_date', windowStart)
       .order('activity_date', { ascending: false });
 
     // Fetch achievements
