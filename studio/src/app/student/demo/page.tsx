@@ -1,10 +1,16 @@
 import { redirect } from 'next/navigation';
 
 /**
- * The student demo is the real student_1 account now. Keep this legacy URL
- * as a compatibility redirect so no second mock workflow can drift from LMS
- * behavior, privacy rules, or the grade-first onboarding contract.
+ * `/student/demo` is a compatibility redirect.
+ *
+ * It used to be an unauthenticated mock student workflow, which drifted from the
+ * real LMS behaviour, the privacy rules, and the grade-first onboarding contract,
+ * so it was pointed at the real `student01` sign-in card at `/login/student`.
+ * That card was a second copy of the demo entry — with its own hardcoded
+ * password — so on 2026-09-29 the entry collapsed to one place: `/signup`, the
+ * four role workspaces. This URL still resolves so an old bookmark lands there
+ * instead of 404ing.
  */
 export default function StudentDemoRedirect() {
-  redirect('/login/student');
+  redirect('/signup');
 }

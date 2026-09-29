@@ -544,8 +544,8 @@ export default function SessionPersistenceTest() {
           <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
             <h4 className="font-medium text-yellow-800 mb-2">📱 Phone to Desktop Test</h4>
             <ol className="list-decimal list-inside space-y-1 text-sm text-yellow-700">
-              <li>Open https://sentastudio.vercel.app/auth/signup on your phone</li>
-              <li>Click "🎒 Join as Student" to login as student01@syncsenta.dev</li>
+              <li>Open https://sentastudio.vercel.app/signup on your phone</li>
+              <li>Click "Student — Open" to sign in as student01@syncsenta.dev</li>
               <li>Start a Grade 2 math activity (Number Garden)</li>
               <li>Make some progress (drag 5 flowers)</li>
               <li>Open the same URL on your desktop/laptop</li>
@@ -559,8 +559,8 @@ export default function SessionPersistenceTest() {
           <div className="bg-blue-50 border border-blue-200 rounded p-4">
             <h4 className="font-medium text-blue-800 mb-2">👩‍🏫 Teacher Feedback Test</h4>
             <ol className="list-decimal list-inside space-y-1 text-sm text-blue-700">
-              <li>Open teacher dashboard: https://sentastudio.vercel.app/auth/signup</li>
-              <li>Click "📚 Join as Teacher" to login as teacher01@syncsenta.dev</li>
+              <li>Open https://sentastudio.vercel.app/signup</li>
+              <li>Click "Teacher — Open" to sign in as teacher01@syncsenta.dev</li>
               <li>Navigate to teacher dashboard</li>
               <li>Send encouragement to Demo Student</li>
               <li>Check student device - verify message appears instantly</li>

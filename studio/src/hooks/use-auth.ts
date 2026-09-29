@@ -13,17 +13,7 @@ import { supabase } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
-type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
-type ProfileSignup = Omit<ProfileInsert, 'id' | 'role' | 'email'> & {
-  role?: ProfileInsert['role'];
-  studentPlacement?: {
-    schoolId: string;
-    schoolName: string;
-    classroomId: string;
-    className: string;
-  };
-};
 
 export interface AuthState {
   user: User | null;
@@ -38,8 +28,17 @@ export interface AuthState {
   error: Error | null;
 }
 
+/**
+ * There is deliberately no `signUp()` here.
+ *
+ * Self-serve account creation was retired on 2026-09-29: the product's entry is
+ * the four provisioned role workspaces at `/signup`, and real accounts (county
+ * officers, a school's own learners) are created by whoever provisions them, so
+ * the school controls placement instead of a stranger picking a role in a form.
+ * `/api/auth/complete-profile` stays — `app/auth/onboarding` uses it to create
+ * the profile row for an account that already exists.
+ */
 export interface AuthActions {
-  signUp: (email: string, password: string, profile: ProfileSignup) => Promise<void>;
   signIn: (email: string, password: string) => Promise<Profile | null>;
   signInWithGoogle: (options?: { next?: string; flow?: 'signup' | 'signin' }) => Promise<void>;
   signOut: () => Promise<void>;
@@ -114,58 +113,6 @@ export function useAuth(): AuthState & AuthActions {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  // Sign up with email and password
-  const signUp = async (
-    email: string,
-    password: string,
-    profileData: ProfileSignup
-  ) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Create auth user
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (signUpError) throw signUpError;
-      if (!data.user) throw new Error('No user returned from sign up');
-
-      // Create profile + student record via the server-side API route
-      // (uses service-role client to bypass RLS INSERT restrictions)
-      const { role = 'student', studentPlacement, ...profileFields } = profileData;
-      const res = await fetch('/api/auth/complete-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role,
-          fullName: profileFields.full_name ?? email,
-          grade: profileFields.grade ?? null,
-          schoolId: studentPlacement?.schoolId ?? profileFields.school_id ?? null,
-          classroomId: studentPlacement?.classroomId ?? profileFields.classroom_id ?? null,
-          schoolName: studentPlacement?.schoolName ?? profileFields.school_name ?? null,
-          next: role === 'student' ? '/student' : '/teacher',
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Failed to create profile. Please try again.');
-      }
-
-      // Fetch the created profile
-      await fetchProfile(data.user.id);
-    } catch (err) {
-      console.error('Sign up error:', err);
-      setError(err as Error);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Sign in with email and password
   const signIn = async (email: string, password: string): Promise<Profile | null> => {
@@ -280,7 +227,6 @@ export function useAuth(): AuthState & AuthActions {
     loading,
     profileLoading,
     error,
-    signUp,
     signIn,
     signInWithGoogle,
     signOut,

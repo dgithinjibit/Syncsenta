@@ -65,7 +65,7 @@ export default function SchoolRegisterPage() {
             <div className="space-y-2"><Label htmlFor="schoolCode">School code, if available</Label><Input id="schoolCode" value={form.schoolCode} onChange={(e) => update('schoolCode', e.target.value)} /></div>
             <div className="space-y-2"><Label htmlFor="schoolType">School type</Label><select id="schoolType" className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm" value={form.schoolType} onChange={(e) => update('schoolType', e.target.value)}>{types.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
             <div className="space-y-2 sm:col-span-2"><Label htmlFor="classes">Classes or grades</Label><Input id="classes" placeholder="Grade 1, Grade 2, Grade 3" value={form.classes} onChange={(e) => update('classes', e.target.value)} required /><p className="text-xs text-muted-foreground">Separate entries with commas. Do not enter learner names or personal information.</p></div>
-            <div className="flex items-center justify-between gap-3 sm:col-span-2"><Link className="text-sm text-primary hover:underline" href="/auth/signup?role=student">Back to student signup</Link><Button type="submit" disabled={saving}>{saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting…</> : 'Submit for review'}</Button></div>
+            <div className="flex items-center justify-between gap-3 sm:col-span-2"><Link className="text-sm text-primary hover:underline" href="/signup">Back to workspaces</Link><Button type="submit" disabled={saving}>{saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting…</> : 'Submit for review'}</Button></div>
           </form>
         </CardContent>
       </Card>

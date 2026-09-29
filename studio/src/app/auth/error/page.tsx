@@ -24,7 +24,7 @@ function AuthErrorContent() {
         </CardHeader>
         <CardContent className="flex gap-3">
           <Button asChild><Link href="/auth/signin">Try Google sign-in again</Link></Button>
-          <Button asChild variant="outline"><Link href="/auth/signup">Create an account</Link></Button>
+          <Button asChild variant="outline"><Link href="/signup">Open a demo workspace</Link></Button>
         </CardContent>
       </Card>
     </main>

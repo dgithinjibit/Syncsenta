@@ -3,16 +3,9 @@
 import { ReactNode, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { getRoleHome } from '@/lib/auth/role-home';
 
 export type AppRole = 'student' | 'teacher' | 'parent' | 'admin' | 'head';
-
-const HOME_BY_ROLE: Record<AppRole, string> = {
-  student: '/student',
-  teacher: '/teacher',
-  parent: '/parent',
-  admin: '/head',
-  head: '/head',
-};
 
 /**
  * RoleGate — wraps a route segment and enforces role-based access.
@@ -28,10 +21,18 @@ const HOME_BY_ROLE: Record<AppRole, string> = {
  *   3. loading=false, profileLoading=false, profile loaded → render children
  *
  * Edge cases handled:
- *   - No session at all        → redirect to /login?next=<pathname>
- *   - Session but no profile   → redirect to /login (broken account state)
- *   - Wrong role               → redirect to user's own home
- *   - profile.role is null/unknown → redirect to /login (safe default)
+ *   - No session at all        → /auth/signin?next=<pathname>, so the visitor
+ *                                comes back to the page they were denied
+ *   - Session but no profile   → /auth/onboarding (the profile is the missing
+ *                                part; a sign-in form cannot create it)
+ *   - Wrong role               → that person's own home, from `getRoleHome()`
+ *   - role null/unknown        → /auth/onboarding
+ *
+ * The role->home decision used to be duplicated here as `HOME_BY_ROLE`, which
+ * drifted from `ROLE_HOME`: it had no `county_officer` entry, so a county
+ * officer who opened /teacher was redirected to '/login' — a page they could
+ * never leave, because /login forwards anyone who is already signed in. There
+ * is now one map, in `lib/auth/role-home.ts`, and this gate reads it.
  */
 export function RoleGate({
   allowedRoles,
@@ -51,23 +52,23 @@ export function RoleGate({
     // Never redirect while either loading flag is still true.
     if (isStillLoading) return;
 
-    // Not authenticated at all → send to login.
+    // Not authenticated at all → send to the real sign-in page.
     if (!user) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/auth/signin?next=${encodeURIComponent(pathname)}`);
       return;
     }
 
-    // Authenticated but profile row is missing (broken account / new signup
-    // race where the profile hasn't been created yet) → login to resolve.
+    // Authenticated but no readable profile row: nothing a sign-in form can
+    // fix. Profile completion is the screen that can create the row.
     if (!profile) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace('/auth/onboarding');
       return;
     }
 
     // Wrong role → send to the user's own home workspace.
-    const role = profile.role as AppRole | null;
-    if (!role || !allowedRoles.includes(role)) {
-      router.replace(role && HOME_BY_ROLE[role] ? HOME_BY_ROLE[role] : '/login');
+    const role = typeof profile.role === 'string' ? profile.role : null;
+    if (!role || !allowedRoles.includes(role as AppRole)) {
+      router.replace(getRoleHome(role, '/auth/onboarding'));
     }
   }, [allowedRoles, isStillLoading, pathname, profile, router, user]);
 
@@ -82,14 +83,10 @@ export function RoleGate({
   }
 
   // Wrong role — show nothing while the redirect is in-flight.
-  const role = profile.role as AppRole | null;
-  if (!role || !allowedRoles.includes(role)) {
+  const role = typeof profile.role === 'string' ? profile.role : null;
+  if (!role || !allowedRoles.includes(role as AppRole)) {
     return null;
   }
 
   return <>{children}</>;
-}
-
-export function RoleHome({ role }: { role: AppRole }) {
-  return <>{HOME_BY_ROLE[role] ?? '/login'}</>;
 }
