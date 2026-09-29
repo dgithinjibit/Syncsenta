@@ -182,6 +182,11 @@ constant pinning the module to one grade is what let the second parser drift.
   `POST /api/omega-claw/scope` and `POST /api/omega-claw/activity-check` mirroring the Rust handlers'
   contract, and the card renders activities the engine allows for that learner's grade. **Test:** route
   tests + the mirror's existing pack-parsing assertion extended to the Rust route list. ~2 hours.
+  **Half moved 2026-09-29:** the Rust side is done — `activities_for()` exists and
+  `GET /:grade/scope` returns `{grade, scope, activities[]}` (`d984a26`, `2d857a5`). The remaining half
+  is blocked on a decision the owner owes (ROADMAP §10 item 3): the card must read either the undeployed
+  Rust service or the frozen mirror, and "No ts now, just rust" rules the second out unless the owner
+  says otherwise.
 - [ ] **8. O-4 — the safety boundary gates something.** 6 `(omega-claw-blocked-topic …)` rules exist
   (crypto-trading, investment-advice, wallet-custody, unsupervised-attack, public-deployment,
   unnecessary-personal-data), `isBlockedOmegaClawTopic()` implements them, 17 tests pass — and no request

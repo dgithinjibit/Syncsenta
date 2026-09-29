@@ -101,8 +101,56 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `cdf32cc` | the security gate written down — scope scoreboard ticked, this §1, §8 and §9 |
 | `371c884` | O-1 — the challenge path renders the API's learner sentences; the local copies deleted |
 | `d476c20` | O-2 — one canonical grade parser; the teacher module stops refusing `Grade-6` |
+| `285bab0` | O-1 and O-2 written into the scoreboard and this §1 |
+| `73347f5` | Rust engine, defect 1 + 2 — a query asks instead of asserting, and a `$` in a stored rule head matches |
+| `d984a26` | Rust engine, defect 3 — the pack loads once, `activities_for()` exists, the transfer gate answers instead of raising |
+| `2d857a5` | `GET /:grade/scope` now returns `{grade, scope, activities[]}` — the shape O-3's card needs |
+| `2f37915` | `rust-gates.yml` (unpushed — no `workflow` scope) and `docs/architecture/decision-one-rule-voice.md`, the ADR that answers "can the frontend be Rust?" |
 
-Working tree clean; the branch is merged, so `origin/main` and `HEAD` agree as of this writing.
+Working tree clean. `HEAD` is **14 commits ahead of `origin/main`** (`git rev-list --left-right count
+origin/main...HEAD` → `0 14`); the last eight of those are the security gate plus O-1/O-2, and the
+newest four are the Rust slice. Nothing here is pushed or deployed — see the `workflow` scope in §7 and
+the spent deploy cap below.
+
+### The Rust slice, 2026-09-29 — three defects in the engine, found and fixed locally
+
+The question was #22's: does the rule pack actually run? It did not, and the reason was not the missing
+hyperon feature. Three defects, each found by executing the fallback engine's own source rather than
+reading it (the local vehicle is a transcribed probe — `~/.cache/syncsenta-probe/run.sh` →
+`CHECKS=31 FAILURES=0 PROBE_RESULT=PASS` — because `cargo` cannot link on this machine, see §9):
+
+1. **A query was being asserted.** `MettaSpace::query()` handed the bare pattern to the evaluator, which
+   treats anything that is not `(= …)` or `(! …)` as a fact to store and echoes it back. So
+   `scope_for("Grade 6")` read the last token of its own question, matched `grade6`, found no scope rule
+   that way, fell to the `$lower-grade` catch-all and answered **`blocked`**; `is_activity_allowed`
+   refused every activity; and every learner request grew the space by one atom. Fixed by wrapping the
+   pattern in `(! …)` — and by the two tests that could only pass after the wrap.
+2. **A `$` in a stored rule head never matched.** `pattern_match()` honoured variable syntax only on the
+   question side, but a rule head like `(= (omega-claw-scope-for $lower-grade) blocked)` arrives as the
+   *stored* argument. Both catch-alls were therefore unanswerable, which is why the progression endpoint
+   raised "Omega Claw rule returned no result" on `can_unlock_transfer(true, false)` — the common case —
+   and only worked once a learner had already explained.
+3. **The pack was re-asserted on every request.** All four handlers call `load()`; three calls produced
+   **9** Grade-6 activity rows instead of 3 and 105 atoms. Fixed with a `OnceCell`, which keeps the
+   existing behaviour that the pack is loaded lazily on first request (the routes build the rules through
+   `OmegaClawRules::with_space()`, never by loading in `new()`).
+
+Consequence worth stating plainly: the two pre-existing `#[tokio::test]`s in `omega_claw.rs` assert
+`introductory`, and under defect 1 they **cannot ever have passed**. That is the mechanism behind this §5's
+"0 of 35 statements have ever been executed" — not a missing test runner, an engine that answered
+`blocked` to its own tests.
+
+Added on top of the fixes: `activities_for()` (empty when the grade is `blocked`), the same function
+carried out over HTTP as `{grade, scope, activities[]}` (O-3's blocker), `can_unlock_transfer()` resolving
+by `any(== "yes")` so a failed pack load answers *locked* instead of erroring, and five new engine tests
+including one that answers a learner 50 times and asserts the space did not grow.
+
+`docs/architecture/decision-one-rule-voice.md` is the holistic document the owner asked for ("*I know I
+will be asked these questions*") — the three copies of the rules and why the rejected options were
+rejected, the frontend-in-Rust answer with the line counts behind it (246 `.tsx` files, 129,501 lines),
+the hosting table (Render has no African region; Vercel cannot hold a long-lived Axum process), the CI
+constraint the 64 `sqlx::query!` macros create, the keep-alive search results, and the six-step cut-over
+checklist.
 
 **What runs next is scoped in `docs/SCOPE-SECURITY-AND-OMEGA.md`** — a 10-item scoreboard the owner
 dictated on 2026-09-29 ("*do not build a single new feature or touch the reasoning engine until your
@@ -469,7 +517,7 @@ claiming dashboards that rendered blank. `?` = not established.
 | **Omega Claw** — blocked-topic safety boundary (6 rules) | yes in the mirror | yes | **enforced nowhere** — no chat, generation or request path calls it | no |
 | **Omega Claw** — decision persistence (`omega_decisions`) | `lib/omega-agent/core.ts:403` inserts | no | **the table does not exist** in production or in any migration | no |
 | **Omega Claw** — `/student` challenge path (the learner-facing card) | yes, mounted at `app/student/page.tsx:256` | source guards + 17 tests on the copy and grade layers it now delegates to (`omega-claw-copy`, `omega-claw-path`); no render test, because the suite runs in `node`, not jsdom | yes | **no** — SSR HTML is a `Loading your record…` shell by design, so rendering has not been seen in a browser |
-| **Omega Claw** — the Rust service behind it | yes (`backend/syncsenta-backend`) | 2 `#[tokio::test]`s exist, never executed here or in CI | **deployed nowhere** | no |
+| **Omega Claw** — the Rust service behind it | yes (`backend/syncsenta-backend`) | 7 `#[tokio::test]`s now exist; **none executed by `cargo`** — the engine's own logic was executed locally through a transcribed probe (§1, §9), and a `cargo`-running workflow is written but unpushed | **deployed nowhere** | no |
 | Offline / PWA | service worker exists | never registered | — | **0% live** |
 | Lesson generation (`/lesson-architect/*` on Render) | yes | yes | **not redeployed** | no |
 | Rust `/api/v1` backend | yes | no | **deployed nowhere** | no |
@@ -515,28 +563,33 @@ Percentages, each with its denominator:
 | Do the deployed answers match the pack? | 3 probes | **3/3** — clamping, action copy, unknown-outcome `400` | signed-in curl above |
 | Is the safety boundary enforced on any request path? | 6 blocked topics | **0/6 = 0%** | `grep -rn isBlockedOmegaClawTopic studio/src` → mirror + tests only |
 | Is learner progress persisted? | — | **0** — `completed` is React state; no write | `interactive-challenge-path.tsx:71` |
-| Is the Rust engine live? | 1 service | **0 deployed, 0 CI runs** | no `cargo` step in `.github/workflows/` |
+| Is the Rust engine live? | 1 service | **0 deployed, 0 CI runs** — and as of 2026-09-29 it is no longer 0 *correct*: three defects that made it answer `blocked` to everything are fixed locally (`.github/workflows/rust-gates.yml` exists on disk but is unpushed, so no runner has executed `cargo`) | no `cargo` step pushed to `.github/workflows/` |
 
 **Headline, stated as a denominator rather than a vibe: of the 35 rule statements in the pack, 35 are
 mirrored in code the app runs, 10 are reachable over a deployed HTTP endpoint (the 4 next-action and 4
-hint rows plus the 2 transfer rows; the 6 scope and 13 activity rows have no route, and the 6 blocked
-topics are wired to nothing), and 0 have ever been executed by the MeTTa runtime the project claims.**
-The learner-facing card that renders them has 3 hardcoded nodes, of which **1 of 3**
-(`ai-input-output`) is a legal Grade 6 activity in the pack; `blockchain-consensus` is a Senior School
-row the pack would refuse for Grade 6, and `explain-your-thinking` is not in the pack at all.
+hint rows plus the 2 transfer rows; the 6 scope and 13 activity rows have a route only on the undeployed
+Rust service, and the 6 blocked topics are wired to nothing), and 0 have ever been executed by the MeTTa
+runtime the project claims.** What changed on 2026-09-29 is not the second number — it is the last one's
+cause: the fallback engine was run locally for the first time and answered `blocked` to its own two tests
+until three defects were fixed (§1). The learner-facing card that renders them has 3 hardcoded nodes, of
+which **1 of 3** (`ai-input-output`) is a legal Grade 6 activity in the pack; `blockchain-consensus` is a
+Senior School row the pack would refuse for Grade 6, and `explain-your-thinking` is not in the pack at all.
 
-**Defects found, not yet fixed** (each is a code task, none is a schema task):
-- `interactive-challenge-path.tsx:91` prints the raw symbol — `Guided hint 2: isolate-step` — while the
-  API it just called returned `hintMessage` with the child-readable sentence. The copy exists and is
-  discarded.
-- `:110-119` ignores `nextActionMessage` the same way and hardcodes near-identical strings, so learner
-  copy lives in two places and only one of them is tested.
-- `:51` `isOmegaClawGrade()` strips only whitespace, so a profile whose grade is `Grade-6` canonicalises
-  to `grade-6`, fails all three tests, and the card silently returns `null`. Rust and the TS mirror both
-  strip `-` and `_`. Two canonicalisers, two answers — the Stage 4 "one voice" problem in miniature.
-- The three node ids are not `(omega-claw-activity …)` rows, so the path a learner walks is not the path
-  the rule pack approved.
-- No scope/activity route, so nothing in the app can ask the question the pack mostly answers.
+**Defects found here, and where each stands now** (each is a code task, none is a schema task):
+- ~~`interactive-challenge-path.tsx:91` prints the raw symbol~~ — **closed by O-1, `371c884`**: the card
+  renders `hintMessage` and `nextActionMessage`, and refuses to print `result.hint`.
+- ~~the local copies of the action copy~~ — **closed by O-1, `371c884`**.
+- ~~`isOmegaClawGrade()` strips only whitespace~~ — **closed by O-2, `d476c20`**: one canonical parser, and
+  the teacher module stops refusing `Grade-6`.
+- The Rust engine's three defects — **closed locally 2026-09-29** (`73347f5`, `d984a26`): a query asserted
+  instead of asking, a `$` in a stored rule head never matched, and `load()` re-asserted the pack per
+  request. Still unproven under `cargo` and still undeployed.
+- **Still open** — the three node ids are not `(omega-claw-activity …)` rows, so the path a learner walks
+  is not the path the rule pack approved. The Rust service can now answer that question
+  (`{grade, scope, activities[]}`, `2d857a5`), but production reads the frozen TypeScript mirror, which has
+  no listing getter; see §10.
+- **Still open** — no scope/activity route *deployed*, so nothing in the running app can ask the question
+  the pack mostly answers.
 
 This block is the input to task #22 (which language Omega's rules live in) and #37 (mirror the checkable
 pedagogy rules into the pack), and to the Stage 4 exit evidence. Until #22 lands, the pack is documentation
@@ -576,9 +629,12 @@ Grepped 2026-09-29 against `studio/src`. "No importer" means no page or componen
 Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-28.
 
 1. Revoke the leaked `gho_…` GitHub token at `github.com/settings/authorizations`.
-2. `gh` lacks the `workflow` scope, so `studio-gates.yml`'s Node 22 fix sits on the local branch
-   `ci-node22-pending`. Either `gh auth refresh -s workflow` or edit the file in GitHub's web UI.
-   Until then CI unit tests cannot pass on Node 20.
+2. `gh` lacks the `workflow` scope. **As of 2026-09-29 a device flow is live and waiting on the account
+   holder**: `gh auth refresh -h github.com -s workflow` printed one-time code **`5D65-86DA`** and is
+   blocking on the browser authorisation, which I did not click. Two things are unpushed because of it —
+   `studio-gates.yml`'s Node 22 fix (local branch `ci-node22-pending`) and the new
+   `.github/workflows/rust-gates.yml`. Until it lands, CI unit tests cannot pass on Node 20 and no runner
+   executes `cargo`. The alternative is editing both files in GitHub's web UI.
 3. A real `GEMINI_API_KEY` in the Vercel project: the provider chain has exactly one provider, so
    student chat has no fallback when it is down.
 4. Render: `Ascendra-1` has not redeployed from this branch, so `/lesson-architect/*` is unmounted.
@@ -617,6 +673,10 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | A percentage for this project must name its denominator and its command, or it is not reported | agent (from the owner's standing rule) | §8 already forbids a single progress %; §5's Omega table is what compliance looks like — 35 mirrored / 10 reachable over HTTP / 0 executed by MeTTa, each from a greppable count |
 | 2026-09-29 | **Learner-facing wording comes from the API response, not the component** — `hintMessage` and `nextActionMessage` are rendered; the five hardcoded sentences and the `nextAction === '…'` comparisons are deleted | agent | O-1, commit `371c884`. The server's string is the one the rule pack's tests cover, so a component-local paraphrase can be green and still disagree with the engine. `hintFeedback()` also refuses to print `result.hint`, which is a MeTTa symbol (`isolate-step`), not a sentence |
 | 2026-09-29 | **Omega Claw grade membership is decided in exactly one place: `SCOPE_BY_GRADE`.** Two local grade tests deleted; `s1`/`s2`/`s3` are accepted as a named superset in the teacher module | agent | O-2, commit `d476c20`. One card was returning `null` for a `Grade-6` profile the pack covers, and the teacher module was independently telling a teacher that Grade 6 was out of scope. Task #22 must rule on the band labels — the Rust service does not accept them today, so "one voice" inherits this widening or breaks those classes |
+| 2026-09-29 | **CI runs the Rust tests**, against a Postgres service container, because 64 `sqlx::query!` macros cannot compile without a live schema | owner | `.github/workflows/rust-gates.yml` (unpushed, §7) runs migrations then `cargo test`. The same constraint blocks the first Render build unless `DATABASE_URL` exists before it — recorded in §1's ADR. Longer-term fix: `sqlx prepare --locked` and a committed `.sqlx/` |
+| 2026-09-29 | **The TypeScript mirror is frozen, not extended; it is cut at cut-over, not patched** | owner ("*No ts now, just rust*") | O-1/O-2's canonical parser stays where it is, but no new capability is added to the mirror. Consequence: O-3's card cannot list approved activities until the Rust service answers in production, because the Rust route exists and the mirror has no listing getter — see §10 |
+| 2026-09-29 | **The frontend stays Next.js; Rust decides, Next.js renders** | agent, answering the owner's "*can we have frontend as rust instead of next js?*" | Measured rather than felt: 246 `.tsx` files and 129,501 lines of `.ts`+`.tsx` would be rewritten, Vercel cannot host a long-lived Axum process, and an Axum+HTMX rebuild re-derives every bug fixed this week. What the owner actually wanted — one voice for the rules — is got by the API shape `{grade, scope, activities[]}`, not by a rewrite. Full argument in `docs/architecture/decision-one-rule-voice.md` |
+| 2026-09-29 | **An engine that answers `blocked` to its own tests is a defect, not a design question** — fix the query/assert split before debating which language owns the rules | agent | §1's three Rust defects. The two pre-existing `#[tokio::test]`s assert `introductory` and so cannot ever have passed, which retires the "0 of 35 executed" line's implied excuse: the missing evidence was a working engine, not a missing runner |
 
 ---
 
@@ -675,14 +735,21 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   client; they do not prove the real service key passes `42501`-free on the deployed function, and a
   double-transition race still has no idempotency key underneath it. Closing this needs no deploy —
   it needs one chat conversation that reaches mastery, read back from the table.
-- **Omega Claw's Rust side is entirely unexecuted.** `metta_core/omega_claw.rs` carries two
-  `#[tokio::test]`s and `rust-core/src/agent_runtime.rs` carries seventeen, and no workflow runs
-  `cargo`, so none of them has ever run in CI; they were not run here either, because 740 MB free is
-  not enough to build an `axum` + `sqlx` workspace and the standing rule is to check the memory cost
-  before a test run. Two further unknowns the §5 block cannot settle: whether the shipped service would
-  behave differently from the TypeScript mirror under the real hyperon engine (it is compiled out —
-  `default = []`), and whether the card on `/student` actually paints, since the SSR HTML is a
-  `Loading your record…` shell by design and no browser has looked at it since.
+- **Omega Claw's Rust side has now been executed — but not by `cargo`, and that is the whole gap.** The
+  engine was run locally on 2026-09-29 through a transcription of the fallback evaluator's own source
+  against the real pack (`~/.cache/syncsenta-probe/run.sh` → **`CHECKS=31 FAILURES=0`**), which is how the
+  three defects in §1 were found instead of guessed. What the probe cannot prove, and nobody should read it
+  as proving: that the edited `interpreter.rs`/`omega_claw.rs` compile (the syntax gate is
+  `rustc --edition 2018 --crate-type lib --emit=metadata`, which catches parse errors but not type errors);
+  that the new `#[tokio::test]`s pass (they were written against observed engine behaviour, never run);
+  that the crate builds at all here (`cargo` exits 101 — `cc` is zig's musl clang and `ring` cannot parse
+  the target query; `ring` is unavoidable via `jsonwebtoken`, `rustls`, `reqwest`, `ethers`, `sqlx`); or
+  that the real hyperon engine behaves like the fallback (it is compiled out — `default = []`). The
+  honest next evidence is one green `rust-gates.yml` run, which needs the `workflow` scope in §7.
+- The same two unknowns the §5 block still cannot settle: whether the shipped service behaves differently
+  from the TypeScript mirror under the real hyperon engine, and whether the card on `/student` actually
+  paints, since the SSR HTML is a `Loading your record…` shell by design and no browser has looked at it
+  since.
 - KICD curriculum PDFs are still unread; Grade 12 pathways (#32) rest on secondary sources.
 - The archived roadmap's "82-88% complete", "85/100 security rating" and coverage figures have no
   reproducible command behind them and are not carried forward as evidence.
@@ -697,6 +764,21 @@ Things that are *not* proven, restated so nobody (including a future session) ha
    alone is enough.
 2. Which grade-8 / grade-1 / grade-12 test learners are actually logging in, and whether their
    feedback arrives through the `/terms`-adjacent feedback form or the Google Form in the footer.
+3. **O-3's card is blocked on a fork in the road, and I will not pick it unilaterally.** The Rust service
+   now answers "which activities does the pack approve for this grade" (`2d857a5`); production still
+   answers every Omega question from the frozen TypeScript mirror, which has no listing getter. So either
+   (a) the card waits for the Rust cut-over — no learner-visible change until Render holds the service, or
+   (b) the owner permits one getter over the mirror's already-pinned `ACTIVITIES` rows, which is a small
+   exception to "*No ts now, just rust*" and is the only way O-3 lands this week. (I tried (b) once and
+   reverted it under that instruction.)
+4. **Where does the Rust service actually run?** Render has no African region (Oregon/Ohio/Frankfurt/
+   Singapore); the African-region alternatives are GCP `africa-south1`, AWS `af-south-1`, or a Hetzner VPS.
+   This needs the owner's answer before cut-over step 2, plus: the Supabase project's region, and whether
+   there is Render account access at all — there is no `RENDER_API_KEY` in this environment, so I cannot
+   deploy or even read the service's build log from here.
+5. **Push now, or hold the batch for the deploy cap?** One Vercel deploy was spent today on PR #20 and the
+   cap is daily. Eight of the 14 unpushed commits are already verified by tests but not by a build, so
+   pushing without deploying leaves §1's "committed, not deployed" as the accurate status either way.
 
 ---
 
