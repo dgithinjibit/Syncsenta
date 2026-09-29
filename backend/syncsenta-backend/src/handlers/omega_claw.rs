@@ -59,7 +59,29 @@ async fn scope_handler(
     }
 
     match state.rules.scope_for(&grade).await {
-        Ok(scope) => (StatusCode::OK, Json(json!({ "grade": grade, "scope": scope }))),
+        Ok(scope) => {
+            // The path travels with the scope because a learner screen needs
+            // both and would otherwise make two calls to decide one thing. The
+            // list comes from the rule pack's own rows, so nothing downstream
+            // has to write the set down again and drift from the gate.
+            let activities = match state.rules.activities_for(&grade).await {
+                Ok(activities) => activities,
+                Err(error) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({ "error": error.to_string() })),
+                    )
+                }
+            };
+            (
+                StatusCode::OK,
+                Json(json!({
+                    "grade": grade,
+                    "scope": scope,
+                    "activities": activities,
+                })),
+            )
+        }
         Err(error) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({ "error": error.to_string() })),
