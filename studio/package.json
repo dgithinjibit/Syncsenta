@@ -8,6 +8,7 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
+    "generate:design-pack": "node ../scripts/generate-ai-design-pack.mts",
     "test": "vitest run",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"

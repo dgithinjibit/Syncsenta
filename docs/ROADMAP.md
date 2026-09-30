@@ -1851,6 +1851,57 @@ first regex dropped the trailing `\)`, which made `\S+` swallow the closing pare
 `expected 'introductory)' to be 'introductory'`. Evidence: `npx vitest run --no-file-parallelism` over
 `derive.test.ts`, `derive-browser-safe.test.ts`, `omega-claw-rules.test.ts` → **exit 0, 68 passed (3 files)**.
 
+### Spoon 2 is done: the Grade 8 AI design pack, generated from the curriculum (2026-09-30, Tier A)
+
+What the reconciler needs before it can call a draft row wrong is a statement of what the national design
+actually contains for that grade. `studio/src/data/curriculum/senior-school/ai.ts` already holds it — Grade 8 is
+16 sub-strands across the 5 strands, with lesson counts and key inquiry questions — so the pack is **derived**,
+never typed out a second time:
+
+- `studio/src/data/curriculum/design-pack/emit.ts` reads the `grade8AI` block line by line and emits 87
+  statements: `(= (ai-design-name g8 1.1) "Search and Problem Solving")`, `ai-design-strand`, `ai-design-lessons`,
+  `ai-design-inquiry`, and `(= (ai-design-origin g8 1.1) "studio/src/data/curriculum/senior-school/ai.ts:354")`.
+  The origin row is the point: a refusal can cite the curriculum line a teacher can open, not just a generated
+  file nobody checked.
+- It **fails loudly instead of skipping** what it cannot read — an `ss(…)` call whose shape it doesn't recognise,
+  a title with no KICD id, a missing `STRAND_NAMES` or `AI_LITERACY_VERSION`. Same class of bug spoon 1b just
+  fixed in the parser, designed out here rather than discovered later.
+- `scripts/generate-ai-design-pack.mts` (run with `npm run generate:design-pack` from `studio/`) writes
+  `studio/public/omega/ai_g8_design.metta`. **Public, deliberately:** the reconciler has to fetch it with no
+  network, so it must be a static asset inside the deployed `studio/` bundle. That is §10 item 10 answered for
+  this pack, and it is the second half of why spoon 1b removed the filesystem.
+- Drift lock, `ai-design-pack.test.ts` (7 tests): the committed bytes must equal what the generator produces from
+  the current `ai.ts`; every emitted row must parse through `parsePack` including its quoted prose; every
+  `ai-design-origin` line must really contain that sub-strand's id and name in `ai.ts`; strand names must match
+  `STRAND_NAMES`; the version row must equal `AI_LITERACY_VERSION`. **Checked red by changing one byte of the
+  pack** (`"Search and Problem Solving X"`) → the byte-identity test failed, then the generator restored it.
+
+Evidence: `npx vitest run --no-file-parallelism src/lib/__tests__/ai-design-pack.test.ts` → **exit 0, 7 passed**;
+combined with the derive, browser-safety and mirror suites → **exit 0, 75 passed (4 files)**. Node 22 type
+stripping runs the `.mts` runner directly — no build step, no new dependency; the `MODULE_TYPELESS_PACKAGE_JSON`
+warning is Node re-parsing `emit.ts` as ESM and is harmless (silencing it means `"type": "module"` in `studio/`,
+which would touch Next's own config loading and is not worth it).
+
+**What this is not yet: used.** No page fetches `ai_g8_design.metta` today, so by this repo's own anti-pattern
+list (§6, built-but-unreachable) it is incomplete, not shipped — it earns that label only when the reconciler
+lands, which is the next spoon and is why the pack was built as data with a drift test rather than as dead code.
+Grade 8 only, because that is the one conflict scenario in the brief; grades 6, 7 and 9–12 are one entry each in
+the runner's `TARGETS` array, and the `ai-design-` heads are grade-keyed already.
+
+**One thing writing the pack surfaced, and it is bigger than this spoon: `.gitignore` ignored `public` at any
+depth.** Line 70 was create-next-app boilerplate for Gatsby's build output; there is no Gatsby site here, but
+the rule matched `studio/public/` — the directory that serves the deployed static assets. 124 files under it
+were already tracked, so nothing looked wrong until a *new* file was added: `git add studio/public/omega/…`
+reported the path ignored and `git status --ignored` marked the directory `!!`. Any static asset anyone has
+tried to add since — a service-worker pre-cached page, a pack, an icon — cannot be committed without `-f`, and
+a file git does not carry is a file Vercel does not serve. The rule is gone, replaced by a comment saying why,
+and `gitignore-hygiene.test.ts` (5 tests) asserts `sw.js`, `manifest.json`, the new pack and `derive.ts` are not
+ignored, plus that the `studio/public` directory itself is open. The detector is proven against a rule that
+still exists — `git check-ignore -v .next` → `.gitignore:62:.next`, so `ignoredBy()` returns the rule rather than
+null — and removing `public` untracked exactly one path, the new `studio/public/omega/` directory, so no build
+junk arrived with the fix. Evidence: `npx vitest run --no-file-parallelism` over `gitignore-hygiene.test.ts` and
+`ai-design-pack.test.ts` → **exit 0, 12 passed (2 files)**.
+
 ### What this does not change
 
 Stages 0–5, §7's blockers and §10's open questions all still stand. What §11 changes is the *order* for two

@@ -67,7 +67,12 @@ dist
 
 # Gatsby files
 .cache/
-public
+# `public` used to be ignored here, copied from create-next-app's boilerplate for Gatsby's
+# output directory. There is no Gatsby site in this repo, and the rule silently blocked every
+# *new* file under `studio/public/` — the directory that serves the deployable static assets,
+# including the service worker and the MeTTa pack a browser has to fetch offline. The 124
+# files already tracked hid it; adding one surfaced it. `gitignore-hygiene.test.ts` pins this
+# open, because a static asset git will not carry is a static asset Vercel never serves.
 
 # Storybook build outputs
 .out
