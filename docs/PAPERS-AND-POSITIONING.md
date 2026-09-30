@@ -1,6 +1,9 @@
 # Positioning — what the 2026 literature says about the thing we are building
 
-Written 2026-09-30, for §11 of `ROADMAP.md` (BASIX Omniversity, Track 5 Solo, challenge 1: *one agent
+**Convention used below:** a bare `§n` refers to a section of *this* file; `ROADMAP §n` refers to the
+roadmap. Sections 1–10 are the research itself, §11 is the honesty checklist.
+
+Written 2026-09-30, for ROADMAP §11 (BASIX Omniversity, Track 5 Solo, challenge 1: *one agent
 producing an auditable decision*). This file exists so the README, the 3-minute video script and the entry
 text all make the same argument, and so every claim in them traces to a source that was actually opened.
 
@@ -159,7 +162,7 @@ reliable than hallucination-prone LLMs."*
    *"in-scope answer accuracies of 98%"* for specialised coding assistants
    ([2407.15718](https://arxiv.org/abs/2407.15718), [2405.08008](https://arxiv.org/abs/2405.08008)). Do not
    cite those as evidence about hint choice; they are in-scope answer accuracy, a different claim. The
-   failure-rate evidence stays **TutorGym** (§3) and the BEAM/memory numbers (§8 below).
+   failure-rate evidence stays **TutorGym** (§3), with the 2026 memory-benchmark numbers in §7.
 2. **Symbolic components constraining LLM tutors — confirmed as mainstream, not fringe.** The page's own
    review language: architectures integrate *"hand-authored rules, curated knowledge graphs, or, increasingly,
    retrieval-augmented LLMs"* ([A Comprehensive Review of AI-based ITS](https://arxiv.org/abs/2507.18882)), and
@@ -237,7 +240,64 @@ statements is small enough to check all pairs — which is what a drift lock plu
 do, and is a cheaper and more honest version of the same idea.
 
 
-## 9. What this file does not establish
+## 9. Neuro-symbolic sweep, slice 3 — 2026-09-30
+
+Swept: [Neuro-Symbolic Agent Architectures](https://www.emergentmind.com/topics/neuro-symbolic-agent-architectures).
+
+**The sentence to put in the video.** Decision clarity in these systems arises because outputs are
+*"provably backed by explicit symbolic inferences"*. That is the cleanest available definition of intrinsic
+versus post-hoc explanation, and it is exactly the distinction §3's 78% detector cannot cross.
+
+**The division of labour it names is the one we already have.** The page describes architectures that use
+*"LLMs as hypothesis generators in closed agentic loops"* feeding into rule-based auditors, drawing the line
+between *"speculative pattern recognition from hard-threshold event detection"*, with the symbolic module
+holding *final approval authority*. Read literally: **the LLM proposes, the rules decide.** In this repo the
+LLM writes the learner-facing sentences and `omega_claw_rules.metta` decides scope, activity allowance, which
+hint fires and whether a transfer gate opens — so when a judge asks why we did not just prompt a model, the
+answer is that we implemented the pattern the 2026 literature describes as the correct one, and can point at
+it.
+
+**Where it wins, and how honestly the page states it.** SymAgent ([arXiv 2502.03283](https://arxiv.org/abs/2502.03283),
+Liu et al.) and NeSyC ([arXiv 2503.00870](https://arxiv.org/abs/2503.00870), Choi et al.) are reported as
+delivering *"superior trajectory-level performance"* over LLM-only baselines in knowledge-graph-incomplete
+settings. **The page gives no effect size, so we quote the phrase or not at all** — and the incomplete-KG
+condition is our condition: a curriculum registry that has gaps is precisely the setting where a symbolic
+fallback beats a model that fills holes fluently.
+
+**The four limits it names, stated because §11 needs them and an entry that omits them reads as marketing.**
+High engineering friction in hybrid co-design; iterative logic search as a *"computational bottleneck"*;
+persistent trouble with severely missing observations; and diminished *"expressivity of inductive biases"*
+where differentiable layers cannot capture a full formal grammar. The second is ours in miniature — the Rust
+engine's fallback parser exists because the hyperon feature is off by default, and three engine defects were
+found by hand (§1). The friction claim is the honest reason this repository carries two mirrors of one pack.
+
+**A finding worth stating plainly: MeTTa, Hyperon, metagraph rewriting, SingularityNET and Omega get zero
+references across that page.** The stack this hackathon is built on is not in the aggregator's
+neuro-symbolic coverage. So MeTTa cannot be cited to third-party literature here — the only authorities are
+the 2021 metagraph paper ([arXiv 2112.08272](https://arxiv.org/abs/2112.08272)) and
+[SingularityNET's own page](https://singularitynet.io/research/metta-programming-language/), which is a vendor
+source. **Do not dress a vendor claim up as independent support.** Use it for what MeTTa *is*, and use the
+neuro-symbolic literature above for why that shape of system is the right one.
+
+## 10. The number that should lead the video
+
+**FaithCoT-Bench: Benchmarking Instance-Level Faithfulness of Chain-of-Thought Reasoning**
+([arXiv 2510.04040](https://arxiv.org/abs/2510.04040), Feb 2026 revision). It *"formulates unfaithfulness
+detection as a discriminative decision problem"*, draws trajectories from *"four representative LLMs across
+four domains"*, and of *"over 1,000 trajectories"* identifies *"more than 300 unfaithful instances"* —
+**a stated-reasoning mismatch rate above 30%**. Its own conclusion is that detection gets harder *"in
+knowledge-intensive domains and with more capable models"*.
+
+Set that beside §3's best circuit-guided detector at **78.0% / 77.0%**: roughly one in three traces does not
+match the answer, and the instrument that checks is wrong about one time in five, *more often* the better the
+model gets. **Those two numbers together are the entire argument for the glass box, and they are both
+third-party.** The opening 20 seconds of the video is those two figures and one sentence: a teacher is being
+asked to sign a competency on reasoning that cannot be trusted to describe itself.
+
+Related instruments found in passing, not yet read: [SPD-Faith Bench (arXiv 2602.07833)](https://arxiv.org/html/2602.07833v1)
+and a [step-level benchmark for faithful reasoning over context (arXiv 2606.16151)](https://arxiv.org/html/2606.16151v1).
+
+## 11. What this file does not establish
 
 No claim here has been reproduced by us. StudentBench's equivalence is on GRE tutoring with 2,383 adult
 participants, not Kenyan CBC children — the transfer to our population is an assumption, and the entry must
