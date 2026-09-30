@@ -666,7 +666,7 @@ has a policy registered, so the registry is one test fixture; and the full 92-fi
 run on this branch. A caller that wants rows today has to write the `select` function itself, which is the
 correct amount of friction for a surface whose whole job is to make the easy call the safe one.
 
-### `4e7babb`, 2026-09-30 09:40 — O-3's mechanical half, taken without taking the fork
+### `4e7babb`, 2026-09-30 (committed 10:15 EAT) — O-3's mechanical half, taken without taking the fork
 
 §10 item 3 has always been a fork, not a task: either the activity-listing card waits for the Rust cut-over
 (a), or it is permitted to read one getter over the mirror's pinned `ACTIVITIES` rows (b). The last time this
@@ -682,7 +682,7 @@ selected on the canonical **grade** symbol — which is why grade 10 gets its tw
 falls back to the whole pack. If the owner answers (a), the card is written against the service and this
 function is deleted with one caller to remove; if (b), it already has its tests.
 
-Evidence, fresh at 09:44: `npx vitest run src/lib/__tests__/omega-claw-rules.test.ts --no-file-parallelism`
+Evidence, on the tree this commit landed on: `npx vitest run src/lib/__tests__/omega-claw-rules.test.ts --no-file-parallelism`
 → **31 passed**, exit 0, in **1.29 s**; `npx tsc --noEmit` → **exit 0, 0 errors**, in **4 m 49 s** with
 **831 MB** peak resident set. That tsc run is the one this session's earlier attempt never got a result from,
 so the getter's typecheck was unverified until now — the wall time tripling from the 38 s recorded above is
@@ -1550,7 +1550,8 @@ Things that are *not* proven, restated so nobody (including a future session) ha
 
 ## 11. BASIX MeTTa Omniversity hackathon — the clock, the track, and what that changes here
 
-Added 2026-09-30 09:50, on the day the build clock starts. Source: the Hacker Pack the owner attached, read
+Added 2026-09-30, 10:20 EAT / 12:50 IST — i.e. 1 h 50 min after the kick-off had already run. Times in this
+section are given in both zones because the pack does. Source: the Hacker Pack the owner attached, read
 in full. Everything below is quoted or arithmetic from it; where the pack is internally inconsistent, both
 numbers are printed rather than one chosen.
 
@@ -1561,11 +1562,12 @@ is polish, record and submit. The hard close is **23:59 IST / 21:29 EAT on Frida
 says "no exceptions" for teams and solo hackers alike. Finals and judging are Saturday 3 October,
 19:30–21:00 IST. Prize pool $1700; five winners advance to the next BASIX hackathon on 24–25 October.
 
-The owner's framing is a 48-hour budget split into dev then test. Measured against the pack, from this
-paragraph's timestamp to the deadline is **about 60 hours of which roughly 36–40 are awake working hours**
-(two nights, minus sleep), so "24 hours dev, 24 hours test" is really *"everything up to and including
-Thursday is dev; Friday is polish, record and submit"*. That is the split written below, because the pack's
-last day is explicitly not a build day.
+The owner's framing is a 48-hour budget split into dev then test. Measured from 12:50 IST this morning to
+23:59 IST on Friday the clock reads **59 h 09 m**, of which two nights' sleep takes out roughly 15 h — so
+**about 44 awake hours**, and the "48" is right to within one night's sleep. But the pack's own run of show
+already assigns Friday to polish, record and submit, so the workable split is not 24/24: it is
+**~36 hours of build across Wednesday and Thursday, then Friday is not a build day.** That is the split
+written below.
 
 Two dates in the pack contradict the rest of it: the Quick Facts table says registration closes
 **9/27/2026** and the row under it says **9/28/2016**. Both are before today. Whether registration is still
