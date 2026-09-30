@@ -1257,6 +1257,7 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **A guarded write reports what it wrote** — otherwise the caller keeps a private copy of the arithmetic and the analytics inherit it | agent | `fe44af9`. `224d47a` put the resolution in the guard but left `/api/chat` recomputing the pair for `omega_scaffolding_events`, so the table recorded a browser's claim and the pre-answer snapshot while the row held something else; `ProgressUpdateResult` now carries `hintsUsed` / `consecutiveWrong` out of the attempt that landed. Consequence for the next caller: read the result, do not re-derive it — and a helper whose rules must apply to an insert as well as an update takes the columns it reads (`Pick<…, 'hints_used' \| 'consecutive_wrong'>`), which is what let the insert pass zeros instead of casting a fake row. |
 | 2026-09-29 | **The anchor commits to what the learner did, not to what a teacher later said about it** — review columns stay outside `syncsenta-evidence-v1` | agent, following the research note's own argument | `aa81219`. `reviewed_by` / `reviewed_at` / `created_at` / `event_id` are excluded so a review next term cannot move the root that term was anchored under; callers may still pass whole `SELECT *` rows, because keys outside the version are ignored. The version *is* the field set, so adding one means `v2` and a new golden fixture, not an edit |
 | 2026-09-29 | **Where a public contract meets an ECMAScript quirk, refuse the input rather than normalise it quietly** | agent | Same commit: an evidence `id` that is not a lowercase canonical uuid throws instead of being sorted by whatever the host defaults to (a Python mirror would sort it differently); a `captured_at` that is not a moment throws instead of becoming a hash of a typo; an empty class-term throws instead of producing a predictable root. Sub-second precision *is* normalised away, and the asymmetry is written into the file header — the difference being that second-precision is stated as the rule, so a mirror can copy it |
+| 2026-09-30 | **Submit from this repository, made private first — not from a new clean repo carved for the hackathon** | owner asked which; agent recommended, pending the owner's word | A carve-out costs days for no score: the glass box cannot be lifted out of a Next.js app that needs its Supabase session, curriculum registry and env to run, and `Syncsenta` has no plugin boundary to merge back into. Worse, 20% of the score is *documentation and build process*, and a fresh repo's one squashed commit shows none — these 43 commits, each with its red-first test evidence in the message, **are** that 20%. Flipping to private before pushing keeps the map (§7, §10, the hand-seeded accounts, the named default `POSTGRES_PASSWORD`) out of public history entirely, so the disclosure decision and the submission decision stop competing. Order matters and is in §11: **private → push → fix the `Ascendra` URL → add BASIX.MARKET as a collaborator.** |
 
 ---
 
@@ -1569,11 +1570,33 @@ already assigns Friday to polish, record and submit, so the workable split is no
 **~36 hours of build across Wednesday and Thursday, then Friday is not a build day.** That is the split
 written below.
 
-Two dates in the pack contradict the rest of it: the Quick Facts table says registration closes
-**9/27/2026** and the row under it says **9/28/2016**. Both are before today. Whether registration is still
-open is therefore unknown from the document, and it is a §7-class blocker only the owner can clear — the
-platform is https://basix.market/lms/hackathon/1. **Nothing below is worth an hour if the registration did
-not land.**
+**Registration is confirmed in, and it is SOLO — which settles the track question and overrides the table
+below.** Screenshot of the owner's platform page, read 2026-09-30: *"You are registered"*, *"Syncsenta —
+You lead this team. 1 of 4 spots filled"*, *"You are a solo participant … You build over the regular 48-hour
+hackathon runtime — the same window every team gets — **on the Omega track**"*, stage set to *"Early build,
+some code written"*, and the invite code `AZF4CQW` marked *"No longer joinable — registration has closed."*
+Four consequences, none of them optional:
+
+1. **Track 5, not Track 1.** The pack's own words: *"if you're building solo, you're building on Omega, full
+   stop"*. The Glass Box idea survives — it becomes Track 5's **challenge 1, "One agent producing an
+   auditable decision"** — but Track 1's more generous framing does not. The track table below is kept
+   because it is the reasoning that picked the challenge, not because Track 1 is still live.
+2. **AI disclosure is mandatory, and undisclosed use is named as a disqualifying integrity issue.** This
+   repository was built with an assistant that wrote code, tests and §1's prose. The disclosure is therefore
+   a substantial document, not a footer line, and it has to be written by the owner, in the owner's words.
+3. **"No solo hacker attempts a complete platform — one feature, proven, is the whole assignment."** That is
+   the pack endorsing this map's spoon discipline, and it is a licence to cut. The one feature is the
+   auditable decision; everything else becomes supporting material.
+4. **The repo field on the platform is stale and it is not a small thing.** It reads
+   `https://github.com/dgithinjibit/Ascendra.git`. There is no `Ascendra` repo — `gh api
+   repos/dgithinjibit/Ascendra` resolves to `dgithinjibit/Syncsenta`, public, last pushed
+   **2026-09-29T09:17:30Z**, which is **43 commits and one day behind this working tree**. Nothing about the
+   map's §7 problem changes by naming it there: the account holder has to fix the URL *and* decide the
+   public/private question before either is submitted.
+
+The two contradictory registration dates in the pack (**9/27/2026** in Quick Facts, **9/28/2016** in the row
+under it) are now moot on the registration question and live on the deadline question — the submission close
+stays **23:59 IST / 18:29 UTC on 2 October**, and the platform's own *"2 days left"* agrees with that.
 
 ### The judging maths, which is not what the repo has been optimising for
 
@@ -1602,12 +1625,15 @@ Technical 30 / Sustainability 20 / Presentation 20). Taking the general rubric a
 | **4 — AI Infrastructure Layer** | **not eligible** | — | gated on having completed a prior MeTTa track or BASIX coursework |
 | **5 — Solo Track** | applies *if* solo | Omega is already the actual feature, not decoration | **AI disclosure is mandatory**, and undisclosed use is named as a disqualifying integrity issue |
 
-**The call proposed in chat, recorded here as the working assumption:** enter **Track 1, "The Glass Box
-Agent"**, and build the teacher-side glass surface. It is the only track whose deliverable list maps onto
-files that already exist, and its third bullet — *"a resource-allocation agent with step-by-step
-justification"* — is literally what the hint ladder does when it decides which of four hints to give.
-Track 5's requirements are a superset of Track 1's, so if the entry is solo, the same build satisfies it and
-only the disclosure statement is extra.
+**The call, now settled by the platform rather than by this table:** the entry is **Track 5 (Solo), Omega,
+challenge 1 — "One agent producing an auditable decision"**, and the build is the teacher-side glass surface.
+The reasoning that picked the Glass Box still holds and is why challenge 1 is the right one of Track 5's five:
+the pack's *"a resource-allocation agent with step-by-step justification"* is literally what the hint ladder
+does when it chooses among four hints, and Track 5's demand that *"some visible piece of Omega's stateful,
+auditable-reasoning architecture must be the actual feature, not decoration"* is satisfied by a derivation
+that only the rule pack can produce. Track 1's alternate — *"The Agent That Grows Up"*, before/after rule
+diff — is available almost for free as a second scene in the same video, because the drift lock and `4e7babb`
+already generate that diff.
 
 ### What the pack makes urgent that §7 already blocked
 
@@ -1621,7 +1647,37 @@ only the disclosure statement is extra.
    Thursday night. This is now the single hardest blocker on the submission, above the `workflow` scope.
 2. **AI disclosure is mandatory** (stated for Solo, sensible for all). Given how this repository was built,
    that statement has to be honest about the assistant's role in writing both the code and this roadmap.
-3. **Registration may have closed** — see the two contradictory dates above.
+3. **~~Registration may have closed~~ — cleared 2026-09-30:** the owner is registered, solo, on the Omega
+   track. Replaced by the item it exposed: the platform's repo field points at a name that no longer exists
+   and a tree 43 commits behind. Fix the URL, then resolve the public/private question, then add
+   BASIX.MARKET as a collaborator — in that order, because the third depends on the second.
+4. **The entry text already on the platform overclaims, and it is the one paragraph a judge reads before the
+   code.** It promises *"Web3/on-chain components to securely log student competency milestones as
+   privacy-preserving, verifiable credentials (e.g., via Cairo/Starknet or Stellar)"*. What exists in this
+   tree is an off-chain SHA-256 Merkle tree over `learning_evidence` with inclusion proofs, and **no chain of
+   any kind, no contract, and no verifier** — §5's Stage 3 rows say implemented/tested but not deployed, and
+   §10 item 8 still owes the anchor its first commitment. A judge who opens the repo looking for a Cairo
+   contract finds a TypeScript hash function. Either the sentence is rewritten to *"a tamper-evident,
+   recompute-able evidence anchor, designed to be committed on-chain next"*, or `sign.ts` and the anchor land
+   and the on-chain word stays. **This is the single most likely place for the submission to lose credibility,
+   and it is fixable in one edit of prose.**
+
+### Track 5's deliverable list, transcribed — this is the definition of "done" now
+
+The pack gives Solo its own list, due **23:59 IST, 2 October**, and it is narrower than the general one:
+
+1. Working GitHub repository, **shared with BASIX.MARKET** — blocked on §7 item 9 and on the stale
+   `Ascendra` URL above.
+2. Short README: problem, solution, technology, **plus the AI Disclosure statement**. Mandatory, and this
+   repository needs it more than most.
+3. **One functioning Omega feature.** One, not several. This is the sentence that justifies cutting the rest.
+4. A sample reasoning transcript, memory record, or audit trail.
+5. A 3-minute demonstration video.
+6. A short statement of what you'd build next.
+
+Items 4, 5 and 6 are the ones with no code in them, and between them they are the majority of what a judge
+sees. They are also the three that cannot be produced on 2 October in a rush, because each needs the feature
+in item 3 to already be running.
 
 ### The 36-hour plan this implies
 
