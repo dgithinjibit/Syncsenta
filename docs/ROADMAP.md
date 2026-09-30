@@ -143,9 +143,11 @@ on Node 22 in 2 minutes and is Ready, so the red is an environment mismatch, not
 | `74564c4` | that brick written up, plus §7's ninth blocker: the repository is public, so pushing is a disclosure decision |
 | `caffc4e` | the count in those two sentences replaced by the guard set that was actually run |
 | `2098ab8` | the retriever — an unpolicied table is never queried, and a dropped column never leaves the database |
+| `4f41fda` | the retrieval ledger row, §9's missing adapter and §10's frontend fork |
+| `4e7babb` | O-3's mechanical half — the TypeScript mirror grows the pack's `activities_for()` listing getter |
 
-Working tree clean. As of `2098ab8`, on `feat/safe-data-retrieval`, `git rev-list --count origin/main..HEAD`
-printed **39**: nine for the
+Working tree clean. As of `4e7babb`, on `feat/safe-data-retrieval`, `git rev-list --count origin/main..HEAD`
+printed **41**: nine for the
 security gate and O-1/O-2, four for the Rust engine slice, one for O-4, one for O-5, three for the three
 read-modify-write races in the progress layer, one for the telemetry that was reporting the wrong pair, two
 for the evidence tree and its inclusion proofs, one for the guard budgets, two for the safety-retrieval
@@ -664,6 +666,34 @@ has a policy registered, so the registry is one test fixture; and the full 92-fi
 run on this branch. A caller that wants rows today has to write the `select` function itself, which is the
 correct amount of friction for a surface whose whole job is to make the easy call the safe one.
 
+### `4e7babb`, 2026-09-30 09:40 — O-3's mechanical half, taken without taking the fork
+
+§10 item 3 has always been a fork, not a task: either the activity-listing card waits for the Rust cut-over
+(a), or it is permitted to read one getter over the mirror's pinned `ACTIVITIES` rows (b). The last time this
+was attempted it was reverted under the standing "No ts now, just rust" instruction. What changes the maths
+now is the hackathon clock in §11: the card has to render a reasoning trail on camera by 21:29 EAT on
+2 October, and (a) cannot be delivered here because the engine has never run under `cargo` (§10 item 10,
+blocked on the `workflow` scope and a deploy).
+
+So this commit builds the getter and deliberately wires nothing. `omegaClawActivitiesFor(grade)` mirrors
+`OmegaClawRules::activities_for()`: a blocked scope returns the empty list, and otherwise the rows are
+selected on the canonical **grade** symbol — which is why grade 10 gets its two activities and not
+`senior-school`'s four, the mistake the Rust façade makes if it selects on scope. An unpinned grade never
+falls back to the whole pack. If the owner answers (a), the card is written against the service and this
+function is deleted with one caller to remove; if (b), it already has its tests.
+
+Evidence, fresh at 09:44: `npx vitest run src/lib/__tests__/omega-claw-rules.test.ts --no-file-parallelism`
+→ **31 passed**, exit 0, in **1.29 s**; `npx tsc --noEmit` → **exit 0, 0 errors**, in **4 m 49 s** with
+**831 MB** peak resident set. That tsc run is the one this session's earlier attempt never got a result from,
+so the getter's typecheck was unverified until now — the wall time tripling from the 38 s recorded above is
+the laptop being busy, not the change. Four new tests, each red first: the listing is derived from the pack
+file rather than a hand-typed table, `grade4` is empty, `'Grade-6'` and `'grade 6'` fold to the same rows,
+and the listing agrees with `isOmegaClawActivityAllowed` for every row it returns.
+
+**What it does not do.** Nothing calls it. The drift lock is what makes this cheap — the test parses
+`omega_claw_rules.metta` and requires the TypeScript table to agree, so a listing that drifted from the pack
+would be red, not merely wrong.
+
 ### Items 1–4 (the security gate) are closed on `main` locally, 2026-09-29
 
 Five commits, listed in §1's table: `372089c` S-1, `e584ff4` S-3, `f97dcc5` S-4, `a966b04` S-2,
@@ -1115,7 +1145,9 @@ the pack; `blockchain-consensus` is a Senior School row the pack would refuse fo
   `omega-claw-challenge.ts`, which means O-3 now has one place to replace rather than two, but the list
   is still three invented nodes. The Rust service can answer that question
   (`{grade, scope, activities[]}`, `2d857a5`), but production reads the frozen TypeScript mirror, which has
-  no listing getter; see §10.
+  no listing getter; see §10. *(Corrected 2026-09-30: the mirror now **does** have a listing getter,
+  `omegaClawActivitiesFor()` in `4e7babb`. What remains true is that production reads it from a mirror rather
+  than from the engine, and that nothing calls it yet.)*
 - **Still open** — no scope/activity route *deployed*, so nothing in the running app can ask the question
   the pack mostly answers.
 
@@ -1433,7 +1465,9 @@ Things that are *not* proven, restated so nobody (including a future session) ha
    alone is enough.
 2. Which grade-8 / grade-1 / grade-12 test learners are actually logging in, and whether their
    feedback arrives through the `/terms`-adjacent feedback form or the Google Form in the footer.
-3. **O-3's card is blocked on a fork in the road, and I will not pick it unilaterally.** The Rust service
+3. **O-3's card is blocked on a fork in the road, and I will not pick it unilaterally.** *(Half-resolved
+   2026-09-30: the getter option (b) now exists as code — `4e7babb` — but nothing calls it, so the fork is
+   still open and the card is still unbuilt. §11's clock is what forces an answer by 1 October.)* The Rust service
    now answers "which activities does the pack approve for this grade" (`2d857a5`); production still
    answers every Omega question from the frozen TypeScript mirror, which has no listing getter. So either
    (a) the card waits for the Rust cut-over — no learner-visible change until Render holds the service, or
@@ -1514,7 +1548,117 @@ Things that are *not* proven, restated so nobody (including a future session) ha
 
 ---
 
-## 11. How to update this file
+## 11. BASIX MeTTa Omniversity hackathon — the clock, the track, and what that changes here
+
+Added 2026-09-30 09:50, on the day the build clock starts. Source: the Hacker Pack the owner attached, read
+in full. Everything below is quoted or arithmetic from it; where the pack is internally inconsistent, both
+numbers are printed rather than one chosen.
+
+### The clock
+
+Kick-off is **today, Wednesday 30 September, 10:30 IST / 08:00 EAT**. Build days are 30 Sep and 1 Oct; 2 Oct
+is polish, record and submit. The hard close is **23:59 IST / 21:29 EAT on Friday 2 October**, and the pack
+says "no exceptions" for teams and solo hackers alike. Finals and judging are Saturday 3 October,
+19:30–21:00 IST. Prize pool $1700; five winners advance to the next BASIX hackathon on 24–25 October.
+
+The owner's framing is a 48-hour budget split into dev then test. Measured against the pack, from this
+paragraph's timestamp to the deadline is **about 60 hours of which roughly 36–40 are awake working hours**
+(two nights, minus sleep), so "24 hours dev, 24 hours test" is really *"everything up to and including
+Thursday is dev; Friday is polish, record and submit"*. That is the split written below, because the pack's
+last day is explicitly not a build day.
+
+Two dates in the pack contradict the rest of it: the Quick Facts table says registration closes
+**9/27/2026** and the row under it says **9/28/2016**. Both are before today. Whether registration is still
+open is therefore unknown from the document, and it is a §7-class blocker only the owner can clear — the
+platform is https://basix.market/lms/hackathon/1. **Nothing below is worth an hour if the registration did
+not land.**
+
+### The judging maths, which is not what the repo has been optimising for
+
+All five tracks are judged **30% technical execution · 25% clarity of the 3-minute video · 25% fit to track ·
+20% documentation and build process**. Track 1 and Track 2 also publish their own weightings
+(Technical Innovation 30 / AGI Potential 30 / Implementation Quality 20 / Docs & Demo 20, and Innovation 30 /
+Technical 30 / Sustainability 20 / Presentation 20). Taking the general rubric at face value:
+
+- **70% of the score is decided by things that are not in the repository** — the video, the demo, how well the
+  thing reads as an Omega/MeTTa project, and the write-up.
+- The stated bar is *"ship a working alpha, not just an experiment — judged on usability and completeness over
+  ideation."*
+- Consequence for this map: §5's rows are all "implemented and tested, not deployed, not browser-verified",
+  which is exactly the half that a judge can see. **A deployed, click-able, recorded slice outscores three
+  more correct bricks.** That reverses the priority order in §2 for the next 36 hours.
+
+### Where we stand against the five tracks
+
+| Track | Fit | What already exists here | What is missing |
+| --- | --- | --- | --- |
+| **1 — MeTTa Foundation, "The Glass Box Agent"** | **strongest** | the 35-statement pack with 6 families; the Rust façade that loads it into a MeTTa space; `omega-claw-hint.ts`'s ladder `notice → isolate-step → representation → worked-example`, which *is* a step-by-step justification; `omega-claw-safety.ts`, which refuses in the learner's own language; `lib/attest/evidence-tree.ts` + inclusion proofs (`aa81219`, `73066f7`) | a surface that renders the derivation where a **teacher** can read it, and an interrupt-and-ask-"why?" control. The transcript itself can be produced today; the box is not yet glass on screen |
+| **1 — "The Agent That Grows Up"** | good, and cheap to prove | the drift lock: `omega-claw-rules.test.ts` parses `omega_claw_rules.metta` and fails if the TypeScript table disagrees — that is a real, checked before/after rule diff, on git history | a live correction inside the demo rather than a commit between demos |
+| **2 — Omega AI Agents, "The Agent Without Borders"** | second choice | Kiswahili-language refusals already ship; low-bandwidth is this project's whole design constraint (3.7 GB laptop, metered learners) | the pack wants the *explanation* adapted, not the strings translated — that is new work, not a re-skin |
+| **3 — The Agent That Can Be Trusted With Money** | decent, wrong story | the audit-trail machinery, and `learning_evidence` rows a skeptical manager could follow | it asks for a *business* decision (vendor quotes, micro-lending, pricing). Forcing the tutor into that frame costs days and abandons the track fit |
+| **3 — The NPC That Won't Break Character** | poor | persistent memory exists | it is a game NPC; the demo would be a distraction from an education product |
+| **4 — AI Infrastructure Layer** | **not eligible** | — | gated on having completed a prior MeTTa track or BASIX coursework |
+| **5 — Solo Track** | applies *if* solo | Omega is already the actual feature, not decoration | **AI disclosure is mandatory**, and undisclosed use is named as a disqualifying integrity issue |
+
+**The call proposed in chat, recorded here as the working assumption:** enter **Track 1, "The Glass Box
+Agent"**, and build the teacher-side glass surface. It is the only track whose deliverable list maps onto
+files that already exist, and its third bullet — *"a resource-allocation agent with step-by-step
+justification"* — is literally what the hint ladder does when it decides which of four hints to give.
+Track 5's requirements are a superset of Track 1's, so if the entry is solo, the same build satisfies it and
+only the disclosure statement is extra.
+
+### What the pack makes urgent that §7 already blocked
+
+1. **The repository must be shared with BASIX.Market.** That is submission requirement #1, and it collides
+   head-on with §7 item 9: the repo is public, every branch is cut from `main`, and the 41 commits above
+   `origin/main` are a written map of who is blocked on which credential, the hand-seeded demo accounts, the
+   compose file's default `POSTGRES_PASSWORD`, and six dangling `.sql` symlinks. The secret scan prints `0`
+   for all ten patterns, so this is disclosure, not leakage — but sharing that history with an external
+   organisation is a bigger act than pushing it to GitHub. **A clean branch with the map stripped, or a
+   private repo with BASIX.Market added, are the two survivable options**, and the owner has to pick before
+   Thursday night. This is now the single hardest blocker on the submission, above the `workflow` scope.
+2. **AI disclosure is mandatory** (stated for Solo, sensible for all). Given how this repository was built,
+   that statement has to be honest about the assistant's role in writing both the code and this roadmap.
+3. **Registration may have closed** — see the two contradictory dates above.
+
+### The 36-hour plan this implies
+
+Dev, Wed 30 Sep → end of Thu 1 Oct:
+
+1. Deploy-and-verify before new code: read the background `tsc`, commit or discard the uncommitted Omega
+   getter, spend the day's Vercel deploy deliberately, and browser-verify **one learner crossing into mastery
+   and earning 50 points** on the live URL. Stage 1's oldest unverified claim, and it is video material.
+2. `lib/attest/derive.ts` + `derivation-route.ts` — turn an agent decision into an ordered, printable trail
+   (the facts matched, the rule that fired, the conclusion) straight from the pack, so the transcript cannot
+   be hand-authored. ~3 hours, tests red first.
+3. The teacher-side glass surface: one learner's session, its hints and refusals, each expandable to its
+   derivation, plus an interrupt control that re-runs the trail from that point. This is the "why?" the track
+   asks for live, and it is what the unmounted teacher dashboard was actually for.
+4. The `sign.ts` tail (Ed25519 over the trail, key from `ATTEST_KEY`, refuses silently when absent) — one
+   hash on screen turns "trust me" into "verify me", which is the differentiator nobody else in the field has.
+5. AI disclosure statement + README (problem / solution / technology) written as the code lands, not on
+   Friday.
+
+Test, record and submit, Fri 2 Oct:
+
+1. Freeze features at 10:30 IST. Nothing new after that, only fixes.
+2. Browser-verify the deployed app as the demo roles on the live URL; fix what breaks; assume one deploy.
+3. Capture the sample reasoning transcript from the running app, not from a fixture.
+4. Script and record the 3-minute video — 25% of the score, and the cheapest points available. The
+   storyboard is: state the black-box problem, show a learner's hint, ask "why?", show the derivation,
+   interrupt it live, show it re-derive, state what's next.
+5. Submit before **23:59 IST / 21:29 EAT**: repo shared with BASIX.Market, docs, video, "what you'd build
+   next". Leave two hours of margin; the pack says no exceptions twice.
+
+### What this does not change
+
+Stages 0–5, §7's blockers and §10's open questions all still stand. What §11 changes is the *order* for two
+days: things that make an existing capability visible and checkable outrank things that add capability,
+because visibility is 70% of the score and the deadline is a hard one.
+
+---
+
+## 12. How to update this file
 
 At the end of a work session, in the same commit as the work: move the checkboxes, change §1's
 "where we are", add a row to §8 for any decision made, and demote anything in §5 whose evidence
