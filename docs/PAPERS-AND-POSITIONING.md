@@ -119,7 +119,125 @@ Three things to take from this and nothing to exaggerate:
 5. **A cheap, honest second scene:** the drift lock is a real, machine-checked before/after rule diff
    (`4e7babb`). That is the *Agent That Grows Up* material, already in git history, needing no new code.
 
-## 6. What this file does not establish
+## 6. Education sweep, slice 2 — 2026-09-30, one call at a time
+
+Source swept: [AI-Based Intelligent Tutoring Systems](https://www.emergentmind.com/topics/ai-based-tutoring-systems),
+then the underlying arXiv records it cites. Findings grouped by the question each one answers.
+
+### The most useful paper found, and it is close to a blueprint for our pitch
+
+**AI2T: Building Trustable AI Tutors by Interactively Teaching a Self-Aware Learning Agent** — Weitekamp,
+Harpstead, Koedinger ([arXiv 2411.17924](https://arxiv.org/abs/2411.17924)). Same first author as TutorGym, so
+this is the same research group stating the constructive half after stating the critical half. Abstract,
+quoted:
+
+- *"AI2T is an interactively teachable AI for authoring intelligent tutoring systems (ITSs)."* The teacher is
+  the author.
+- *"Authors tutor AI2T by providing a few step-by-step solutions and then grading AI2T's own problem-solving
+  attempts."* That loop is exactly Track 1's *Agent That Grows Up* deliverable — *"an agent that gets corrected
+  and shows the diff between old and new rule"*.
+- *"From just 20-30 minutes of interactive training, AI2T can induce robust rules for step-by-step solution
+  tracking."*
+- *"AI2T-induced programs are more reliable than hallucination-prone LLMs."* **A 2024–26 CMU-lineage paper
+  saying induced rules beat LLMs for tutor logic.** This is the single best sentence available to us, and we
+  did not have to earn it — it does the arguing for the whole neuro-symbolic choice.
+- *"normally require as many as 200-300 hours of programming per hour of instruction"* — the authoring-cost
+  baseline that makes 20–30 minutes a 400× reduction. For a curriculum with 8 grades and dozens of subjects,
+  that is the Kenya-scale argument, and it is stronger than the StudentBench cost figure because it is about
+  *building* the tutor, not *running* it.
+- *"STAND: a self-aware precondition learning algorithm that outperforms state-of-the-art methods like
+  XGBoost"* — certainty estimation on unseen steps, which is our uncertainty-flagging material.
+
+**How we use it:** the teacher-side glass surface should be framed as *authoring-by-correcting*, not as a
+dashboard for watching a black box. A teacher reading a derivation can disagree with it, and the disagreement
+is the raw material for a rule change — with AI2T as the precedent that this produces something *"more
+reliable than hallucination-prone LLMs."*
+
+### What the topic page supplied, question by question
+
+1. **Wrong-pedagogical-action rate: not quantified on that page.** It reports success framings instead —
+   *"in-scope answer accuracies of 98%"* for specialised coding assistants
+   ([2407.15718](https://arxiv.org/abs/2407.15718), [2405.08008](https://arxiv.org/abs/2405.08008)). Do not
+   cite those as evidence about hint choice; they are in-scope answer accuracy, a different claim. The
+   failure-rate evidence stays **TutorGym** (§3) and the BEAM/memory numbers (§8 below).
+2. **Symbolic components constraining LLM tutors — confirmed as mainstream, not fringe.** The page's own
+   review language: architectures integrate *"hand-authored rules, curated knowledge graphs, or, increasingly,
+   retrieval-augmented LLMs"* ([A Comprehensive Review of AI-based ITS](https://arxiv.org/abs/2507.18882)), and
+   names *"inspectable Hierarchical Task Networks"* as the transparent-planning route to regulating agent
+   output. *"Hand-authored rules"* is what our pack is, and *"inspectable"* is what we are shipping — that
+   review is the citation for "this is the accepted architecture, not a stunt".
+3. **Teacher oversight — the richest vein, four papers.**
+   - *"Educator modification panels accelerate improvement cycles while preserving instructional authority"* —
+     [MathAIde, a mixed user-centred approach](https://arxiv.org/abs/2508.00103). **"Preserving instructional
+     authority" is the phrase for our entry text.**
+   - Compliance language we can quote directly: *"demographic parity constraints, audit mechanisms, and
+     human-in-the-loop oversight"* ([Generative AI and Its Impact on Personalized ITS](https://arxiv.org/abs/2410.10650)).
+     An audit mechanism is a named requirement, not our invention.
+   - Teacher-authored tutor interfaces: [Towards Educator-Driven Tutor Authoring](https://arxiv.org/abs/2405.14713).
+   - Evaluation by pedagogy rather than by fluency: [Pedagogy-driven Evaluation of Generative AI-powered
+     ITSs](https://arxiv.org/abs/2510.22581), and the page's *"direct annotation of dialogue for pedagogical
+     dimensions"* — which is what a transcript a teacher can read is *for*.
+4. **Efficacy numbers to use instead of our own:** meta-analytic learning effects of *"d≈0.4–0.6"*, completion
+   *"often doubled relative to standard MOOC platforms"*, and preference-tuned feedback ranking alignment at
+   *"RBO ≈0.81"*. Use d≈0.4–0.6 as the ITS effect-size anchor; it is broader than StudentBench's GRE-only
+   result and does not require us to re-litigate efficacy.
+5. **Low-resource and multilingual is explicitly a named design goal:** platforms engineered to *"enable
+     deployment in under-resourced or low-bandwidth educational settings"*, with
+     [AI-ALST for Arabic](https://arxiv.org/abs/2210.12346) as the working precedent and
+     [Advancing Education through Tutoring Systems: a Systematic Literature Review](https://arxiv.org/abs/2503.09748)
+     as the survey. **Kiswahili is not in that list, which is a genuine gap we can claim honestly** — not a
+     novel architecture, but an un-covered language-and-curriculum pairing.
+
+### What Emergent Mind's education coverage does *not* contain
+
+No page-level treatment of: **verifiable or tamper-evident tutor records** (nothing on signing or hashing an
+agent's decisions so a third party can recheck them), no CBC/African-curriculum alignment work, and no paper on
+a teacher auditing a *symbolic* trace specifically — the oversight literature above is about correcting and
+authoring behaviour, not about verifying a record after the fact. **That is our gap, and it is narrow enough to
+be true.** Stated as a claim: rule-induction for tutors is published (AI2T), teacher-authoring panels are
+published (MathAIde), audit *requirements* are named (2410.10650) — the third-party-verifiable audit trail is
+the piece with nothing cited against it here.
+
+## 7. The memory claim, measured against 2026 benchmarks
+
+From [mem0's 2026 memory-benchmark roundup](https://mem0.ai/blog/ai-memory-benchmarks-in-2026): LoCoMo
+evaluates *"very long multi-session dialogue at scale"* with vendor claims of 92.5% and 94.7%; knowledge-update
+accuracy reaches 94.4%; but **BEAM**, which checks persistence where *"memory still matters at 1M and 10M token
+scales"*, reports **64.1% at 1M and 48.6% at 10M**, and the page notes disputed scores from methodology
+differences. [LongMemEval-V2](https://arxiv.org/html/2605.12493v1) (arXiv 2605.12493) is the current
+academic instrument.
+
+**Consequence for our wording, and it is a restriction, not a suggestion:** "the agent remembers" is a
+measured research claim with a bar we do not clear and cannot test here. Our state is rows in
+`learning_progress`, `daily_activity` and `chat_sessions`, persisted server-side and read back on the next
+request. So the video and README say **"persisted, server-graded state"**, never "memory", unless we are
+prepared to say which benchmark and our score on it. Solo-track integrity rules make an unsupportable memory
+claim the most expensive kind of thing to say out loud.
+
+## 8. Self-modification: the finding that constrains the *Grows Up* scene
+
+**Self-Authored Verification Is Unreliable in Heuristic Self-Improving Agents**
+([arXiv 2607.24300](https://arxiv.org/abs/2607.24300), Guo et al., Jul 2026) — an agent that writes the check
+for its own edits cannot be trusted to catch its own bad edits. Related current work: *When Better Gets Worse:
+Improvement Fidelity for Self-Improving Agents* ([arXiv 2609.32677](https://arxiv.org/html/2609.32677v1),
+three days old as of writing) and *Self-Improvements in Modern Agentic Systems: A Survey*
+([arXiv 2607.13104](https://arxiv.org/html/2607.13104v1)).
+
+**This is the argument for why our drift lock is not cosmetic.** `omega-claw-rules.test.ts` parses
+`omega_claw_rules.metta` from *outside* the pack and fails the build if the mirror disagrees — the pack never
+grades itself, and the checker is written by a different code path than the thing checked. If we show a live
+rule correction on camera, the honest framing is: the edit is proposed here, but its acceptance is decided by
+an external test, because the July 2026 literature says a self-authored acceptance test is the failure mode.
+
+**Evaluating the Ripple Effects of Knowledge Editing in Language Models**
+([arXiv 2307.12976](https://arxiv.org/abs/2307.12976), TACL 2024) built 5K factual edits and found
+*"current methods fail to introduce consistent changes"*, with a simple in-context baseline scoring best.
+Bears on us because the pack is hand-edited: one rule change can silently contradict another, and 35
+statements is small enough to check all pairs — which is what a drift lock plus a scope-consistency test can
+do, and is a cheaper and more honest version of the same idea.
+
+
+## 9. What this file does not establish
 
 No claim here has been reproduced by us. StudentBench's equivalence is on GRE tutoring with 2,383 adult
 participants, not Kenyan CBC children — the transfer to our population is an assumption, and the entry must
