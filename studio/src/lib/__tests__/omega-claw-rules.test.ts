@@ -82,6 +82,7 @@ const {
   clampOmegaClawHintLevel,
   isBlockedOmegaClawTopic,
   isOmegaClawActivityAllowed,
+  omegaClawActivitiesFor,
   omegaClawCanUnlockTransfer,
   omegaClawHintFor,
   omegaClawNextActionForOutcome,
@@ -226,5 +227,47 @@ describe('blocked topics read as prose too', () => {
   it('catches a spaced-out request for trading advice', () => {
     expect(isBlockedOmegaClawTopic('lesson about crypto trading')).toBe(true);
     expect(isBlockedOmegaClawTopic('how to keep coins in a wallet')).toBe(false);
+  });
+});
+
+describe('the listing getter agrees with the pack it mirrors', () => {
+  const metta = mettaRules();
+
+  it('lists, for every grade the pack pins, exactly the rows the pack pins', () => {
+    // The card asks "what may this learner do next", which is a listing question, and until now the only
+    // answer in the mirror was yes/no per activity. A getter written against the mirror's own table would
+    // prove nothing about drift, so this asks the pack.
+    const byGrade = new Map<string, string[]>();
+    for (const entry of metta.activities) {
+      const [grade, activity] = entry.split(',');
+      if (grade.startsWith('$')) continue;
+      byGrade.set(grade, [...(byGrade.get(grade) ?? []), activity]);
+    }
+    expect(byGrade.size).toBeGreaterThan(2);
+    for (const [grade, activities] of byGrade) {
+      expect([...omegaClawActivitiesFor(grade)].sort(), `activities for ${grade}`).toEqual(
+        [...activities].sort(),
+      );
+    }
+  });
+
+  it('answers a grade the pack never pins with nothing, not with the whole pack', () => {
+    expect(omegaClawScopeFor('grade4')).toBe('blocked');
+    expect(omegaClawActivitiesFor('grade4')).toEqual([]);
+  });
+
+  it('folds the spellings a CBC record arrives with before it looks', () => {
+    expect(omegaClawActivitiesFor('Grade-6')).toEqual(omegaClawActivitiesFor('grade6'));
+    expect(omegaClawActivitiesFor('grade 6')).toEqual(omegaClawActivitiesFor('grade6'));
+  });
+
+  it('never lists an activity the per-activity check would refuse', () => {
+    for (const grade of ['grade6', 'grade10', 'grade12', 'senior-school']) {
+      const listed = omegaClawActivitiesFor(grade);
+      for (const activity of listed) {
+        expect(isOmegaClawActivityAllowed(grade, activity), `${grade}/${activity}`).toBe(true);
+      }
+      expect(isOmegaClawActivityAllowed(grade, 'an-activity-not-in-the-pack')).toBe(false);
+    }
   });
 });

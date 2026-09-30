@@ -152,6 +152,24 @@ export function isOmegaClawActivityAllowed(grade: string, activity: string): boo
   return ACTIVITIES.some(([rowGrade, rowActivity]) => rowGrade === gradeKey && rowActivity === activityKey);
 }
 
+/**
+ * `OmegaClawRules::activities_for()` — the listing half, in the pack's own row order.
+ *
+ * The card's question is "what may this learner do next", which is a listing question and could only be
+ * answered one activity at a time by `isOmegaClawActivityAllowed()`. Two things this deliberately does not
+ * do: it never falls back to the whole pack when a grade has no rows, because a Grade 4 learner shown the
+ * Grade 12 blockchain strand is the failure the `blocked` scope exists to prevent; and it selects on the
+ * canonical *grade* symbol rather than the scope, so a Grade 10 gets the two rows the pack pins for
+ * `grade10` and not the four pinned for `senior-school` — which is what the façade's
+ * `(omega-claw-activity {normalized} $activity)` query returns, and the drift lock in
+ * `omega-claw-rules.test.ts` asks the `.metta` file rather than this array.
+ */
+export function omegaClawActivitiesFor(grade: string): readonly string[] {
+  if (omegaClawScopeFor(grade) === 'blocked') return [];
+  const gradeKey = canonicalOmegaClawGrade(grade);
+  return ACTIVITIES.filter(([rowGrade]) => rowGrade === gradeKey).map(([, rowActivity]) => rowActivity);
+}
+
 /** `OmegaClawRules::next_action_for_outcome()`; throws so the caller can 400. */
 export function omegaClawNextActionForOutcome(outcome: string): OmegaClawNextAction {
   const action = NEXT_ACTION_BY_OUTCOME[canonicalOmegaClawToken(outcome)];
