@@ -2,6 +2,12 @@
 
 This file tells AI agents (Bonsai, Kiro, etc.) how to work in this codebase.
 
+**Read `docs/BASIX-NORTH-STAR.md` first.** It is the operating charter for this project: the one
+sentence the product is allowed to say, the three claim tiers (proven / recorded-unverified / in-our-docs
+and false), the five filters a task passes before it enters the plan, and the anti-patterns that put the
+ladder against the wrong wall for a month. `docs/research/BASIX-FINAL-POSITION.md` carries the evidence
+behind it. Where this file and the charter disagree, the charter wins.
+
 ## Project Identity
 
 SyncSenta is a **Web4 Education OS** for Kenya's CBC curriculum.
@@ -111,6 +117,7 @@ is needed.
 | `backend/syncsenta-backend/src/` | Rust Axum API |
 | `studio/src/` | Next.js application — the deployed web frontend |
 | `studio/src/lib/omega-agent/` | Omega adaptive tutoring decision engine, and the TypeScript mirror of the Omega Claw rule pack |
+| `studio/src/lib/omega-claw-api.ts` | The switch: forwards to Rust only when `SYNCSENTA_BACKEND_URL` is set. Note it sits one directory above the mirror it is part of |
 | `rust-core/` | Adaptive policy source of truth |
 | `docs/architecture/laya-decision-router.md` | Where an open-weight decision model may and may not sit in the tutoring loop |
 | `docs/README.md` | Which documentation is authoritative |

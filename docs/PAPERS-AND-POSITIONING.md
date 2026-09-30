@@ -193,13 +193,29 @@ reliable than hallucination-prone LLMs."*
 
 ### What Emergent Mind's education coverage does *not* contain
 
-No page-level treatment of: **verifiable or tamper-evident tutor records** (nothing on signing or hashing an
-agent's decisions so a third party can recheck them), no CBC/African-curriculum alignment work, and no paper on
-a teacher auditing a *symbolic* trace specifically — the oversight literature above is about correcting and
-authoring behaviour, not about verifying a record after the fact. **That is our gap, and it is narrow enough to
-be true.** Stated as a claim: rule-induction for tutors is published (AI2T), teacher-authoring panels are
-published (MathAIde), audit *requirements* are named (2410.10650) — the third-party-verifiable audit trail is
-the piece with nothing cited against it here.
+Nothing on these pages about **CBC/African-curriculum alignment**, and no paper on a teacher auditing a
+*symbolic* trace specifically — the oversight literature above is about correcting and authoring
+behaviour, not about reading a derivation.
+
+**The claim this section made on 29 September was too wide, and is corrected here.** It asserted that
+*"verifiable or tamper-evident tutor records"* were an unclaimed gap, "nothing on signing or hashing an
+agent's decisions so a third party can recheck them". They are not unclaimed.
+[**Agent Audit Trail: A Standard Logging Format for Autonomous AI Systems**](https://datatracker.ietf.org/doc/draft-sharif-agent-audit-trail/)
+by Raza Sharif — IETF **individual** Internet-Draft, revision 06, last updated 29 September 2026, with no
+standards-body standing, which is the weakest thing that still counts as prior art — already specifies a
+JSON logging format enforcing tamper-evident chaining, pre-execution recording and privacy preservation to
+meet regulatory standards. Independently,
+[2410.10650](https://arxiv.org/abs/2410.10650) names the audit *mechanisms*, and the signed-log and
+transparency literature predates both. So the hashing scheme is not ours and we must not say it is.
+
+What is left, and is defensible: **the subject of the record is a child, and the verifier is a named
+teacher rather than an auditor or a model.** Published verifiable-audit work assumes an institution
+checks after the fact; nobody cited here has a classroom practitioner as the person who reads the trace
+and whose disagreement becomes the next interaction. Stated as a claim: rule-induction for tutors is
+published (AI2T), teacher-authoring panels are published (MathAIde), tamper-evident agent records are
+specified (IETF individual draft), audit requirements are named (2410.10650) — the un-covered pairing is
+*child data, teacher-as-verifier, and the override wired into the next turn*, which is exactly what we are
+building this week. Narrower than what we said before. True this time.
 
 ## 7. The memory claim, measured against 2026 benchmarks
 

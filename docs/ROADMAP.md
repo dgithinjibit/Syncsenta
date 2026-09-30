@@ -28,6 +28,15 @@ them is committed locally only, so on production today those surfaces honestly s
 holds. What has no surface at all is rank and the class board: `get_leaderboard()` exists and is granted to
 `authenticated`, and nothing in `src` calls it (§3 Stage 1's open read task).**
 
+**Added 2026-09-30, and it applies to everything above.** A full sweep of the research corpus against the
+code found that the two engines Track 5 asks us to show have **never been executed by any runner**: the
+Rust CI workflow is not on `origin/main` and 404s on GitHub, so `rust-core`'s 99 tests and the façade's 24
+have not run anywhere, and production answers pedagogy from two TypeScript files. Read
+[`docs/research/BASIX-FINAL-POSITION.md`](research/BASIX-FINAL-POSITION.md) for the evidence and the four
+Tier C sentences in our own artefacts that describe work which does not exist, and
+[`docs/BASIX-NORTH-STAR.md`](BASIX-NORTH-STAR.md) for the charter that stops it recurring — that file is
+now pointed at from `AGENTS.md` and outranks prose here.
+
 **Later the same day: the owner's security gate — items 1–4 of `docs/SCOPE-SECURITY-AND-OMEGA.md` — is
 closed, with every one of its four criteria backed by a guard suite that was checked red first. Five
 commits, locally green (`tsc` exit 0, 686 tests passing), and deliberately not pushed: the day's Vercel
@@ -1258,6 +1267,11 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-29 | **The anchor commits to what the learner did, not to what a teacher later said about it** — review columns stay outside `syncsenta-evidence-v1` | agent, following the research note's own argument | `aa81219`. `reviewed_by` / `reviewed_at` / `created_at` / `event_id` are excluded so a review next term cannot move the root that term was anchored under; callers may still pass whole `SELECT *` rows, because keys outside the version are ignored. The version *is* the field set, so adding one means `v2` and a new golden fixture, not an edit |
 | 2026-09-29 | **Where a public contract meets an ECMAScript quirk, refuse the input rather than normalise it quietly** | agent | Same commit: an evidence `id` that is not a lowercase canonical uuid throws instead of being sorted by whatever the host defaults to (a Python mirror would sort it differently); a `captured_at` that is not a moment throws instead of becoming a hash of a typo; an empty class-term throws instead of producing a predictable root. Sub-second precision *is* normalised away, and the asymmetry is written into the file header — the difference being that second-precision is stated as the rule, so a mirror can copy it |
 | 2026-09-30 | **Submit from this repository, made private first — not from a new clean repo carved for the hackathon** | owner asked which; agent recommended, pending the owner's word | A carve-out costs days for no score: the glass box cannot be lifted out of a Next.js app that needs its Supabase session, curriculum registry and env to run, and `Syncsenta` has no plugin boundary to merge back into. Worse, 20% of the score is *documentation and build process*, and a fresh repo's one squashed commit shows none — these 43 commits, each with its red-first test evidence in the message, **are** that 20%. Flipping to private before pushing keeps the map (§7, §10, the hand-seeded accounts, the named default `POSTGRES_PASSWORD`) out of public history entirely, so the disclosure decision and the submission decision stop competing. Order matters and is in §11: **private → push → fix the `Ascendra` URL → add BASIX.MARKET as a collaborator.** |
+| 2026-09-30 | **`docs/BASIX-NORTH-STAR.md` is the operating charter, and it outranks prose in this file** | owner ("*create a parahelp kind of meta prompting to be your north star*") | One sentence the product may say, three claim tiers (proven / recorded-unverified / in-our-docs-and-false), five filters a task passes before entering the plan, and the anti-pattern registry that chose the wrong wall. `AGENTS.md` now points at it at line 3 so every future session inherits it instead of re-deriving it |
+| 2026-09-30 | **"Built on Omega" is retired. It was never true** | agent, after repo-wide + history search | `github.com/singnet/Omega` is a Python neural-symbolic **agent framework** (fork of `patham9/mettaclaw`, 1,311 commits, continuous execution loop, NAL + PLN libraries). Zero references to it in our code, docs, specs or commit messages; no NAL, no PLN, no continuous loop here. Hyperon is git-pinned and **feature-gated off** (`syncsenta-backend/Cargo.toml`: `default = []`, `metta = ["dep:hyperon"]`, CI comment "*NOT COVERED HERE*"). We use MeTTa syntax and our own engines. Evidence in `docs/research/BASIX-FINAL-POSITION.md` §3 |
+| 2026-09-30 | **The 2026-09-29 decision "CI runs the Rust tests" is not in force, and no Rust test in this repository has ever executed** | agent, Tier A | `git ls-tree origin/main .github/workflows/` lists `fetch-bible-corpus.yml`, `omega-threshold-sync.yml`, `studio-gates.yml` only; `GET /actions/workflows/rust-gates.yml` returns **404**. So `rust-core`'s **99 `#[test]`s** (5,075 lines) and the façade's 24 have never run anywhere. This does not reverse the 2026-09-29 finding that the engine itself was broken — it says the fix is also unproven. Unblocking needs the `workflow` scope on the token, not more code: §7, §9 |
+| 2026-09-30 | **The gap we claim narrows: tamper-evident agent records already have prior art** | agent | `docs/PAPERS-AND-POSITIONING.md` §6 asserted verifiable tutor records were unclaimed. They are not — [Agent Audit Trail](https://datatracker.ietf.org/doc/draft-sharif-agent-audit-trail/) (Raza Sharif, IETF **individual** draft, rev 06, updated 29 Sep 2026) specifies tamper-evident chained JSON agent logs for regulatory duties. What stays defensible: **child data, a named teacher as the verifier, and the override wired into the next turn**. My first correction guessed "June 2026" for the date; the fetch said September, and the document now carries the verified date and URL |
+| 2026-09-30 | **Deviation from the mirror freeze needs the owner's ruling: `4e7babb` added `omegaClawActivitiesFor` to `omega-claw-rules.ts`** | agent, self-reported | The 2026-09-29 decision says the mirror is frozen, not extended. A listing getter was added to satisfy the frontend card because the Rust service has no activity-listing route; it has **zero importers** today. Either the owner accepts it as the pre-cut-over exception, or the getter is deleted and the card stops asking. Recorded, not quietly kept — §10 |
 
 ---
 
@@ -1724,6 +1738,48 @@ Test, record and submit, Fri 2 Oct:
    interrupt it live, show it re-derive, state what's next.
 5. Submit before **23:59 IST / 21:29 EAT**: repo shared with BASIX.Market, docs, video, "what you'd build
    next". Leave two hours of margin; the pack says no exceptions twice.
+
+### 2026-09-30, later the same day: the dev half above is superseded, and here is why
+
+The owner asked for the whole research corpus read end to end — `.kiro/specs/**` (9,297 lines), `docs/**`
+(13,300+ lines) against the code each of them describes — and said *"i dont think we are to start from
+scratch but seems we had our ladder on the wrong wall NGL."* The verdict, with evidence, is
+[`docs/research/BASIX-FINAL-POSITION.md`](research/BASIX-FINAL-POSITION.md): the ladder is sound and it is
+leaning against a wall we built in Rust and never plugged into the running product. Two corrections to the
+plan above follow from it, and they are order-and-scope corrections, not a restart.
+
+1. **The 29 Aug architecture decision is the wrong wall, in writing.** `OMEGA_ARCHITECTURE.md` chose
+   thresholds over symbolic reasoning — *"Tutoring decisions don't need symbolic reasoning (just
+   thresholds)"*, *"Hyperon not required"*, the MeTTa graph is a *"Conceptual demonstration … Not used in
+   production tutoring decisions"*, closing with *"✅ No changes needed — architecture is sound!"*. It was
+   a defensible product call (sub-100 ms, $0, metered-data-friendly) and it is the direct opposite of what
+   Track 5 asks for. Nothing re-litigates it this week: for the hackathon, the derivation *is* the feature.
+2. **Two of the three things Track 5 wants already exist as tested-but-unexecuted code.** `rust-core` is
+   5,075 lines with **99 tests nobody has run**; `syncsenta_policy.metta` is 137 lines embedded at
+   `rust-core/src/lib.rs:72`; `rust-hyperon-bridge` executes it under a Tier-B record. About **10,000
+   lines of rule and decision code exist for one tutor, and production answers from two TypeScript files.**
+   The highest-value action is not writing rules — it is making one voice answer, visibly.
+
+The five spoons, in order, each red-first, each its own commit, each sized for this machine:
+
+1. `studio/src/lib/attest/derive.ts` — one Omega decision becomes an **ordered derivation read from
+   `omega_claw_rules.metta`**, never a hand-written transcript. ~3 h.
+2. Print it where the product already speaks: replace the status string injected at
+   `app/api/chat/route.ts:534` (`"MeTTa student-turn boundary: recorded"`) with the derivation. ~2 h.
+3. **Make the teacher loop real instead of fictional** — mount the orphaned `feedback-widget.tsx` (zero
+   importers), fix the payload↔zod mismatch that 400s it, land the correction as a row the mirror consults
+   *before* the pack, naming the teacher and the timestamp; delete the branch that promises tests and an
+   email. ~4 h. The semantics are already decided, not invented: `rust-core/src/teacher_adaptation.rs`
+   specifies `adapt_next_interaction`, *"changes the interaction plan, not the learner's score"*, and never
+   copies teacher text into a prompt.
+4. Ed25519 over canonical JSON from `ATTEST_KEY`, refusing honestly when unset. ~2 h.
+5. README, mandatory AI disclosure, 3-minute video, "what we'd build next". ~3 h.
+
+Step 1 of the plan above (deploy-and-verify one learner crossing into mastery on the live URL) still comes
+first in wall-clock terms — it is Stage 1's oldest unverified claim and it is video material. Friday is
+unchanged. Cut for the week, so nobody re-opens it: the on-chain credential sentence, "built on Omega",
+every subject except **AI and blockchain**, every grade below **Grade 6**, Leptos/Topcoat, any Rust rewrite
+of `studio/`, payments, the three frozen roles, and sign-ups.
 
 ### What this does not change
 
