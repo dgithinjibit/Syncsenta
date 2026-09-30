@@ -1598,6 +1598,23 @@ The two contradictory registration dates in the pack (**9/27/2026** in Quick Fac
 under it) are now moot on the registration question and live on the deadline question — the submission close
 stays **23:59 IST / 18:29 UTC on 2 October**, and the platform's own *"2 days left"* agrees with that.
 
+### The literature position, 2026-09-30 — see `docs/PAPERS-AND-POSITIONING.md`
+
+The owner asked for a pivot off the back of StudentBench (the paper at `emergentmind.com/papers/2609.28470`,
+read in full). Short version, with every quote traced in the new file: **the efficacy argument is closed**
+(AI ≡ expert human tutoring, p = .015, at 918× lower cost, 2,383 participants), so re-opening on it reads as
+behind the field; the open hole is **auditability**, and chain-of-thought is not a fix for it — the best 2026
+circuit-guided faithfulness detector still only reaches 78.0% / 77.0%, which means "show your chain of thought"
+is the same unsolved problem, not the answer. Two further findings that change our wording: production LLM
+tutor pipelines already *"fallback to deterministic finite-state tutors"*, and instructional theory in them is
+*"rarely systematically implemented or evaluated"* — the field conceding that the rules are where correctness
+lives. And **neural-symbolic knowledge tracing is already published** (arXiv 2604.08263, >0.80 AUC at 10% of
+training data, explanations from a *"grounded computation graph that exposes the logic behind each
+prediction"*), so this file retires any novelty claim about the architecture and keeps the narrower one that
+survives: our trace is **portable and third-party verifiable**, not merely inspectable by the system that made
+it. Consequences 1–5 in that file are the ones that bind §11's plan, including replacing the entry text's
+on-chain sentence.
+
 ### The judging maths, which is not what the repo has been optimising for
 
 All five tracks are judged **30% technical execution · 25% clarity of the 3-minute video · 25% fit to track ·
