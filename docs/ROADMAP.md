@@ -1560,6 +1560,12 @@ Things that are *not* proven, restated so nobody (including a future session) ha
      machine to build on. By 2030 the question will be whether Topcoat matured, not whether we guessed early.
      Say the word and the audit is the next spoon; say "rewrite" and it becomes a Stage 4 item with a hardware
      prerequisite, and I will write it here as that.
+10. **How does the derivation find its pack on Vercel?** `derive.ts` reads
+    `backend/syncsenta-backend/data/omega_claw_rules.metta` at runtime, which is not in a bundle whose root
+    directory is `studio/`, so the trace fails honestly rather than working. Pick one before the video: an
+    `OMEGA_RULES_PACK` path the deployment ships, a build-time byte copy with the drift lock extended to
+    compare the two files, or the Rust service answering over HTTP. The middle one costs a duplicated
+    *file* and no duplicated *logic*; the third is the one this project actually wants long-term.
 
 ---
 
@@ -1780,6 +1786,33 @@ first in wall-clock terms — it is Stage 1's oldest unverified claim and it is 
 unchanged. Cut for the week, so nobody re-opens it: the on-chain credential sentence, "built on Omega",
 every subject except **AI and blockchain**, every grade below **Grade 6**, Leptos/Topcoat, any Rust rewrite
 of `studio/`, payments, the three frozen roles, and sign-ups.
+
+### Spoon 1 is done: `studio/src/lib/attest/derive.ts` (2026-09-30, Tier A)
+
+Red first (`Cannot find package '@/lib/attest/derive'`), then green, then the gates:
+
+- `npx vitest run src/lib/__tests__/derive.test.ts` → **31 passed, 51 ms**; with the drift lock alongside,
+  **62 passed (2 files), 1.12 s**.
+- `npx tsc --noEmit -p tsconfig.json` → **exit 0, zero diagnostics** (run twice, the second time with the
+  exit code captured instead of masked by a pipe).
+- What the 31 tests actually pin, because that is the Track 5 claim: every conclusion carries a real
+  `omega_claw_rules.metta` line number; the derivation's answer equals the mirror's answer for every grade,
+  activity, outcome, hint level and all four transfer combinations (**one decision, two renderings — not a
+  third engine**); rows the pack *rejected* appear in the trace, so `(omega-claw-can-unlock-transfer true
+  false)` shows line 42 being refused before line 43 answers `no`; and a missing or statement-free pack
+  throws `OmegaClawPackUnavailableError` instead of producing a plausible transcript.
+- Two rules written into the file header, because both were decisions: a **fact head** like
+  `omega-claw-activity` is closed-world, so "no row binds" *is* the answer `no`; a **value head** like
+  `omega-claw-next-action` has no catch-all, so the same situation throws rather than defaulting.
+
+**The gap this opens, which must be closed before spoon 2 goes live.** The pack is read at runtime from
+`../backend/syncsenta-backend/data/…`, which exists on this machine and under `vitest` but **not inside a
+Vercel function that bundles only `studio/`**. On production the derivation answers
+`OmegaClawPackUnavailableError` — honestly, but not usefully on camera. Three ways out, in ascending order
+of how well they respect one-voice: point `OMEGA_RULES_PACK` at a path the deployment really ships; copy the
+pack into the bundle at build time (a byte-identical copy, with the drift lock extended to compare files
+rather than logic — a second *file*, not a second *decision-maker*); or deploy the Rust service and ask it
+over HTTP. Not chosen unilaterally: §10. Recording it here is the point, so it is not discovered on stage.
 
 ### What this does not change
 
