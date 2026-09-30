@@ -1840,6 +1840,17 @@ arriving as a `fetch()` of a static asset or as text passed in by the caller. It
 the pack on a CDN — that is the narrowed half of §10 item 10, and it becomes real when the reconciler page
 exists rather than as a file created in advance of its importer.
 
+**One follow-up inside the same file, found by the first attempt at spoon 2.** `parsePack`'s equality value was
+`(\S+)`, so a row whose right-hand side is prose — `(= (ai-design-name 2.1) "Search and Problem Solving")`,
+which is every KICD sub-strand name — matched neither regex and was **dropped silently**. That is the exact
+failure this module exists to prevent, arriving from the inside: the design would have read as absent. The
+value is now `("(?:[^"\\]|\\.)*"|\S+)`, quotes stripped into `PackRow.value` because quotes are surface syntax
+and a caller compares them against a teacher's draft text, with `PackRow.text` still carrying the line as the
+pack writes it. Red first (2 new tests failing, 31 passing), then green — and the red was instructive: my
+first regex dropped the trailing `\)`, which made `\S+` swallow the closing paren and fail **19 tests** with
+`expected 'introductory)' to be 'introductory'`. Evidence: `npx vitest run --no-file-parallelism` over
+`derive.test.ts`, `derive-browser-safe.test.ts`, `omega-claw-rules.test.ts` → **exit 0, 68 passed (3 files)**.
+
 ### What this does not change
 
 Stages 0–5, §7's blockers and §10's open questions all still stand. What §11 changes is the *order* for two

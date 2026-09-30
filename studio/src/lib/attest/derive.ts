@@ -54,7 +54,11 @@ export type PackRow = {
   readonly text: string;
   readonly head: string;
   readonly args: readonly string[];
-  /** The right-hand side of an `(= …)` row, or `null` for a bare fact like `(omega-claw-activity …)`. */
+  /**
+   * The right-hand side of an `(= …)` row, or `null` for a bare fact like `(omega-claw-activity …)`. A quoted
+   * value is stored as the string it wraps, because that is what a caller compares a teacher's draft against;
+   * `text` still holds the line as the pack writes it, quotes included.
+   */
   readonly value: string | null;
 };
 
@@ -113,6 +117,15 @@ export class OmegaClawNotApprovedError extends Error {
 // Parsing
 // ─────────────────────────────────────────────────────────────────────────────
 
+function isQuoted(token: string): boolean {
+  return token.length > 1 && token.startsWith('"') && token.endsWith('"');
+}
+
+/** The string a MeTTa quoted token wraps, with its escapes resolved. Quotes are surface syntax, not content. */
+function unquote(token: string): string {
+  return token.slice(1, -1).replace(/\\(["\\])/g, '$1');
+}
+
 /**
  * Read the pack's statements, keeping line numbers and raw text.
  *
@@ -130,16 +143,16 @@ export function parsePack(source: string): PackRow[] {
     const text = raw.replace(/;;.*$/, '').trim();
     if (!text) continue;
 
-    // (= (omega-claw-scope-for grade6) introductory)
-    const equality = text.match(/^\(\s*=\s*\(\s*([\w-]+)((?:\s+[^()]+)?)\s*\)\s+(\S+)\s*\)$/);
+    // (= (omega-claw-scope-for grade6) introductory) and (= (ai-design-name 2.1) "Search and Problem Solving")
+    const equality = text.match(/^\(\s*=\s*\(\s*([\w-]+)((?:\s+[^()]+)?)\s*\)\s+("(?:[^"\\]|\\.)*"|\S+)\s*\)$/);
     if (equality) {
-      const [, head, argsRaw, value] = equality;
+      const [, head, argsRaw, token] = equality;
       rows.push({
         line: i + 1,
         text,
         head,
         args: argsRaw.trim().split(/\s+/).filter(Boolean),
-        value,
+        value: isQuoted(token) ? unquote(token) : token,
       });
       continue;
     }

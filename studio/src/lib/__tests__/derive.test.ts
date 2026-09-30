@@ -81,6 +81,24 @@ describe('the pack the derivation reads is the pack the product mirrors', () => 
     expect(parsePack(';; only a comment\n')).toEqual([]);
     expect(parsePack('')).toEqual([]);
   });
+
+  it('reads a double-quoted string as one value, spaces included', () => {
+    // The design pack the reconciler needs carries prose: sub-strand names, outcome text. A value regex of
+    // \S+ silently skips such a row, which turns "the pack says X" into "the pack has no row" — the failure
+    // mode this module was built to avoid. The quotes are surface syntax, so the row keeps the string they
+    // wrap: a caller comparing a teacher's draft text against a design name compares two plain strings.
+    const rows = parsePack('(= (ai-design-name 2.1) "Search and Problem Solving")\n');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].value).toBe('Search and Problem Solving');
+    expect(rows[0].args).toEqual(['2.1']);
+    expect(rows[0].text).toContain('"Search and Problem Solving"');
+  });
+
+  it('cites a quoted value by line number like any other row', () => {
+    const rows = parsePack('(a b c)\n(= (ai-design-inquiry 2.1) "How does a machine find a path to a goal?")\n');
+    expect(rows[1]?.line).toBe(2);
+    expect(rows[1]?.value).toBe('How does a machine find a path to a goal?');
+  });
 });
 
 describe('deriveScope: the grade question, answered by the pack', () => {
