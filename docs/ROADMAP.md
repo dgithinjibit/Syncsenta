@@ -1560,12 +1560,11 @@ Things that are *not* proven, restated so nobody (including a future session) ha
      machine to build on. By 2030 the question will be whether Topcoat matured, not whether we guessed early.
      Say the word and the audit is the next spoon; say "rewrite" and it becomes a Stage 4 item with a hardware
      prerequisite, and I will write it here as that.
-10. **How does the derivation find its pack on Vercel?** `derive.ts` reads
-    `backend/syncsenta-backend/data/omega_claw_rules.metta` at runtime, which is not in a bundle whose root
-    directory is `studio/`, so the trace fails honestly rather than working. Pick one before the video: an
-    `OMEGA_RULES_PACK` path the deployment ships, a build-time byte copy with the drift lock extended to
-    compare the two files, or the Rust service answering over HTTP. The middle one costs a duplicated
-    *file* and no duplicated *logic*; the third is the one this project actually wants long-term.
+10. **How does the derivation find its pack?** Narrowed by spoon 1b (see §11): the engine no longer reads a
+    filesystem at all — a caller supplies `PackSource { file, text }` and `OMEGA_RULES_PACK` is gone — so a
+    browser can run it. What is still open is only *where the text comes from* on a deployment whose root is
+    `studio/`: fetch the pack as a static asset, import it as build-time text, or ask the Rust service over
+    HTTP. Not chosen unilaterally, and not built in advance of the page that needs it.
 
 ---
 
@@ -1805,14 +1804,41 @@ Red first (`Cannot find package '@/lib/attest/derive'`), then green, then the ga
   `omega-claw-activity` is closed-world, so "no row binds" *is* the answer `no`; a **value head** like
   `omega-claw-next-action` has no catch-all, so the same situation throws rather than defaulting.
 
-**The gap this opens, which must be closed before spoon 2 goes live.** The pack is read at runtime from
+**The gap this opened is now closed, and the closure is the next spoon.** The pack was read at runtime from
 `../backend/syncsenta-backend/data/…`, which exists on this machine and under `vitest` but **not inside a
-Vercel function that bundles only `studio/`**. On production the derivation answers
-`OmegaClawPackUnavailableError` — honestly, but not usefully on camera. Three ways out, in ascending order
-of how well they respect one-voice: point `OMEGA_RULES_PACK` at a path the deployment really ships; copy the
-pack into the bundle at build time (a byte-identical copy, with the drift lock extended to compare files
-rather than logic — a second *file*, not a second *decision-maker*); or deploy the Rust service and ask it
-over HTTP. Not chosen unilaterally: §10. Recording it here is the point, so it is not discovered on stage.
+Vercel function that bundles only `studio/`** — and not inside a browser at all, which is where the teacher
+reconciler has to run. See the spoon 1b entry below for what replaced it.
+
+### Spoon 1b is done: the derivation engine is browser-safe (2026-09-30, Tier A)
+
+Red first, in a new file `studio/src/lib/__tests__/derive-browser-safe.test.ts`: it asserted the engine
+imports nothing from `node:`, reaches for no `process.*`, refuses to derive when nobody hands it a pack, and
+cites the *label* it was given rather than a server path. Three of the four failed against spoon 1 — the one
+that passed was the "no reachable file on disk" case, because `text` was already being supplied. Then the
+production change:
+
+- `derive.ts` drops `node:fs` and `node:path` entirely. `PackSource` is now `{ file: string; text: string }`
+  — `file` is only ever a citation label, never opened — and `source` is a **required** argument on all five
+  `derive*` functions. `DEFAULT_PACK_FILE`, `DEFAULT_SOURCE` and the `OMEGA_RULES_PACK` env var override are
+  deleted; `basename()` became a three-line `lastPathSegment()`.
+- `loadRows()` fails with `OmegaClawPackUnavailableError("…", "the caller did not supply pack text")` rather
+  than letting a `undefined.split` TypeError surface in a browser console.
+- `derive.test.ts` loses its two Node-only assumptions: "throws when the file cannot be read" became "throws
+  when the caller gives a label but no pack text", and "reads the real pack by default" became "reports the
+  source it was asked about". The other 29 tests are untouched, which is the point — the drift lock, the
+  line-number pins and the mirror-agreement pins all still hold against a pack read from disk by the test,
+  not by the engine.
+
+Evidence: `NODE_OPTIONS=--max-old-space-size=1400 npx vitest run --no-file-parallelism src/lib/__tests__/derive.test.ts
+src/lib/__tests__/derive-browser-safe.test.ts` → **exit 0, 35 passed (2 files), 1.61 s**. `derive.ts` has no
+importer other than those two test files, so nothing in `app/` changed behaviour; `npx tsc --noEmit` was
+**not** re-run this session (it costs ~830 MB and ~5 min on this laptop), so the type gate is Tier B for
+this increment and must be run before any deploy.
+
+What this buys, precisely: the same evaluator can now be imported by a client component, with the pack
+arriving as a `fetch()` of a static asset or as text passed in by the caller. It does **not** by itself put
+the pack on a CDN — that is the narrowed half of §10 item 10, and it becomes real when the reconciler page
+exists rather than as a file created in advance of its importer.
 
 ### What this does not change
 

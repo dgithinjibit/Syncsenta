@@ -247,8 +247,12 @@ describe('deriveTransfer: showing the row the answer did NOT match', () => {
 });
 
 describe('a missing or unsupportive pack fails instead of inventing a trace', () => {
-  it('throws when the file cannot be read', () => {
-    expect(() => deriveScope('grade6', { file: 'no/such/pack.metta', text: null })).toThrowError(
+  it('throws when the caller gives a label but no pack text', () => {
+    // This used to be "the file cannot be read": the engine would open `file` itself. It no longer touches a
+    // filesystem, so the failure this pins is a caller that never handed the pack over — the one a browser
+    // bundle or a route with the wrong working directory would hit.
+    const withoutText = deriveScope as unknown as (grade: string, source?: unknown) => unknown;
+    expect(() => withoutText('grade6', { file: 'no/such/pack.metta' })).toThrowError(
       OmegaClawPackUnavailableError,
     );
   });
@@ -259,8 +263,8 @@ describe('a missing or unsupportive pack fails instead of inventing a trace', ()
     );
   });
 
-  it('reads the real pack by default, so production cannot silently run without a source', () => {
-    const d = deriveScope('grade6');
+  it('reports the source it was asked about, so a transcript names its pack', () => {
+    const d = deriveScope('grade6', pack);
     expect(d.packFile).toContain('omega_claw_rules.metta');
     expect(d.conclusion).toBe('introductory');
     expect(d.packRowCount).toBeGreaterThan(30);

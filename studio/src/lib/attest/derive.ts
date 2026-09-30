@@ -23,15 +23,15 @@
  *    against is the one already recorded in `docs/research/BASIX-FINAL-POSITION.md` §4: a route that
  *    reports success for work it did not do.
  *
- * The pack is embedded the way `rust-core/src/lib.rs:72` embeds its own policy pack with `include_str!`:
- * read once, from a stated path, at module load, with no compiled-in second copy of the rules. On a host
- * where that file is not present — a Vercel function bundling only `studio/` — reading it fails, and this
- * says so with `OmegaClawPackUnavailableError`. The caller then prints that it could not derive, which is
- * honest; quietly falling back to a hand-written trace would not be. `OMEGA_RULES_PACK` overrides the path.
+ * The pack arrives as text the caller supplied, which is the one thing in this file that makes it usable in
+ * a browser: no `node:fs`, no `process.cwd()`, no environment variable, so the same evaluator runs inside a
+ * route handler and inside a page on a phone with no network. The reconciler planned in `docs/ROADMAP.md`
+ * §11 depends on that, and `derive-browser-safe.test.ts` pins it. A server caller reads the file and passes
+ * the text; a client fetches the pack as a static asset. `file` is still required because it is what the
+ * transcript cites. When the text holds no statements, this says so with `OmegaClawPackUnavailableError` and
+ * the caller prints that it could not derive, which is honest; quietly falling back to a hand-written trace
+ * would not be.
  */
-
-import { existsSync, readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
 
 import {
   canonicalOmegaClawGrade,
@@ -39,10 +39,13 @@ import {
   clampOmegaClawHintLevel,
 } from '@/lib/omega-agent/omega-claw-rules';
 
-/** Where a pack came from. `text: null` means "read it from `file` when asked". */
+/**
+ * The pack. `text` is the content this module reasons over; `file` is the label every citation prints, so a
+ * reviewer can open the pack and check the row. Neither is opened here.
+ */
 export type PackSource = {
   readonly file: string;
-  readonly text: string | null;
+  readonly text: string;
 };
 
 /** One statement in the pack, with the line it sits on and the text that was actually read. */
@@ -106,20 +109,6 @@ export class OmegaClawNotApprovedError extends Error {
   }
 }
 
-const DEFAULT_PACK_FILE = join(
-  process.cwd(),
-  '..',
-  'backend',
-  'syncsenta-backend',
-  'data',
-  'omega_claw_rules.metta',
-);
-
-const DEFAULT_SOURCE: PackSource = {
-  file: process.env.OMEGA_RULES_PACK ?? DEFAULT_PACK_FILE,
-  text: null,
-};
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Parsing
 // ─────────────────────────────────────────────────────────────────────────────
@@ -173,20 +162,16 @@ export function parsePack(source: string): PackRow[] {
 }
 
 function loadRows(source: PackSource): { readonly file: string; readonly rows: PackRow[] } {
-  let text = source.text;
-  if (text === null) {
-    if (!existsSync(source.file)) {
-      throw new OmegaClawPackUnavailableError(source.file, 'no such file on this host');
-    }
-    try {
-      text = readFileSync(source.file, 'utf8');
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      throw new OmegaClawPackUnavailableError(source.file, reason);
-    }
+  // Guarded rather than left to a `undefined.split` crash: this fires when a caller forgets the source,
+  // and the message a teacher's console should show is "nobody handed me a pack", not a TypeError.
+  if (typeof source?.text !== 'string') {
+    throw new OmegaClawPackUnavailableError(
+      source?.file ?? '<no source supplied>',
+      'the caller did not supply pack text',
+    );
   }
 
-  const rows = parsePack(text);
+  const rows = parsePack(source.text);
   if (rows.length === 0) {
     throw new OmegaClawPackUnavailableError(source.file, 'the pack contains no statements');
   }
@@ -335,7 +320,7 @@ function finish(trace: Trace, question: string, answer: { binds: string; line: n
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** `(omega-claw-scope-for <grade>)` — is this learner in the programme, and on which tier. */
-export function deriveScope(grade: string, source: PackSource = DEFAULT_SOURCE): Derivation {
+export function deriveScope(grade: string, source: PackSource): Derivation {
   const trace = traceFrom(source);
   const canonical = canonicalOmegaClawGrade(grade);
   normalise(trace, 'grade', grade, canonical);
@@ -344,7 +329,7 @@ export function deriveScope(grade: string, source: PackSource = DEFAULT_SOURCE):
 }
 
 /** `(omega-claw-hint <level>)` — which rung of the ladder fires, after the clamp the mirror owns. */
-export function deriveHintLevel(level: number, source: PackSource = DEFAULT_SOURCE): Derivation {
+export function deriveHintLevel(level: number, source: PackSource): Derivation {
   const trace = traceFrom(source);
   const clamped = clampOmegaClawHintLevel(level);
   normalise(trace, 'hint level', String(level), String(clamped));
@@ -355,7 +340,7 @@ export function deriveHintLevel(level: number, source: PackSource = DEFAULT_SOUR
 /** `(omega-claw-activity <grade> <activity>)`, asked only after the scope row allows the grade at all. */
 export function deriveActivityApproval(
   input: { readonly grade: string; readonly activity: string },
-  source: PackSource = DEFAULT_SOURCE,
+  source: PackSource,
 ): Derivation {
   const trace = traceFrom(source);
   const grade = canonicalOmegaClawGrade(input.grade);
@@ -384,7 +369,7 @@ export function deriveNextAction(
     readonly activity: string;
     readonly outcome: string;
   },
-  source: PackSource = DEFAULT_SOURCE,
+  source: PackSource,
 ): Derivation {
   const trace = traceFrom(source);
   const grade = canonicalOmegaClawGrade(input.grade);
@@ -406,7 +391,7 @@ export function deriveNextAction(
 /** `(omega-claw-can-unlock-transfer <correct> <explained>)` — the pedagogy's one hard gate. */
 export function deriveTransfer(
   input: { readonly correct: boolean; readonly explained: boolean },
-  source: PackSource = DEFAULT_SOURCE,
+  source: PackSource,
 ): Derivation {
   const trace = traceFrom(source);
   const args = [String(input.correct), String(input.explained)];
@@ -427,8 +412,17 @@ export function deriveTransfer(
  * This prints MeTTa symbols, never the learner-facing sentences: wording lives in `OMEGA_CLAW_HINT_COPY`
  * and `OMEGA_CLAW_ACTION_COPY` and a third home for it is how two copies start disagreeing.
  */
+/**
+ * The last segment of the pack label, without `node:path`. Every citation in a transcript is short-form for
+ * the same reason the Rust façade prints a rule name rather than a working directory: the reader has to be
+ * able to line the number up against the file they have open.
+ */
+function lastPathSegment(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
+}
+
 export function renderDerivation(derivation: Derivation): string {
-  const file = basename(derivation.packFile);
+  const file = lastPathSegment(derivation.packFile);
   const steps = derivation.steps;
   const out: string[] = [
     `Omega derivation · ${derivation.question} · ${file} (${derivation.packRowCount} statements)`,
