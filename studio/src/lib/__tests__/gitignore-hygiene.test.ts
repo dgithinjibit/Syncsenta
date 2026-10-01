@@ -27,6 +27,16 @@ const MUST_BE_COMMITTABLE = [
   // The reconciler suite asserts a whole scheme's defects from this one file; ignored, it is present on the
   // laptop that wrote it and the suite passes there while CI has nothing to read.
   'studio/public/omega/drafts/kibera_g8_week14.json',
+  // `vercel link` appends a blanket `.env*` to `.gitignore` when it writes `.env.local`, which would also
+  // swallow every env *template* — the file a new developer needs most, and the one nobody notices is
+  // missing from a checkout. The repository's own `.env*` line is negated for `*.example`; these six paths
+  // are what proves that negation is still standing.
+  'studio/.env.example',
+  'studio/.env.cbc-agent.example',
+  '.env.example',
+  'ai-agents/.env.example',
+  'rust-service/.env.example',
+  'scheme-scribe/.env.example',
 ];
 
 /**
@@ -61,8 +71,16 @@ function rulesFor(paths: readonly string[]): Map<string, string> {
   }
   const matched = new Map<string, string>();
   for (const line of result.stdout.split('\n')) {
-    const path = paths.find((candidate) => line.endsWith(candidate));
-    if (path !== undefined) matched.set(path, line);
+    // `-v` prints `<source>:<line>:<pattern>\t<pathname>` — and it prints that line for a *negating* pattern
+    // too, which is not an ignore. Splitting on the tab and reading the pattern field is the only way to tell
+    // "this path matches a rule" apart from "this path is un-matched by a rule", and the difference is the
+    // whole guard: a `.env*` line with a `!.env*.example` under it must not report every template as ignored.
+    const tab = line.lastIndexOf('\t');
+    if (tab === -1) continue;
+    const rule = line.slice(0, tab);
+    const path = line.slice(tab + 1);
+    if (rule.slice(rule.lastIndexOf(':') + 1).startsWith('!')) continue;
+    matched.set(path, rule);
   }
   return matched;
 }

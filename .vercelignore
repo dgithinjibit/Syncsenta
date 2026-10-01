@@ -1,0 +1,29 @@
+# Vercel builds this app with `cd studio && npm run build` (see vercel.json), so everything the Next.js app
+# does not read is weight on the wire. This file matters because a `vercel deploy` from a laptop uploads the
+# working tree instead of cloning a repository: without it, the Python and Rust sides of the monorepo — and
+# 168 MB of `target/` build output — get packed for a build that will never look at them.
+target/
+_archive/
+datasets/
+unsloth_compiled_cache/
+reports/
+arduino/
+metta-logic/
+ai-agents/
+backend/
+rust-core/
+rust-hyperon-bridge/
+rust-service/
+scheme-scribe/
+supabase/
+syncsenta-logo/
+jupyter_config.py
+start_notebook.sh
+patch_unsloth_cpu.py
+app.py
+pyproject.toml
+uv.lock
+Cargo.lock
+Cargo.toml
+*.log
+*.pyc

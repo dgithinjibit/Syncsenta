@@ -1344,6 +1344,21 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 
 Things that are *not* proven, restated so nobody (including a future session) has to guess:
 
+- **There is no deployed URL carrying this batch, and a CLI deploy cannot produce one from this machine.**
+  `vercel deploy --yes` against the linked `sentastudio` project got as far as `Uploading … (28.8MB/115.1MB)`
+  and died twice with `Error: fetch failed` / `This operation was aborted` — the payload is `studio/public`
+  (104 MB, of which `designs/` is 60 MB), which cannot be trimmed without breaking the app. Exit 1, no
+  deployment created, nothing half-published. The route that does not need a 115 MB upload from a laptop is
+  the Git integration: push, and Vercel builds from the commit — which is §7 item 9's owner decision
+  (private first), not a code task. Meanwhile `curl https://sentastudio.vercel.app/omega/check` → **404**:
+  production is 43 commits behind `main`, so the submitted feature is not on the live site. Proven 2026-10-01.
+- **`vercel link` wrote `.env.local` at the repository root and appended `.env*` to `.gitignore`.** The file
+  is ignored and its contents were never read into this session; the blanket rule was the surprise, because it
+  also swallows a future `studio/.env.newthing.example` — the file a new developer needs most. `!.env*.example`
+  is now in `.gitignore`, six template paths are in the hygiene guard, and the guard's own parser had to be
+  fixed to prove it (`-v` prints a line for a *negating* pattern too, and treating that as an ignore reported
+  three templates as missing; red at **3 failed / 10 passed**, green at 13).
+
 - **`scripts/reconcile.mts` is not typechecked by anything.** It sits at the repository root, outside the
   narrowed net (`studio/.omega-tsconfig.tmp.json` covers `studio/src/**` and `src/lib/__tests__/scheme-*.test.ts`),
   and the full `tsc --noEmit` is not run on this machine. Its behaviour is proven by 19 spawned-process tests

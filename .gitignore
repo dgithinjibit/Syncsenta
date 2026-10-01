@@ -150,3 +150,10 @@ ai-training/logs/
 
 # Test files
 test_*.html
+.vercel
+.env*
+
+# `vercel link` appended `.env*` above, which is right for `.env.local` and wrong for the templates: a future
+# `studio/.env.newthing.example` would be silently un-addable, the same "on the laptop, not in production" defect
+# `gitignore-hygiene.test.ts` exists to catch. Re-include every example template by name.
+!.env*.example
