@@ -128,10 +128,24 @@ decide anything. `studio/src/lib/__tests__/scheme-reconcile-cli.test.ts` compare
 the page's transcript, so "same engine, two faces" is a checked claim; `basix-readme.test.ts` in the same
 directory re-runs the terminal and holds the block above to it.
 
-Proof of the suite, on this machine: `npx vitest run --no-file-parallelism` in `studio/` →
-**1079 passed, 17 skipped** across 110 files — exit 0, 80.0 s with `--testTimeout=30000` (the flag exists
-because one guard spawns the CLI and the default 5 s budget loses it on this laptop; the same suite ran
-61.4 s at 237 MB peak earlier the same day). (`docs/ROADMAP.md` §9
+To see the page instead of the terminal — **needs an install, unlike the CLI**:
+
+```bash
+cd studio && npm install && npm run dev     # binds :5173, printed by the dev script itself
+```
+
+then open `http://localhost:5173/omega/check`. That route is not behind the auth wall — `PROTECTED_WORKSPACE_PREFIXES`
+in `studio/src/lib/auth/route-policy.ts` covers `/student`, `/teacher`, `/parent`, `/head` and `/dashboard`, and
+`/omega/check` is none of them — so it asks for no account and no environment variable. Everything it reads is
+in the repository: the hand-written Grade 8 AI pack, the scheme pack, and one sample draft JSON, fetched by
+`studio/src/components/omega/scheme-check.tsx` and nothing else. `/teacher/omega` is the same component inside
+the teacher workspace, and *that* one does need a signed-in demo account.
+
+Proof of the suite, on this machine: `npx vitest run --no-file-parallelism --testTimeout=30000` in `studio/` →
+**1080 passed, 17 skipped** across 110 files (109 files green, 1 file skipped), exit 0, 78.45 s on vitest's
+clock and 1:23 wall, 2026-10-01 ~18:45 EAT. Peak memory was not captured on this run; the 16:39 run measured
+237 MB. The `--testTimeout` flag is part of the command, not decoration: one guard spawns the CLI and the
+default 5 s budget loses it on this laptop. (`docs/ROADMAP.md` §9
 carries the same number as its baseline, and `basix-readme.test.ts` fails if the two documents stop agreeing
 — which is weaker than it sounds: only re-running the suite can tell that both are stale in the same
 direction, and that is how this number moved once already.)

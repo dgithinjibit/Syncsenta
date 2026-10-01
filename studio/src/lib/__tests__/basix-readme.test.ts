@@ -136,6 +136,22 @@ describe('the section is backed by the thing it shows', () => {
     const studioPkg = JSON.parse(readFileSync(join(REPO, 'studio', 'package.json'), 'utf8'));
     expect(studioPkg.engines?.node, 'studio/package.json must declare engines.node').toBeTruthy();
   });
+
+  it('tells a reviewer how to reach the page, on the port the dev script actually binds', () => {
+    // The section says `/omega/check` is viewable "locally with no account", and that is the one sentence a judge
+    // could act on -- but it never said *how*, so the page half of the submission had no runnable instruction at
+    // all. This guard pins the command and, deliberately, pins the port against `studio/package.json`'s own `dev`
+    // script rather than a number typed into the test: the repo's older docs say 3000 in places and 5173 in others,
+    // and a README that guesses is how a demo loses four minutes in front of a judge.
+    const studioPkg = JSON.parse(readFileSync(join(REPO, 'studio', 'package.json'), 'utf8'));
+    const port = /-p\s+(\d+)/.exec(studioPkg.scripts?.dev ?? '')?.[1];
+    expect(port, 'the dev script must bind an explicit port for this guard to have anything to check').toBeTruthy();
+    const body = section();
+    expect(body, 'the submission section must give the command that starts the page').toContain('npm run dev');
+    expect(body, `the submission section must name the port the dev script binds (${port})`).toContain(`:${port}`);
+    // No reviewer should be sent to 3000 for this app; that port belongs to an unrelated local backend.
+    expect(body).not.toMatch(/localhost:3000\/omega|localhost:3000\/teacher/);
+  });
 });
 
 describe('the sentences the north star bans stay banned', () => {

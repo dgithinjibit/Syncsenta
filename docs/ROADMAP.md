@@ -1343,9 +1343,10 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 ## 9. Standing verification gaps
 
 **Suite baseline — the number `README.md`'s submission section must quote:** `npx vitest run
---no-file-parallelism` in `studio/` → **1079 passed / 17 skipped** across 110 files, exit 0, 80.0 s with
-`--testTimeout=30000`, 2026-10-01 ~18:5x EAT (the previous baseline, 1078/17 at 61.4 s and 237 MB peak, was
-the 16:39 run; the +1 is the Node-version guard added tonight, and peak RSS was not re-measured on this run).
+--no-file-parallelism --testTimeout=30000` in `studio/` → **1080 passed / 17 skipped** across 110 files
+(109 files green, 1 file skipped), exit 0, 78.45 s on vitest's clock, 1:23 wall, 2026-10-01 ~18:45 EAT. The
+two runs before it were 1078/17 at 61.4 s and 237 MB peak (16:39) and 1079/17 at 80.0 s (~18:5x, peak not
+captured); each +1 is a guard added that evening, and peak RSS was not re-measured after the 16:39 run.
 `basix-readme.test.ts` compares the README against this line, so a count cannot
 go stale in one document while the other moves — and note the limit, found the same minute it was written:
 the guard passed while *both* documents said 1089/16/125, a state that had been reverted under them. Only
@@ -2736,7 +2737,8 @@ preview is `● Blocked` behind Vercel SSO), so the terminal is the demo. That r
 `scripts/reconcile.mts` imports only `node:fs`, `node:path` and `scripts/omega-alias.mjs`, so
 `node scripts/reconcile.mts` works on a bare clone with no install — no `npm ci`, no `node_modules`, no env.
 The web route is also better than the docs admitted: `/omega/check` is **not** behind the auth wall
-(`PROTECTED_ROLE_ROOTS` in `studio/src/lib/auth/route-policy.ts:30` names student/teacher/parent/head only),
+(`PROTECTED_WORKSPACE_PREFIXES` in `studio/src/lib/auth/route-policy.ts:26` names student/teacher/parent/head
+plus `/dashboard`),
 and `scheme-check.tsx:174-176` fetches three same-origin static files — no Supabase client, no `process.env`.
 
 **The defect, found by reading rather than guessing.** The runner is TypeScript loaded by Node's own type
@@ -2745,7 +2747,8 @@ respectively, and **nothing in the repository said so**: no `engines` field, no 
 reviewer on Node 20 types the headline command and gets `ERR_UNKNOWN_FILE_EXTENSION` before the first rule is
 read — which reads as a broken project, not a wrong runtime. Added the sentence to `README.md` and
 `"engines": { "node": ">=22.18" }` to `studio/package.json`. Red at **1 failed / 11 passed**, green at **12
-passed**, then the whole suite at **1079 passed / 17 skipped** across 110 files, exit 0.
+passed**, then the whole suite at **1079 passed / 17 skipped** across 110 files, exit 0 — the number the next
+section's guard moved to 1080.
 
 Two things recorded rather than papered over. (1) The first version of the guard asserted
 `engines.node` in a **root** `package.json` — which does not exist, and is precisely what makes the
@@ -2758,6 +2761,32 @@ checked before editing, because a build we cannot re-run is not a place to exper
 either route. The browser has not seen this page since spoon 5b, and `next dev`/`next build` have never been
 run on this batch locally — the only build attempt is the blocked Vercel one. That is the next spoon, and it
 needs the owner's terminal (the machine-veto on `next dev` still stands).
+
+### Spoon 6d: the page finally has an instruction, and the port was wrong in my own head (2026-10-01 ~18:45 EAT)
+
+The submission section said `/omega/check` is viewable "locally with no account" and then never told a reader
+how to get a local server — so the browser half of the demo had **zero runnable instructions**, and the judge
+route was the CLI alone. Added a block to `README.md`: `cd studio && npm install && npm run dev`, then
+`http://localhost:5173/omega/check`, with why that route needs no session and no env var.
+
+**The finding worth keeping:** I went to check for a running dev server on **3000** and found nothing, which is
+how I noticed that the repo's own docs disagree — `docs/archive/*` and `studio/docs/AI_METTA_TEST_GUIDE.md` say
+3000, `docs/DEVELOPMENT.md` says 5173, and `studio/package.json`'s `dev` script says `next dev -p 5173`. A
+README that guessed a port would have cost a reviewer four minutes in front of a judge, so the new guard
+(`basix-readme.test.ts`, 13 tests) does **not** hardcode 5173: it parses the port out of the `dev` script and
+requires the README to name the same one, and forbids sending anyone to `localhost:3000/omega` or
+`/teacher`. Red was witnessed at **1 failed / 12 passed** on the missing `npm run dev`, green at **13 passed**,
+then the full suite re-run for the record: **1080 passed / 17 skipped** across 110 files, exit 0, 78.45 s
+vitest clock / 1:23 wall. Peak RSS was not captured on this run; the 16:39 run measured 237 MB.
+
+Also corrected here: this file and the README both cited `PROTECTED_ROLE_ROOTS` at `route-policy.ts:30`. The
+exported name is `PROTECTED_WORKSPACE_PREFIXES` at line 26 and it includes `/dashboard`. Nothing broke, because
+no guard matched the symbol — which is exactly the kind of wrong-but-green citation §9 keeps listing as a risk.
+
+**What this still does not prove:** the block is verified by reading the script, the route file, the policy
+constant and the three `studio/public/omega/**` assets the component fetches — all Tier A by file inspection —
+and by nothing else. No browser has rendered it on this batch, and `npm install` in `studio/` is a step whose
+cost on this 3.7 GB laptop is why the owner, not Omega, starts the server.
 
 ### Laya, not JEV: what the research changed in the plan (2026-10-01, Tier B unless marked)
 
