@@ -2696,6 +2696,36 @@ unaffected. The suite is green again with the two fixes in: **1069 passed / 17 s
 
 ---
 
+### Spoon 6b is *started*, not done: the AI disclosure has a scaffold, and the four paragraphs that matter are the owner's (2026-10-01, Tier A for the inventory)
+
+BASIX Solo requires an AI disclosure in the builder's own words, and it is the one outstanding deliverable no
+code can substitute. `docs/AI-DISCLOSURE-SCAFFOLD-2026-10-01.md` now holds the inventory the owner needs in
+order to write it, and four `WRITE IN YOUR OWN WORDS` blocks where mine would be a forgery.
+
+What the scaffold can state as Tier A, measured tonight rather than recalled:
+
+- The submitted feature makes **no model call**. `grep -cE "fetch\(|process\.env|OPENAI|axios"` → **0** in
+  `scripts/reconcile.mts`, `studio/src/lib/attest/derive.ts` and `scripts/omega-alias.mjs`, and the
+  reconciler's only imports are `node:fs`, `node:path` and `./omega-alias.mjs`. The decision a judge is asked
+  to audit is rule derivation over two MeTTa files.
+- Where the product *does* call a model, it is outside this submission: `/api/chat` via
+  `studio/src/lib/llm/provider-chain.ts`, whose union is `LlmProvider = 'groq' | 'gemini'` (line 14 — checked
+  tonight; an earlier note in this file described a five-provider union that is not in the tree), plus
+  `aisa-client.ts` / `multi-ai-client.ts` on `AISA_API_KEY` with a `deepseek-v3` default. Neither is used by
+  the check, and the recorded decision stands: a model may propose prose, never a verdict.
+- The organisers' ASI gateway is **not wired** — no key configured, and the closed union means it would be a
+  new provider (~1–2 h), not an env var.
+
+What the scaffold does *not* do: claim the disclosure is finished, or write the owner's judgement about
+oversight. Section 5 keeps the five limits in front of the strengths, including tonight's correction — the
+preview deploy is `● Blocked` and no logged-in teacher has walked the page on a served URL.
+
+Not yet done, and the owner owns all of it: the four paragraphs, trimming to 400–600 words, and pasting the
+result into `README.md` as an "AI Disclosure" section. ~45 minutes of writing once the GitHub scope and the
+Vercel permission are settled, because those decide whether the document can also carry a screenshot.
+
+---
+
 ## 12. How to update this file
 
 At the end of a work session, in the same commit as the work: move the checkboxes, change §1's
