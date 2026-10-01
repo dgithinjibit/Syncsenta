@@ -23,7 +23,7 @@ import type { SchemeRow } from '@/types/curriculum';
 const STUDIO = process.cwd();
 const DESIGN_FILE = join(STUDIO, 'public', 'omega', 'ai_g8_design.metta');
 const POLICY_FILE = join(STUDIO, 'public', 'omega', 'scheme_check.metta');
-const FIXTURE_FILE = join(STUDIO, 'src', 'lib', '__tests__', '__fixtures__', 'kibera_g8_week14.json');
+const FIXTURE_FILE = join(STUDIO, 'public', 'omega', 'drafts', 'kibera_g8_week14.json');
 
 const design = { file: 'studio/public/omega/ai_g8_design.metta', text: readFileSync(DESIGN_FILE, 'utf8') };
 const policy = { file: 'studio/public/omega/scheme_check.metta', text: readFileSync(POLICY_FILE, 'utf8') };

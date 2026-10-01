@@ -85,7 +85,12 @@ export type ReconcileResult = {
 /** A threshold this module does not implement is an error, not a silent fallback to the one it does. */
 export class UnsupportedThresholdError extends Error {}
 
-const HEADS = {
+/**
+ * The design-pack heads this module asks about. Exported because the page's view model has to name the
+ * learning area and the design version in its header, and a second spelling of those heads would be a
+ * second place for a rename to go quietly wrong.
+ */
+export const HEADS = {
   name: 'ai-design-name',
   strand: 'ai-design-strand',
   inquiry: 'ai-design-inquiry',
@@ -112,7 +117,7 @@ function idOf(cell: string): string | undefined {
 }
 
 /** `g8` and `grade8` both read as 8; a grade with no digits keeps its own label rather than guessing. */
-function gradeNumber(grade: string): string {
+export function gradeNumber(grade: string): string {
   return /(\d+)/.exec(grade)?.[1] ?? grade;
 }
 
@@ -218,7 +223,7 @@ export function reconcileScheme(input: ReconcileInput): ReconcileResult {
     const rowNumber = index + 1;
 
     for (const field of mandatoryFields) {
-      if (!isEmpty((row as Record<string, unknown>)[field])) continue;
+      if (!isEmpty((row as unknown as Record<string, unknown>)[field])) continue;
       const obligation = deriveFieldObligation({ grade, field }, policy);
       const why = sentenceFrom(obligation, 'scheme-field-obligation-why');
       findings.push(

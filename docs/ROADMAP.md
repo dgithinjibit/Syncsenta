@@ -46,10 +46,12 @@ locally".**
 **Added 2026-10-01, for the two days that remain before the BASIX deadline.** The submission's scope is now
 fixed by the owner: Track 5, challenge 1 — one agent producing an auditable decision — and the agent is the
 scheme-of-work reconciler. §11's Spoon 3 is done (the checker's policy pack and the three derivations that ask
-it), Spoon 4 is done (the teacher's week-14 draft, with its own claims recomputed from both packs) and Spoon 5a
+it), Spoon 4 is done (the teacher's week-14 draft, with its own claims recomputed from both packs), Spoon 5a
 is done (`studio/src/lib/scheme/reconcile.ts` — the Monday-morning decision itself, cited, consent-gated and
-refusing to invent a judgment column). The offline draft is declared *input* rather than something SyncSenta
-generates, and the submitted feature needs no API key. Read §11's "Spoon 3", "Spoon 4" and "Spoon 5a" blocks
+refusing to invent a judgment column) and Spoon 5b is done (a page mounts it: `/omega/check` with no account,
+`/teacher/omega` inside the workspace, and a view model between the engine and the JSX so the screen cannot
+decide). The offline draft is declared *input* rather than something SyncSenta generates, and the submitted
+feature needs no API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a" and "Spoon 5b" blocks
 for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
@@ -1289,6 +1291,11 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **The demo draft states its own defects, and the suite recomputes them from the packs before anything reads them** | agent, spoon 4 | `kibera_g8_week14.json` carries an `expected` block; `scheme-fixture.test.ts` derives each row's gaps from `ai_g8_design.metta` + `scheme_check.metta` and fails on any disagreement, both ways. Chosen over a plain fixture because the whole submission is claims about this one file: a draft that can overstate its own gaps makes the transcript decoration. Proven by flipping two fields — filling the blank column broke 3 tests including the computed-vs-claimed one, tidying the `观察` artefact broke the sanitising guard |
 | 2026-10-01 | **A substitution is proposed only when the teacher's words match exactly one design sub-strand; ambiguity gets a refusal** | agent, inside the owner's consent model | "Neural network training" matches 3.3 alone, so the agent can offer the pack's own name, strand and inquiry question with consent required. "Data pipeline" matches *Data Visualisation* and *Programming Data Pipelines*, and picking between two real sub-strands is pedagogy, not lookup — so the module declines and says why. The video shows the refusal as a feature: an agent that guesses once is an agent nobody can certify |
 | 2026-10-01 | **A threshold the code does not implement throws; it is never treated as the one it does** | agent | `deriveCertificationRule` returns the pack's words (`blocking-must-be-zero`). If the policy pack is edited to a rule `reconcile.ts` has not implemented, the run fails loudly instead of certifying under a rule it silently misread — the same no-silent-defaults stance spoon 3 took for an unlisted gap kind |
+| 2026-10-01 | **The page gets no verdict authority: a view model between the reconciler and the JSX** | agent, spoon 5b | `check-view.ts` is the only arrangement layer, and its header fields are compared against the pack parsed independently in the test. Cost of the alternative, measured by flipping it: a banner that printed `Certified` whatever the engine returned broke exactly one test, and a table that printed a proposal instead of the teacher's own cell broke exactly one other — so both errors are now caught rather than admired in a screenshot |
+| 2026-10-01 | **Two addresses for one component; the public one is what the video opens** | agent, inside the owner's "continue" | `/teacher/*` is protected in production by a live `supabase.auth.getUser()` (`middleware.ts:57` + `route-policy.ts:26`) and wrapped in `RoleGate`, which is right for a teacher's own schemes and wrong for a judge's link or a machine with no Supabase env. So `/omega/check` mounts the same component outside those prefixes. Consequence: nothing in the demo path needs an account, a key or a server-side decision |
+| 2026-10-01 | **"Fully offline" is withdrawn from the video script until a service worker precaches the shell** | agent, after measuring | `public/sw.js` contains no `precache` or `registerRoute`, and a cold navigation to a deployed URL with the network off never reaches the page. The sentence that *is* true: the check issues three same-origin static GETs and no model call, so the Network panel shows nothing deciding. Narrower, and defensible |
+| 2026-10-01 | **The demo draft lives in `public/`, not in a test folder, and the suite reads it from there** | agent | The browser can only fetch what `public/` serves; a copied fixture is how a screen and a test start disagreeing. `git mv` to `public/omega/drafts/`, three readers and the hygiene guard repointed. Its `expected` block is therefore public — accepted, because the recomputing suite *is* the claim |
+| 2026-10-01 | **Retest the whole suite whenever `vitest.config.ts` changes, and re-measure stale numbers in this file** | agent | Rendering a `.tsx` required `oxc.jsx.runtime = 'automatic'` in the test config (Vite 8 ignores `esbuild:` and reads `"jsx": "preserve"` from `tsconfig.json`). That is a global change, so the full run was spent: **exit 0, 103 files, 974 passed, 17 skipped, 94 s, 218 MB peak** — which also retires the "74 files" this file had been quoting |
 
 ---
 
@@ -2093,6 +2100,72 @@ Nothing is deployed.
 
 **What this is not yet: used.** No page and no runner mount it, so a teacher cannot reach any of this yet — the
 15 tests are the only caller. Next is 5b, the browser surface, because that is what the video shows.
+
+### Spoon 5b is done: the check has a face, and the face is not allowed to decide (2026-10-01, Tier A)
+
+Four files. `studio/src/lib/scheme/check-view.ts` (the view model, 16 tests in `scheme-check-view.test.ts`),
+`studio/src/components/omega/scheme-check.tsx` (the surface, 10 tests in `scheme-check-render.test.ts`), and
+two page files that do nothing but mount it: `src/app/omega/check/page.tsx` and `src/app/teacher/omega/page.tsx`.
+The reconciler is now reachable by a person.
+
+**The seam exists because a verdict in JSX is unciteable.** `buildCheckView` calls `reconcileScheme` once and
+arranges its output; every field on the view is either copied from the draft verbatim, read from the result, or
+read out of the design pack with `parsePack`. There is no fourth source, and that is a test rather than a claim:
+`names the learning area and the design version the pack states, not a copy` parses the pack itself in the test
+and compares, so renaming `ai-design-learning-area` or moving its value breaks the page's test rather than
+silently leaving a stale heading on screen. `SchemeCheckBody` is split from `SchemeCheck` for the same reason —
+the half that renders can be rendered in Node, the half that fetches cannot.
+
+**Her draft stays hers on screen.** The table prints `row.subStrand`, and the proposal prints below it inside a
+card that says *Nothing has been changed. This is a proposal, and it stays one until you accept it.* Proven by
+flipping the table cell to render the proposal instead of her value: exactly one test fails, `leaves her
+sub-strand cell alone while proposing a different one below it`. The other flip — the banner printing
+`Certified` whatever the engine returned — fails exactly `says not certified, in words, for the draft that is
+not`. Neither flip survives; neither wording is decoration.
+
+**Two addresses, because one of them had to work without an account.** Measured here: `PROTECTED_WORKSPACE_PREFIXES`
+(`src/lib/auth/route-policy.ts:26`) lists `/teacher`, and `src/middleware.ts:57` enforces that in production with
+a live `supabase.auth.getUser()` call, while `src/app/teacher/layout.tsx:72` wraps every child in `RoleGate`. So
+`/teacher/omega` is the right place in the product and the wrong place for a judge's link — and it cannot render
+at all on a machine with no Supabase env, which is this one. `/omega/check` is outside those prefixes: same
+component, no session, nothing but three same-origin static files behind it.
+
+**This corrects what I said about airplane mode.** Earlier in the session I proposed demoing with the network
+switched off. Measured against the code, that claim does not hold today: `public/sw.js` precaches nothing under
+`/omega` (no `precache`/`registerRoute` in the file), and a cold navigation to a deployed URL with no network
+never reaches the page, cached or not. What *is* true and demonstrable on camera is narrower and still worth
+the sentence: the check itself issues no API call — three static GETs, same origin, no key, no model — so the
+Network panel stays empty of anything that decides. Do not say "fully offline" in the video until a service
+worker actually precaches the shell.
+
+**One file, two places it is read.** The week-14 draft moved from `src/lib/__tests__/__fixtures__/` to
+`public/omega/drafts/kibera_g8_week14.json` (`git mv`, contents unchanged) because the browser can only fetch
+what `public/` serves, and a second copy of a demo artefact is how a fixture and a screen start disagreeing.
+The three test readers and the hygiene guard were repointed at the new path in the same step. It is sample data
+about a fictional school, and its `expected` block ships with it — the answer key is public on purpose, since
+the suite that recomputes it is the claim.
+
+**Evidence.** Red twice over: `Cannot find module '@/lib/scheme/check-view'`, then `SchemeCheckBody is not a
+function`. Green: **16 passed** then **10 passed**. A global config change was needed to render any `.tsx` under
+Vitest 4 — Vite 8 transforms with oxc and reads `"jsx": "preserve"` from `tsconfig.json`, so a `.tsx` import
+died in `vite:import-analysis` before an assertion ran; `vitest.config.ts` now sets `oxc.jsx.runtime` to
+`automatic` for the test pipeline only (the app build is still Next's, and `esbuild:` is ignored outright —
+Vite says so at startup). **Full suite, run because that config is global: `npx vitest run --no-file-parallelism`
+→ exit 0, 103 files, 974 passed, 17 skipped, 94 s, 218 MB peak** — the whole repo is green, and the number this
+file quoted for it (74 files) was stale. A narrowed `tsc -p` over the new modules and their dependencies →
+**exit 0**, which found two real type errors that vitest cannot see: `row as Record<string, unknown>` needed the
+double assertion in `reconcile.ts:226`, and `PackRow.value` is `string | null | undefined`, so the view's lookup
+now says `?? undefined` instead of lying about its return type.
+
+**Tier B, still open:** the full `npx tsc --noEmit` over the whole app has not been run (measured earlier at
+~830 MB, which is more than this machine has free alongside the editor), and **no browser has rendered this page
+yet** — `next dev` needs ~1 GB and there was 666 MB available at the time of writing. Both are gates, not
+finishing touches: 5b is verified in Node and in types, not in a viewport.
+
+**What this is not yet: a workflow.** Nothing accepts a proposal — there is no button, because the accept path is
+the ledger (5c) and an accept that rewrites a row without a record would be the one thing this submission cannot
+afford. The lesson-plan handoff reports `allowed`/`refused` but no route enforces it yet. And the terminal
+runner, which is the second rendering of this transcript, is 5d.
 
 ### What this does not change
 

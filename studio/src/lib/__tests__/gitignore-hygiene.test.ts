@@ -26,7 +26,7 @@ const MUST_BE_COMMITTABLE = [
   'studio/src/lib/attest/derive.ts',
   // The reconciler suite asserts a whole scheme's defects from this one file; ignored, it is present on the
   // laptop that wrote it and the suite passes there while CI has nothing to read.
-  'studio/src/lib/__tests__/__fixtures__/kibera_g8_week14.json',
+  'studio/public/omega/drafts/kibera_g8_week14.json',
 ];
 
 function ignoredBy(path: string): string | null {

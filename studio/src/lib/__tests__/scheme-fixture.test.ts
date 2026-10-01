@@ -22,8 +22,8 @@ import type { SchemeRow } from '@/types/curriculum';
  */
 
 const STUDIO = process.cwd();
-const REL_FIXTURE = 'studio/src/lib/__tests__/__fixtures__/kibera_g8_week14.json';
-const FIXTURE_FILE = join(STUDIO, 'src', 'lib', '__tests__', '__fixtures__', 'kibera_g8_week14.json');
+const REL_FIXTURE = 'studio/public/omega/drafts/kibera_g8_week14.json';
+const FIXTURE_FILE = join(STUDIO, 'public', 'omega', 'drafts', 'kibera_g8_week14.json');
 const DESIGN_FILE = join(STUDIO, 'public', 'omega', 'ai_g8_design.metta');
 const POLICY_FILE = join(STUDIO, 'public', 'omega', 'scheme_check.metta');
 const POLICY_PACK = {
