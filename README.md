@@ -16,6 +16,140 @@ scheme-of-work, lesson plans, and assessments — without leaving the browser.
 
 The platform is live at **[sentastudio.vercel.app](https://sentastudio.vercel.app)**.
 
+## One feature, proven: the scheme-of-work check
+
+This section is the **BASIX Track 5 (Solo) submission**, challenge 1:
+
+> *"One agent producing an auditable decision"*
+
+It is deliberately separated from the platform pitch below, because the assignment is one feature working,
+not a platform described.
+
+### Problem
+
+A Grade 8 teacher files a term's scheme of work. It came either from her own spreadsheet or from an AI
+generator, and either way it arrives with no reason attached: a column is empty, a sub-strand is invented,
+an assessment method is missing, and nothing states *which rule* calls that a problem or *who* decided it.
+When the education officer asks why the scheme was signed off the way it is, the honest answer today is
+"the model said so." Better prompting does not fix that. The reason has to be a checkable artefact, not a
+sentence.
+
+### Solution
+
+The agent is SyncSenta; for this decision its mind is **two versioned MeTTa packs rather than a prompt**.
+`studio/public/omega/ai_g8_design.metta` holds the design as facts the curriculum states, and
+`studio/public/omega/scheme_check.metta` holds the policy written by hand: what counts as a gap, how severe
+it is, and the sentence explaining why. The reconciler in `studio/src/lib/scheme/reconcile.ts` reads the
+teacher's draft — **input, not output:** it is the offline file `studio/public/omega/drafts/kibera_g8_week14.json`,
+and this feature does not claim to have generated it — and emits one finding per problem, each quoting the
+pack's own words and the line they come from.
+
+This is the real output of `node scripts/reconcile.mts`, on the sample draft, with no flags:
+
+```
+Scheme check · Grade 8 Artificial Intelligence · design 2026-09-22.grade6.lovable-import.v1
+4 rows read · no network, no model, rules only
+
+Row 2, assessmentMethods — BLOCKING · mandatory-field-empty
+  A column the design cannot do without is empty, so this row is not yet a lesson plan.
+  Not proposed — The assessmentMethods column is empty and the policy pack calls it mandatory: Evidence of competency is the competency, so a scheme with no assessment method cannot be signed off. The design states no value for it, so the agent will not write one. Fill it yourself, or tell the checker the column does not apply.
+    Omega derivation · scheme-gap-severity · scheme_check.metta (36 statements)
+    1. (scheme-gap-severity g8 mandatory-field-empty) → blocking — scheme_check.metta:46
+    2. (scheme-gap-reason g8 mandatory-field-empty) → A column the design cannot do without is empty, so this row is not yet a lesson plan. — scheme_check.metta:47
+    ∴ blocking — scheme_check.metta:46
+
+Row 3, subStrand — BLOCKING · sub-strand-not-in-design
+  This sub-strand is not in the Grade 8 design, so the scheme plans teaching that the curriculum does not contain.
+Proposed, needs consent — cited studio/public/omega/ai_g8_design.metta:58
+    subStrand: 3.3 Introduction to Neural Networks
+    strand: 3.0 AI Techniques and Programming
+    keyInquiryQuestion: How is a neural network different from a set of rules?
+    Omega derivation · scheme-gap-severity · scheme_check.metta (36 statements)
+    1. (scheme-gap-severity g8 sub-strand-not-in-design) — no match at scheme_check.metta:46
+    2. (scheme-gap-severity g8 sub-strand-not-in-design) → blocking — scheme_check.metta:48
+    3. (scheme-gap-reason g8 sub-strand-not-in-design) — no match at scheme_check.metta:47
+    4. (scheme-gap-reason g8 sub-strand-not-in-design) → This sub-strand is not in the Grade 8 design, so the scheme plans teaching that the curriculum does not contain. — scheme_check.metta:49
+    ∴ blocking — scheme_check.metta:48
+
+2 clean · 2 blocking · 0 advisory · 4 rows
+∴ not certified — 2 blocking, and the rule is blocking-must-be-zero. A scheme is certified for classroom use only when no blocking gap survives, and a certified scheme is what the lesson-plan generator is allowed to read.
+```
+
+Then the four things that make it a decision rather than a linter:
+
+- **Nothing is written to her scheme without her.** A fix is a *proposal* until she accepts it, and
+  accepting names the actor — `studio/src/lib/scheme/consent.ts` writes the three cells and records all
+  three.
+- **She can disagree with the rule, and the disagreement changes the next run.** A waiver rewrites one
+  line of the policy text (`studio/src/lib/scheme/override.ts`); every later run reads that file and calls
+  the gap advisory *because of her waiver, not the checker's judgement*. The certification threshold
+  itself refuses to be overridden.
+- **Every act lands on a record that reports being edited.** `studio/src/lib/scheme/ledger.ts` is an
+  append-only hash chain: recompute it and a change made afterwards surfaces as a named broken entry, with
+  the reason it broke.
+- **The verdict stops work.** `studio/src/lib/scheme/handoff.ts` asks both gates on every call — the
+  pack's threshold *and* the chain's integrity — and returns a decision, or throws for a caller that has to
+  be stopped rather than told.
+
+### Technology
+
+Next.js 16 and TypeScript for the app; the decision itself is pure TypeScript with **no LLM call, no
+network request and no clock** — it reads two `.metta` text packs and one JSON draft, and the same answer is
+reproducible six months later. Ledger entries are chained with SHA-256 from WebCrypto (`node:crypto` in the
+terminal). The packs are MeTTa source, read by this repository's own parser in
+`studio/src/lib/attest/derive.ts`; running them under real Hyperon is on the list below, not a claim.
+
+Run the check the way a reviewer can, from the repository root:
+
+```bash
+node scripts/reconcile.mts
+```
+
+Change it, record it, and read the record back — the second command carries no waiver flag, and the waiver
+still appears because it is a line in the file it was pointed at:
+
+```bash
+node scripts/reconcile.mts --accept 3 --waive assessmentMethods \
+  --actor teacher:kibera_mama_joy --note 'Lesson 2 is oral.' \
+  --at 2026-10-02T09:04:15+03:00 --out /tmp/run1
+
+node scripts/reconcile.mts --policy /tmp/run1/policy.metta
+```
+
+The page mounts the same module: `/omega/check` with no account, `/teacher/omega` inside the workspace, with
+the view model in `studio/src/lib/scheme/check-view.ts` between the engine and the JSX so a screen cannot
+decide anything. `studio/src/lib/__tests__/scheme-reconcile-cli.test.ts` compares the terminal's bytes with
+the page's transcript, so "same engine, two faces" is a checked claim; `basix-readme.test.ts` in the same
+directory re-runs the terminal and holds the block above to it.
+
+Proof of the suite, on this machine, 2026-10-01: `npx vitest run --no-file-parallelism` in `studio/` →
+**1069 passed, 17 skipped** across 109 files — exit 0, 90.3 s, run on 2026-10-01.
+
+
+### What this does not claim
+
+- The gate is enforced where a caller asks for it — `--require-handoff` exits 2 on a refusal — and it is
+  **not yet wired into `/api/generate/lesson-plan`**, so the generator route is the next spoon, not a
+  finished fact.
+- The browser pass on the deployed URL and `next build` have not been run on this batch; `tsc` on the
+  narrowed file set exits 0, and the full `tsc --noEmit` is recorded in `docs/ROADMAP.md` §9 as a standing
+  gap.
+- No learner data, no payments, and no real school's records are involved: four hand-seeded demo accounts
+  and one hand-written Grade 8 AI pack.
+
+### What we'd build next
+
+1. **Put the gate in front of the generator**, so a scheme that does not certify cannot produce lesson
+   plans from the UI either — the module exists; the call site does not.
+2. **Publish the ledger's head hash on-chain.** Today the record is a tamper-evident, recompute-able
+   evidence anchor that lives in this repository; committing its head to a chain is what lets a county
+   office verify a signed scheme without trusting this codebase.
+3. **Run the packs under real Hyperon** and diff the answers against `derive.ts`, so the MeTTa claim is
+   made by the MeTTa runtime rather than by a faithful parser.
+4. **The rest of the ladder**: Grade 10–12 AI packs, a Kiswahili scheme, and the same check for the
+   blockchain course.
+
+
 ## How it works
 
 At the heart of SyncSenta is the **Omega tutoring decision engine**. Before

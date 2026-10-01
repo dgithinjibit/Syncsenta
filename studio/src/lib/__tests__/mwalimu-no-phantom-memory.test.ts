@@ -60,6 +60,17 @@ function tsFiles(dir: string): string[] {
   return found;
 }
 
+/**
+ * Walked once, at load, rather than once per assertion.
+ *
+ * The scan below reads every `.ts`/`.tsx` under `src`, which is the point of the guard — an importer hiding
+ * in a file nobody thought to name is still an importer. But it is also the slowest thing in the file, and
+ * under a full-suite run on this machine it went past vitest's 5 s default and the guard reported a failure
+ * it had not found. Same files, same contents, one walk: the assertion is unchanged, only the machine it
+ * needs to answer is smaller.
+ */
+const ALL_TS = tsFiles(SRC);
+
 describe('the phantom-memory engine is deleted', () => {
   it('removes lib/personalized-learning.ts from the tree', () => {
     expect(
@@ -69,9 +80,9 @@ describe('the phantom-memory engine is deleted', () => {
   });
 
   it('leaves no importer of it anywhere in src', () => {
-    const importers = tsFiles(SRC)
-      .filter((file) => /from '[^']*personalized-learning'/.test(readFileSync(file, 'utf8')))
-      .map((file) => relative(SRC, file));
+    const importers = ALL_TS.filter((file) => /from '[^']*personalized-learning'/.test(readFileSync(file, 'utf8'))).map(
+      (file) => relative(SRC, file),
+    );
     expect(importers).toEqual([]);
   });
 });

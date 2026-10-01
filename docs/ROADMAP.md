@@ -1335,6 +1335,8 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **`--at` makes a run reproducible, and reproducibility is asserted on the files** | agent, spoon 5c-4b | The clock still belongs to the caller — the reconciler has never seen a `Date` — but without a way to pin it the artifacts differ on every run and a hash chain printed in a video cannot be rebuilt by anyone watching. Same flags, same `--at`, same output directory ⇒ byte-identical `policy.metta`, `ledger.json`, `diff.json` and stdout. The printed paths are run-specific, so the claim is about one directory, not two |
 | 2026-10-01 | **A waiver counts only when a later run reads it off disk, and that run cites the file it actually read** | agent, spoon 5c-4b | The loop is the submission's claim in one command pair: write `policy.metta` with the waiver on one line, then `--policy <that file>` with no waiver flag reproduces `field-obligation-waived-by-teacher` as an advisory, cited at the severity row of *that* file. Writing the untouched pack instead of the waived text fails **4** tests at once, and `--policy` makes citations name the path given rather than the repository's pack — a run must not claim a line of a file it did not read |
 | 2026-10-01 | **The handoff gate is allowed to be an exit code** | agent, spoon 5c-4b | 0 when a check ran, whatever it concluded (that rule is from 5d and still holds); 2 only under `--require-handoff`, for a caller that has to be stopped rather than told. Removing the `exit(2)` costs exactly 1 test, and the read-only default still prints `handoff · refused · gate certification` without failing, so the demo never mistakes "not certified" for "the program broke" |
+| 2026-10-01 | **A git-facing guard asks the pattern layer, not the index** | agent, spoon 6a | `git check-ignore` reports a *tracked* path as not-ignored even when a live rule covers it, so the ignore guard written last week — the one that documents the `public` defect — passes with that defect put back. `--no-index` asks the question that matters to a reviewer: would a new file at this path be swallowed. Verified both ways: default form green through the flip, `--no-index` form fails 6 of 7 and names the rule and line |
+| 2026-10-01 | **The README is allowed to be tested, and it is tested by running the terminal** | agent, spoon 6a | Documentation is 20% of the score and the only artefact in this tree that nothing re-checked, which is how §4's Tier C sentences were written and shipped. `basix-readme.test.ts` compares the quoted transcript with `node scripts/reconcile.mts`'s stdout, `existsSync`s every backticked path in the section, refuses a stated count that lacks its command, and fails the banned sentences. Red first at **5 failed / 3 passed** |
 
 ---
 
@@ -2556,14 +2558,74 @@ hook and the transcript are shared with 5d's byte-equality test:
 **Not yet.** `scripts/reconcile.mts` lives at the repository root, outside the narrowed typecheck net, so its
 types are unchecked — recorded in §9 rather than quietly fixed. `/api/generate/lesson-plan` still does not call
 `requireHandoff`; the page still mounts none of 5c and has no accept button; a run never writes back to the
-repository's own pack, by design. Spoon 5c is now code-complete and terminal-verified; the browser pass and spoon
-6 (README, AI disclosure, video) are what is left before submission.
+repository's own pack, by design. Spoon 5c is now code-complete and terminal-verified. Spoon 6a is done: the
+README carries a submission section that `basix-readme.test.ts` keeps honest by re-running the terminal. What
+is left before submission is the browser pass on a real URL, the AI disclosure in the owner's words, and the
+~3-minute video.
 
 ### What this does not change
 
 Stages 0–5, §7's blockers and §10's open questions all still stand. What §11 changes is the *order* for two
 days: things that make an existing capability visible and checkable outrank things that add capability,
 because visibility is 70% of the score and the deadline is a hard one.
+
+### Spoon 6a is done: the README has a submission section, and a guard re-runs the terminal to keep it true (2026-10-01, Tier A)
+
+Track 5's deliverable list asks for a short README — problem, solution, technology, plus the AI disclosure —
+and it weights *documentation and build process* at 20%. Prose is the one artefact in this repository that
+nothing re-checks, which is precisely how §4 of the north star got its Tier C sentences: a performance table
+with no measurement behind it, two docs pointing at a file one directory up. So spoon 6 started with
+`studio/src/lib/__tests__/basix-readme.test.ts`, written red first (**5 failed / 3 passed**), and it does not
+test the README's grammar. It tests that the README can still be trusted:
+
+- **The transcript in the section is the transcript.** The test runs `node scripts/reconcile.mts` and requires
+  the README's fenced block to contain what the terminal prints *at that moment*. Editing the engine without
+  editing the page now shows up as a failing test rather than a stale paragraph — and the splice was done
+  programmatically from the command's stdout, so the number of lines quoted here is the number it printed.
+- **No citation points at a file that is not in the tree.** Every backticked path in the section is checked
+  with `existsSync`. This is the exact defect class §4 names, made unfailable for the most-read file in the
+  repository.
+- **No number without the command that produced it.** If the section states a count, it must also state
+  `npx vitest run --no-file-parallelism`. The count it carries today — **1069 passed, 17 skipped across 109
+  files, exit 0, 90.3 s** — was run on this machine on 2026-10-01 and is in `/tmp/vitest-final.log` while the
+  session lives.
+- **The banned sentences are asserted against, not remembered.** "built on Omega" anywhere in the README, and
+  any "fully offline" / "no internet" line in the section, fail the suite.
+
+What the section says, in one line each: the problem is that a generated scheme arrives with no reason
+attached; the solution is two MeTTa packs and a reconciler that cites them, with consent, waiver, ledger and
+gate behind the finding; the technology is pure TypeScript over text files — **no LLM call, no network request,
+no clock**; and the honest limits are stated in the section itself, including that
+`/api/generate/lesson-plan` does not yet call `requireHandoff`, that `next build` and the browser pass are
+still outstanding, and that the draft is input rather than something this feature generated. "What we'd build
+next" is there too, with the on-chain item worded the way §11's credibility note demands: the record is a
+*tamper-evident, recompute-able evidence anchor*, and committing its head is the next step.
+
+### Two guards were failing on a busy machine, and one of them could not have caught the bug it was written for (2026-10-01, Tier A)
+
+A full-suite run taken while the laptop was loaded finished **2 failed / 1067 passed** — and both failures
+were `Error: Test timed out in 5000ms`, not assertions: `gitignore-hygiene.test.ts` at 5910 ms and
+`mwalimu-no-phantom-memory.test.ts` at 6927 ms. The same files in the same tree pass in 78-90 s runs. Two
+things followed, and the second is the one worth keeping.
+
+1. **The cost was the shape of the work, not the machine.** The ignore guard spawned a `git` process per path
+   (7 assertions, 6+ spawns, each re-reading the ignore stack); the phantom-memory guard re-walked every
+   `.ts`/`.tsx` under `src` inside its assertion. `--stdin` asks git about all paths in one process, and the
+   walk now happens once at module load: **5910 ms → 13 ms**, **6927 ms → 1385 ms**, same assertions. A guard
+   that trips because the laptop was busy is worse than no guard, because the next green run gets ignored.
+2. **The flip test said the guard was not guarding.** The discipline in this file is to reintroduce the defect
+   and watch the test bite, so `public` went back on the end of `.gitignore` — and the batched guard **passed
+   all 7 tests**. Reading `git check-ignore`'s own documentation explains it: by default it will not call a
+   *tracked* path ignored, and all six paths in that list have been tracked for a month. So the version of
+   this guard written last week could not have caught the defect described in its own docstring while the
+   files stayed tracked; it only ever fired because it was written on the day a *new* file was being added.
+   `--no-index` asks the pattern layer directly — the question a reviewer would ask, *"would a new file at
+   this path be swallowed?"* — and the flip now bites: **6 failed**, each naming
+   `.gitignore:<line>:public`. Restored, `git status --short .gitignore` is empty.
+
+Recorded rather than fixed: the same class of blindness applies to any index-aware check in this repository.
+There is one more guard of this shape (`legacy-auth-surface.test.ts` scans source, not git) and it is
+unaffected. The suite is green again with the two fixes in: **1069 passed / 17 skipped, exit 0**.
 
 ---
 

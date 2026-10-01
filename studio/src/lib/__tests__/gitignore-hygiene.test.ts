@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 
 /**
@@ -29,26 +29,58 @@ const MUST_BE_COMMITTABLE = [
   'studio/public/omega/drafts/kibera_g8_week14.json',
 ];
 
-function ignoredBy(path: string): string | null {
-  try {
-    // `check-ignore -v` exits 0 and prints the rule when the path is ignored, exits 1 when it is not.
-    const out = execFileSync('git', ['check-ignore', '-v', path], { cwd: REPO, encoding: 'utf8' });
-    return out.trim();
-  } catch {
-    return null;
+/**
+ * One `git` process for the whole list, not one per assertion, and asked with `--no-index`.
+ *
+ * **The spawn cost.** Each `it` used to spawn `git check-ignore` by itself: six processes, each paying for a
+ * fresh look at the ignore stack, and under a full-suite run on this 3.7 GB machine the first one went past
+ * vitest's 5 s default and the file was reported failed by timeout, not by a rule. A guard that trips because
+ * the laptop was busy is worse than no guard — the next green run gets ignored, and the real defect hides
+ * among the noise. `--stdin` asks the same question of every path in one process, and git prints a line only
+ * for the paths that *are* ignored, so "this path is not in the output" is the assertion that was here
+ * before, at a seventh of the time (5.9 s → 13 ms).
+ *
+ * **`--no-index`, which is the part that changes what the guard proves.** Without it git refuses to call a
+ * tracked path ignored, so every file in the list below — tracked since long before the rule was noticed —
+ * answers "not ignored" *even with the bare `public` rule back in `.gitignore`*. Verified by putting it back
+ * and watching the old form stay green. That means the version of this file that caught the defect in the
+ * paragraph above could not have caught it while the files were already tracked; it only worked because the
+ * check ran on the day a new file was being added. `--no-index` asks the pattern layer directly, which is the
+ * question the guard was always meant to answer: would a *new* file at this path be swallowed?
+ */
+function rulesFor(paths: readonly string[]): Map<string, string> {
+  const result = spawnSync('git', ['check-ignore', '--stdin', '-v', '--no-index'], {
+    cwd: REPO,
+    input: `${paths.join('\n')}\n`,
+    encoding: 'utf8',
+  });
+  // 0 means at least one path matched, 1 means none did. Anything else is git failing to answer, and an
+  // unanswered guard has to say so rather than report every path clean.
+  if (result.error !== undefined || !([0, 1].includes(result.status ?? -1))) {
+    throw new Error(`gitignore-hygiene: git check-ignore did not answer (${result.status}): ${result.stderr}`);
   }
+  const matched = new Map<string, string>();
+  for (const line of result.stdout.split('\n')) {
+    const path = paths.find((candidate) => line.endsWith(candidate));
+    if (path !== undefined) matched.set(path, line);
+  }
+  return matched;
 }
+
+const ALL_CHECKED = [...MUST_BE_COMMITTABLE, 'studio/public'];
+const IGNORED = rulesFor(ALL_CHECKED);
 
 describe('nothing that ships to a browser is git-ignored', () => {
   for (const path of MUST_BE_COMMITTABLE) {
     it(`${path} is not ignored`, () => {
-      expect(ignoredBy(path), `${path} matches an ignore rule`).toBeNull();
+      expect(IGNORED.get(path) ?? null, `${path} matches an ignore rule`).toBeNull();
     });
   }
 
   it('the static root itself is open, so the rule cannot come back as a directory match', () => {
     // `public` alone was the defect: it matches any directory of that name at any depth, including the Next.js
     // app's own static root. Checking the directory, not just the files in it, is what catches a reintroduction.
-    expect(ignoredBy('studio/public'), 'studio/public is ignored').toBeNull();
+    expect(IGNORED.get('studio/public') ?? null, 'studio/public is ignored').toBeNull();
   });
 });
+
