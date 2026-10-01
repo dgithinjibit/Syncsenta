@@ -37,6 +37,31 @@ Install all project dependencies (Python, Node, Rust).
 ./scripts/setup/install-dependencies.sh
 ```
 
+## 🧠 Omega scripts
+
+### reconcile.mts
+Print the scheme check for a Grade 8 draft, in a terminal, from the MeTTa packs on disk. It imports
+`studio/src/lib/scheme/reconcile.ts` — the module the browser page uses — so the two outputs are the same
+bytes, and a vitest suite compares them to keep that true.
+
+**Usage:**
+```bash
+node scripts/reconcile.mts                       # the sample week-14 draft
+node scripts/reconcile.mts --draft <path.json>   # another draft, same shape
+```
+Exit code 0 means the check ran, whatever it concluded; 1 means a file could not be read. Requires Node 22
+for the type stripping, and no install step.
+
+### omega-alias.mjs
+Twenty lines that answer `@/` for Node, which is how `studio/src` writes its imports and what makes the
+runner above able to use the real module instead of a copy. Imported for its side effect; nothing to run.
+
+### generate-ai-design-pack.mts
+Regenerate `studio/public/omega/ai_g8_design.metta` from the curriculum module that is the authority for it.
+Run from `studio/`: `npm run generate:design-pack`. The design pack is generated and byte-lock tested against
+`studio/src/data/curriculum/senior-school/ai.ts`; `scheme_check.metta` is hand-written policy and has no
+generator.
+
 ## 🔧 Making Scripts Executable
 
 If you get permission errors:

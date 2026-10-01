@@ -127,9 +127,22 @@ function isEmpty(value: unknown): boolean {
   return value === undefined || value === null;
 }
 
+/**
+ * The steps a decision rests on: the rows the pack answered with.
+ *
+ * A derivation also records the lines it *considered* and rejected — a `scheme-gap-reason` row written for a
+ * different gap kind, say. Those belong in the printed trace, where the reader can see the search, and
+ * nowhere else. Reading a value out of a rejected line is how row 3 of the demo draft ended up quoting the
+ * blank-column sentence: both lookups here took the first step that mentioned a head, and the first one is
+ * not the one that answered.
+ */
+function usedSteps(derivation: Derivation): DerivationStep[] {
+  return derivation.steps.filter((step) => step.result === 'matched' || step.result === 'applied');
+}
+
 /** `…/scheme_check.metta:48` for every pack line the derivation actually used. */
 function citationsOf(derivation: Derivation): string[] {
-  return derivation.steps
+  return usedSteps(derivation)
     .filter((step) => step.packLine !== null)
     .map((step) => `${derivation.packFile}:${step.packLine}`);
 }
@@ -141,7 +154,7 @@ function quotedValue(text: string | null): string | undefined {
 
 /** The sentence the pack carries for one head — the teacher reads the file's words, not this module's. */
 function sentenceFrom(derivation: Derivation, head: string): string | undefined {
-  const step = derivation.steps.find((candidate) => candidate.asked?.includes(head));
+  const step = usedSteps(derivation).find((candidate) => candidate.asked.includes(head));
   return step === undefined ? undefined : quotedValue(step.packText ?? null);
 }
 

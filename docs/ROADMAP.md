@@ -48,10 +48,12 @@ fixed by the owner: Track 5, challenge 1 — one agent producing an auditable de
 scheme-of-work reconciler. §11's Spoon 3 is done (the checker's policy pack and the three derivations that ask
 it), Spoon 4 is done (the teacher's week-14 draft, with its own claims recomputed from both packs), Spoon 5a
 is done (`studio/src/lib/scheme/reconcile.ts` — the Monday-morning decision itself, cited, consent-gated and
-refusing to invent a judgment column) and Spoon 5b is done (a page mounts it: `/omega/check` with no account,
+refusing to invent a judgment column), Spoon 5b is done (a page mounts it: `/omega/check` with no account,
 `/teacher/omega` inside the workspace, and a view model between the engine and the JSX so the screen cannot
-decide). The offline draft is declared *input* rather than something SyncSenta generates, and the submitted
-feature needs no API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a" and "Spoon 5b" blocks
+decide) and Spoon 5d is done (`node scripts/reconcile.mts` prints the identical transcript in a terminal, and
+running it is what exposed that a finding had been quoting the wrong pack line — see §11's 5d block). The
+offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature needs no
+API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b" and "Spoon 5d" blocks
 for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
@@ -1296,6 +1298,8 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **"Fully offline" is withdrawn from the video script until a service worker precaches the shell** | agent, after measuring | `public/sw.js` contains no `precache` or `registerRoute`, and a cold navigation to a deployed URL with the network off never reaches the page. The sentence that *is* true: the check issues three same-origin static GETs and no model call, so the Network panel shows nothing deciding. Narrower, and defensible |
 | 2026-10-01 | **The demo draft lives in `public/`, not in a test folder, and the suite reads it from there** | agent | The browser can only fetch what `public/` serves; a copied fixture is how a screen and a test start disagreeing. `git mv` to `public/omega/drafts/`, three readers and the hygiene guard repointed. Its `expected` block is therefore public — accepted, because the recomputing suite *is* the claim |
 | 2026-10-01 | **Retest the whole suite whenever `vitest.config.ts` changes, and re-measure stale numbers in this file** | agent | Rendering a `.tsx` required `oxc.jsx.runtime = 'automatic'` in the test config (Vite 8 ignores `esbuild:` and reads `"jsx": "preserve"` from `tsconfig.json`). That is a global change, so the full run was spent: **exit 0, 103 files, 974 passed, 17 skipped, 94 s, 218 MB peak** — which also retires the "74 files" this file had been quoting |
+| 2026-10-01 | **A citation may name only a line the derivation used; considered-and-rejected lines stay in the trace** | agent, found by running the terminal | `sentenceFrom` and `citationsOf` took the first step mentioning a head, and a derivation records its search — so row 3 quoted row 2's sentence while citing a line about a different gap kind. Now both read `usedSteps()` (matched/applied). The 15 earlier tests could not see it because every one of them asked whether the reason appeared in the transcript, and a wrong sentence used consistently passes that; the two replacement tests are oracles that re-read the pack. Consequence for the video: an audit trail is only worth opening if the line it points at is the line that answered |
+| 2026-10-01 | **The terminal runner imports the app's modules through a Node resolve hook, and the two outputs are compared as strings** | agent, spoon 5d | `scripts/omega-alias.mjs` answers `@/` for Node so `scripts/reconcile.mts` can import `reconcile.ts` rather than copy it — one engine, and a CLI test that asserts stdout equals the in-process transcript byte for byte (proven: one stray full stop fails exactly that test). Chosen over a standalone script or a `tsx`/esbuild step because a reviewer must be able to type `node scripts/reconcile.mts` with no install and no flags |
 
 ---
 
@@ -2166,6 +2170,61 @@ finishing touches: 5b is verified in Node and in types, not in a viewport.
 the ledger (5c) and an accept that rewrites a row without a record would be the one thing this submission cannot
 afford. The lesson-plan handoff reports `allowed`/`refused` but no route enforces it yet. And the terminal
 runner, which is the second rendering of this transcript, is 5d.
+
+### Spoon 5d is done: the same transcript in a terminal, and it found a bug the page could not see (2026-10-01, Tier A)
+
+`scripts/reconcile.mts` prints the scheme check; `scripts/omega-alias.mjs` teaches Node the `@/` alias so the
+runner can import the app's real modules instead of holding a second copy; and
+`studio/src/lib/__tests__/scheme-reconcile-cli.test.ts` (8 tests) spawns the script as a child process, with no
+flags, exactly the way a reviewer types it.
+
+**The order changed: 5d before 5c, on purpose.** The ledger is the biggest remaining slice and the runner is the
+smallest, and the runner is the one that lets the *next* slice be checked rather than admired. It paid for
+itself in minutes — see the bug below.
+
+**"One engine, two renderings" is a compared string, not a slide.** One test builds the view model in-process
+and asserts `stdout.trimEnd()` equals `view.transcript` byte for byte. Flipping the runner to append one
+full stop to a single line broke exactly that test and nothing else, which is the proof that the assertion is
+load-bearing rather than decorative.
+
+**The bug: a rejected pack line was being read as an answer.** Running the draft printed, above row 3,
+the sentence belonging to row 2 — *"A column the design cannot do without is empty"* over a
+`sub-strand-not-in-design` finding whose own derivation correctly cited `scheme_check.metta:49`. Root cause was
+in `reconcile.ts`, not in the packs: `sentenceFrom` took `steps.find(step => step.asked.includes(head))`, and a
+derivation records the lines it *considered* as well as the one it *used*, so the first mention of
+`scheme-gap-reason` was the rejected row for a different gap kind. `citationsOf` had the same shape, which
+means a teacher could open a citation and find a line about something else. Both now read from `usedSteps()` —
+`matched` or `applied` — while the printed trace keeps the rejected lines, because seeing the search is part of
+what makes it a derivation rather than an assertion.
+
+**Why 15 green tests had not seen it.** Every prior assertion asked whether a reason was non-empty and whether
+it appeared in the transcript. Both hold when the wrong sentence is used *consistently* — the field and the
+transcript come from the same variable. The two new tests in `scheme-reconcile.test.ts` are oracles instead:
+they parse the policy pack themselves and require each finding's reason to be the value the pack states for
+*that* gap kind, and require every cited line number to contain the gap it is cited under. Red before the fix:
+`expected 'A column the design cannot do without…' to be 'This sub-strand is not in the Grade 8…'` and
+`expected '(= (scheme-gap-severity g8 mandatory-…' to contain 'sub-strand-not-in-design'`, with the other 15
+still passing. After: 17 green, and no other suite moved.
+
+**What the runner is allowed to assume.** `@/` resolution lives in 20 lines of `module.registerHooks`, and the
+script reaches the app through a dynamic `await import(...)` because a static one would resolve before the hook
+registers. Node prints one `MODULE_TYPELESS_PACKAGE_JSON` warning for the `.ts` import; it was not silenced by
+adding `"type": "module"` to `studio/package.json` (that moves every config file's module kind under Next) nor
+by nesting a `package.json` inside `src/`, and the test says so while still requiring stderr to carry no error.
+
+**Evidence.** Red: `ERR_MODULE_NOT_FOUND … scripts/omega-alias.mjs`, then 7 failing assertions with the script
+absent. Green: **8 passed** in the CLI suite, **17 passed** in the reconciler suite. Full run, because the fix
+touched a shared module: `npx vitest run --no-file-parallelism` → **exit 0, 104 files, 984 passed, 17 skipped,
+126 s, 201 MB peak**.
+
+**Tier B, still open:** `scripts/*.mts` is outside `studio/tsconfig.json`, so the runner is verified by
+execution rather than by `tsc` — its `.ts`-extension imports would need `allowImportingTsExtensions`, which the
+app config does not set. The full `npx tsc --noEmit` over the app and the browser pass over 5b are still not
+run.
+
+**What this is not yet: the ledger.** Nothing records an accepted proposal, no override survives a second run,
+and no gate stands in front of the lesson-plan handoff. That is 5c, the last unclaimed piece of the auditable
+decision.
 
 ### What this does not change
 

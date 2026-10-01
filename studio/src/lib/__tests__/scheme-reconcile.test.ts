@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { SchemeRow } from '@/types/curriculum';
+import { parsePack } from '@/lib/attest/derive';
 
 /**
  * The reconciler itself: the Monday-morning sequence, in the order the teacher meets it.
@@ -180,5 +181,40 @@ describe('step 6 — the certified scheme is the only thing the lesson-plan gene
     expect(withAdvisory.certification.certified).toBe(true);
     expect(withAdvisory.certification.handoff).toBe('allowed');
     expect(withAdvisory.counts).toEqual({ blocking: 0, advisory: 1, clean: 0 });
+  });
+});
+
+
+describe('step 3b — the sentence and the citation must belong to the gap they describe', () => {
+  /**
+   * Found by running `node scripts/reconcile.mts`, not by looking at the page: row 3 printed the blank-column
+   * sentence above a derivation that correctly cited the sub-strand sentence. Both wrong halves came from the
+   * same place — a lookup that took the first pack line the derivation *considered* rather than the one it
+   * *used* — so no assertion about "the reason is non-empty and appears in the transcript" could see it. That
+   * is what these two are for: each sentence must be the pack's for this gap kind, and every cited line must
+   * be about the gap it is cited under.
+   */
+  const policyRows = parsePack(policy.text);
+  const packReason = (gap: string) =>
+    policyRows.find((row) => row.head === 'scheme-gap-reason' && row.args.join(' ') === `g8 ${gap}`)?.value;
+  const packLine = (citation: string) => {
+    const line = Number(citation.split(':').pop());
+    return policyRows.find((row) => row.line === line)?.text ?? '';
+  };
+
+  it('hands each finding the reason the pack states for its own gap kind', () => {
+    for (const finding of result.findings) {
+      expect(packReason(finding.gap)).toBeDefined();
+      expect(finding.reason).toBe(packReason(finding.gap));
+    }
+  });
+
+  it('cites only lines that speak about the gap it was asked about', () => {
+    for (const finding of result.findings) {
+      expect(finding.citations.length).toBeGreaterThan(0);
+      for (const citation of finding.citations) {
+        expect(packLine(citation)).toContain(finding.gap);
+      }
+    }
   });
 });
