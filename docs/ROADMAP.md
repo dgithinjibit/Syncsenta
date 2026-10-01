@@ -56,11 +56,15 @@ has begun and is nearly finished: 5c-1 is done (`studio/src/lib/scheme/ledger.ts
 record that reports an edit made to it afterwards), 5c-2 is done (`studio/src/lib/scheme/consent.ts`, the accept
 path: three cells written, three records, a refusal that still refuses) and 5c-3 is done
 (`studio/src/lib/scheme/override.ts`: the teacher's waiver rewrites one line of the policy text, every later run
-reads it and says so out loud, and the certification threshold refuses to be overridden). Only 5c-4 — the gate in
-front of the lesson-plan handoff, with `out/diff.json` — is left before the README and the video. The
+reads it and says so out loud, and the certification threshold refuses to be overridden) and 5c-4a is done
+(`studio/src/lib/scheme/handoff.ts`: both gates asked on every call — the pack's threshold and the ledger's chain —
+and the lesson-plan handoff refused by a module that returns a decision or throws, so `handoff: 'refused'` stopped
+being a field the page displays and became a thing that stops work). Only 5c-4b is left — the terminal path that
+writes `out/diff.json`, the new policy text and the ledger to disk, and re-runs the checker against its own
+output — before the README, the disclosure and the video. The
 offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature needs no
-API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d", "Spoon 5c-1", "Spoon 5c-2" and
-"Spoon 5c-3" blocks for the rulings and what is still not yet used.
+API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d", "Spoon 5c-1", "Spoon 5c-2",
+"Spoon 5c-3" and "Spoon 5c-4a" blocks for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
 
@@ -1317,6 +1321,11 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **The certification threshold cannot be overridden, in code rather than in prose** | agent, spoon 5c-3 | A column's obligation and a gap's severity are the teacher's to argue with; `blocking-must-be-zero` is not. `UnoverridableRuleError` refuses it even for a caller who constructs the request by hand (a CLI argument, a policy file read off disk), because the gate is the one claim in this submission that has to survive without her agreement — a negotiable gate is not a gate. Removing the check fails exactly 1 test |
 | 2026-10-01 | **A waived column stays a finding: advisory, cited at the line the override wrote** | agent, spoon 5c-3 | The obvious implementation drops the column from `mandatoryFields` and the gap disappears — a checker that forgets. Instead `reconcile.ts` re-raises `field-obligation-waived-by-teacher` on every later run with the override's own line among its citations, and the policy pack gained two rows to say so (severity and sentence), because asking for a gap kind the pack never stated throws by design. This is the difference between an audit trail and a status report |
 | 2026-10-01 | **The ledger accepts records about the rules: `row: 'pack'`, and the free-text note is inside the hash** | agent, spoon 5c-3 | A policy override is not about a row of her draft, so `LedgerEntryDraft.row` is widened to `number | 'pack'` rather than inventing row 0. Her reason is free text — the one field a reviewer would expect to be editable afterwards — so `note` goes into the hashed payload and a test proves editing it breaks the chain |
+| 2026-10-01 | **A verdict a page prints is not a verdict that stops anything: the handoff gate is a module that refuses** | agent, spoon 5c-4a | `certification.handoff` has existed since 5a and been displayed since 5b with no reader in the codebase, which is a policy as decoration. `handoff.ts` is the reader, and `requireHandoff` is the form a caller cannot skip by forgetting to check a boolean — deleting the chain gate from `authorizeHandoff` fails 3 tests, so the enforcement is now load-bearing rather than descriptive |
+| 2026-10-01 | **Both gates are asked on every call; `gate` names certification as primary** | agent, spoon 5c-4a | Reporting only the first failure would make her fix the rows, re-run, and only then learn the record had been tampered with. Certification leads in `gate` because it is a rule about her scheme, stated in a file she can argue with, while a broken chain is a fact about the record; leading with the chain would let an uncertified scheme look as though it only needed a re-hash. A flip that suppresses the chain report when certification already fails is caught by exactly 1 test — the same single-test coverage weakness 5c-3 recorded, and named here instead of smoothed over |
+| 2026-10-01 | **`Certification` carries `citations`, because the gate is the first verdict that blocks something real** | agent, spoon 5c-4a | `scheme-certification-threshold g8` and its reason line were already in the pack and already used by `deriveCertificationRule`; they simply were not returned. Dropping `citations: citationsOf(rule)` from `reconcile.ts` fails 5 handoff tests, which is the proof that the refusal quotes the file rather than this module |
+| 2026-10-01 | **A prefix cut verifies: history tests must delete from the middle** | agent, spoon 5c-4a, found in the red phase | The both-gates test was written with `slice(0, 1)`, which leaves a legitimate prefix — `verifyLedger` says so by design, documented in 5c-1 — so the test asserted a chain failure that could never occur and would have failed against correct code. Third spoon running where the expectation, not the implementation, was the bug. Caught because red is witnessed before the module exists, not after |
+| 2026-10-01 | **Widen the narrowed typecheck to every test file in the surface, not only the new ones** | agent, found by running it | Including `src/lib/__tests__/scheme-*.test.ts` (the config had named only the ledger and CLI tests) surfaced **two pre-existing type errors in `scheme-fixture.test.ts`**: a `PackRow.value` of `string \| null` returned as `string \| undefined`, and a `SchemeRow as Record<string, unknown>` cast. Vitest ran both files green the whole time, because Vitest does not typecheck. The net only earns its keep if it covers the surface it claims to |
 
 ---
 
@@ -2416,6 +2425,55 @@ Full suite, because `reconcile.ts` and the policy pack are shared: `npx vitest r
 
 **Not yet.** No UI or terminal path calls any of 5c; `out/diff.json` and the handoff gate are 5c-4; and the page
 still has no accept button, which needs the browser pass the owner has not authorised yet.
+
+### Spoon 5c-4a is done: the handoff gate reads the verdict instead of printing it (2026-10-01, Tier A)
+
+**The gap this closes.** `reconcile.ts` has carried `handoff: 'allowed' | 'refused'` since spoon 5a, and spoon 5b
+put it on the page. Four spoons passed with nothing in the codebase *reading* that field — a policy displayed and
+no policy enforced, which is the exact failure mode this submission claims to replace. `src/lib/scheme/handoff.ts`
+is the reader: `authorizeHandoff({certification, ledger})` returns a decision, `requireHandoff(...)` throws
+`HandoffRefusedError` for a caller that must be stopped rather than told, and neither one has a clock, a network
+call, a model, or a write.
+
+**Two gates, asked on every call.** Certification is the pack's threshold against the blocking count, lifted
+unchanged from 5a; verification is `verifyLedger` recomputing the whole chain. A certified scheme with an edited
+ledger refuses: content with a broken history is a story *about* a decision, not an auditable one. Both are
+reported, in the fixed order `certification`, `chain`, so she is not made to fix her rows, re-run, and only then
+discover her record was tampered with.
+
+**Why certification is primary in `gate`.** Not because it is worse — because it is a rule about her scheme, stated
+in a file she can open and argue with, while a broken chain is a fact about the record. Reporting the record first
+would let an uncertified scheme look as though it only needed a re-hash.
+
+**`Certification` now carries `citations`,** and the refusal's reason begins with the count and the threshold and
+then quotes the pack's own sentence. A verdict nobody can cite is an opinion, and the gate is the one place in the
+demo where a verdict stops something real.
+
+**Three tests were wrong before the implementation existed.** The both-gates test used `slice(0, 1)`, a *prefix*
+cut — which verifies cleanly by design, so the test would have asserted a chain failure that could never happen
+and then failed against correct code. Rebuilt as a middle removal, and the same file's third test was named "even
+when the ledger is empty" while passing a full one, so it was renamed to what it actually proves. Third spoon
+running in a row where the expectation, not the code, was the bug — the reason red is witnessed before writing.
+
+**Evidence.** Red: `Cannot find package '@/lib/scheme/handoff'`, 0 tests collected. Green: `scheme-handoff.test.ts`
+**12 passed** in 2.07 s. Four drift flips, each restored byte-identical: chain gate suppressed when the scheme
+already fails → **1 failed** (the both-gates test, and only it); reason rewritten in this module's words instead of
+the pack's → **1 failed**; chain gate deleted entirely → **3 failed**; `citations: citationsOf(rule)` removed from
+`reconcile.ts` → **5 failed**. Narrowed `tsc` over the omega surface plus every `scheme-*.test.ts`: **exit 0,
+383 MB**. Full suite, because `reconcile.ts` is shared: `npx vitest run --no-file-parallelism` → **exit 0, 107
+files passed + 1 skipped, 1042 passed, 17 skipped, 139.58 s, 265 MB peak**. (The duration moved from 57 s to
+139 s on an identical suite with the laptop busy — the pass counts are the number to compare run to run, not the
+clock.)
+
+**Widening the typecheck net paid for itself immediately.** Including all `scheme-*.test.ts` — the previous
+narrowed config named only the ledger and CLI tests — surfaced **two pre-existing type errors in
+`scheme-fixture.test.ts`**: a `PackRow.value` of `string | null` returned from a function declared
+`string | undefined`, and a `SchemeRow as Record<string, unknown>` cast TypeScript rightly refused. Vitest ran
+both files green throughout. Fixed with `?? undefined` and `as unknown as Record<…>`, no behaviour change.
+
+**Not yet.** The gate has no production caller: `/api/generate/lesson-plan` still does not `requireHandoff`, and
+no UI or terminal path reaches 5c at all. `out/diff.json`, the CLI flags, and the loop-closing re-run are 5c-4b.
+The accept button is still absent, pending the browser pass the owner has not authorised.
 
 ### What this does not change
 

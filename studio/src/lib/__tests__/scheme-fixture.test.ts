@@ -78,7 +78,7 @@ function readFixture(): Fixture {
 /** `(= (ai-design-name g8 3.3) "…")`: the last argument is the id being described. */
 function designValue(head: string, id: string | undefined): string | undefined {
   if (id === undefined) return undefined;
-  return designRows.find((row) => row.head === head && row.args[row.args.length - 1] === id)?.value;
+  return designRows.find((row) => row.head === head && row.args[row.args.length - 1] === id)?.value ?? undefined;
 }
 
 /** A real scheme cell reads `3.3 Introduction to Neural Networks`; the number is the only part that joins to the pack. */
@@ -95,7 +95,7 @@ function mandatoryFields(): string[] {
 
 function emptyMandatoryFields(row: SchemeRow): string[] {
   return mandatoryFields().filter((field) => {
-    const value = (row as Record<string, unknown>)[field];
+    const value = (row as unknown as Record<string, unknown>)[field];
     if (typeof value === 'number') return false;
     if (typeof value === 'string') return value.trim() === '';
     return value === undefined || value === null;

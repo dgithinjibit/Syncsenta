@@ -74,6 +74,12 @@ export type Certification = {
   readonly reason: string;
   readonly blocking: number;
   readonly handoff: 'allowed' | 'refused';
+  /**
+   * The pack lines that state the threshold and its reason, exactly as `deriveCertificationRule` used them.
+   * Carried here because a verdict nobody can cite is an opinion: `handoff.ts` refuses or allows in front of
+   * the lesson-plan generator, and the teacher has to be able to open the line that decided it.
+   */
+  readonly citations: readonly string[];
 };
 
 export type ReconcileResult = {
@@ -335,6 +341,7 @@ export function reconcileScheme(input: ReconcileInput): ReconcileResult {
     reason: sentenceFrom(rule, 'scheme-certification-reason') ?? rule.conclusion,
     blocking,
     handoff: certified ? 'allowed' : 'refused',
+    citations: citationsOf(rule),
   };
 
   return {
