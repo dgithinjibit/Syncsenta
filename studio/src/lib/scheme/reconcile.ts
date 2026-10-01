@@ -31,6 +31,7 @@ import {
   parsePack,
   renderDerivation,
   type Derivation,
+  type DerivationStep,
   type PackSource,
 } from '@/lib/attest/derive';
 import type { SchemeRow } from '@/types/curriculum';
