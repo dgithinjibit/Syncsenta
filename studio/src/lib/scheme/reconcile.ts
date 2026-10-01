@@ -100,6 +100,13 @@ export const HEADS = {
   version: 'ai-design-curriculum-version',
 } as const;
 
+/**
+ * The gap kind a waived column raises (`scheme-override.ts` is what writes the word `waived` into the pack).
+ * It is a gap kind like any other, which is why the policy pack has to state a severity and a sentence for it:
+ * asking for a kind the pack never wrote down throws rather than defaulting to advisory.
+ */
+export const WAIVED_GAP = 'field-obligation-waived-by-teacher';
+
 /** Words too general to identify one sub-strand, and too common to be worth matching on. */
 const STOP_WORDS = new Set([
   'and',
@@ -173,6 +180,22 @@ export function reconcileScheme(input: ReconcileInput): ReconcileResult {
     )
     .map((row) => row.args[1]);
 
+  /**
+   * Columns she has recorded as not applying to her scheme (`scheme-override.ts` writes that word), with the
+   * line in the pack that says so. A field is only waived if the pack no longer calls it mandatory: a hand-edited
+   * pack that states both readings is treated as the stricter one, because a stray waived row must not be able
+   * to cancel a live blocking rule.
+   */
+  const waivers = policyRows
+    .filter(
+      (row) =>
+        row.head === 'scheme-field-obligation' &&
+        row.args[0] === grade &&
+        row.value === 'waived' &&
+        !mandatoryFields.includes(row.args[1]),
+    )
+    .map((row) => ({ field: row.args[1], line: row.line }));
+
   /** Every design sub-strand whose name contains a distinctive word the teacher wrote. */
   function candidatesFor(cell: string): string[] {
     const words = cell
@@ -194,7 +217,7 @@ export function reconcileScheme(input: ReconcileInput): ReconcileResult {
     row: number,
     field: string,
     gap: string,
-    extra: { proposal?: Proposal; refusal?: string } = {},
+    extra: { proposal?: Proposal; refusal?: string; extraCitations?: readonly string[] } = {},
   ): Finding {
     const derivation = deriveGapPolicy({ grade, gap }, policy);
     const reason = sentenceFrom(derivation, 'scheme-gap-reason');
@@ -203,6 +226,7 @@ export function reconcileScheme(input: ReconcileInput): ReconcileResult {
         `scheme_check.metta states no reason for ${gap}; a bare label would tell the teacher nothing`,
       );
     }
+    const { extraCitations, ...rest } = extra;
     return {
       row,
       field,
@@ -210,8 +234,8 @@ export function reconcileScheme(input: ReconcileInput): ReconcileResult {
       severity: derivation.conclusion as Severity,
       reason,
       why: renderDerivation(derivation),
-      citations: citationsOf(derivation),
-      ...extra,
+      citations: [...citationsOf(derivation), ...(extraCitations ?? [])],
+      ...rest,
     };
   }
 
@@ -246,6 +270,17 @@ export function reconcileScheme(input: ReconcileInput): ReconcileResult {
             `The ${field} column is empty and the policy pack calls it mandatory` +
             `${why === undefined ? '.' : `: ${why}`} The design states no value for it, so the agent will ` +
             'not write one. Fill it yourself, or tell the checker the column does not apply.',
+        }),
+      );
+    }
+
+    for (const waiver of waivers) {
+      if (!isEmpty((row as unknown as Record<string, unknown>)[waiver.field])) continue;
+      // She took responsibility for the empty cell, so it does not block — but it is reported on every later
+      // run, citing the line her own override wrote, because a checker that forgets is not an auditable one.
+      findings.push(
+        makeFinding(rowNumber, waiver.field, WAIVED_GAP, {
+          extraCitations: [`${policy.file}:${waiver.line}`],
         }),
       );
     }

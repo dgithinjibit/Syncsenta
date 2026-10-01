@@ -52,14 +52,15 @@ refusing to invent a judgment column), Spoon 5b is done (a page mounts it: `/ome
 `/teacher/omega` inside the workspace, and a view model between the engine and the JSX so the screen cannot
 decide) and Spoon 5d is done (`node scripts/reconcile.mts` prints the identical transcript in a terminal, and
 running it is what exposed that a finding had been quoting the wrong pack line — see §11's 5d block). Spoon 5c
-has begun: 5c-1 is done (`studio/src/lib/scheme/ledger.ts`, an append-only hash-chained record that reports an
-edit made to it afterwards) and 5c-2 is done (`studio/src/lib/scheme/consent.ts`, the accept path: three cells
-written, three records, a refusal that still refuses), while 5c-3 — the override the next run reads — and 5c-4,
-the gate in front of the lesson-plan handoff with `out/diff.json`, are what is left before the README and the
-video. The
+has begun and is nearly finished: 5c-1 is done (`studio/src/lib/scheme/ledger.ts`, an append-only hash-chained
+record that reports an edit made to it afterwards), 5c-2 is done (`studio/src/lib/scheme/consent.ts`, the accept
+path: three cells written, three records, a refusal that still refuses) and 5c-3 is done
+(`studio/src/lib/scheme/override.ts`: the teacher's waiver rewrites one line of the policy text, every later run
+reads it and says so out loud, and the certification threshold refuses to be overridden). Only 5c-4 — the gate in
+front of the lesson-plan handoff, with `out/diff.json` — is left before the README and the video. The
 offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature needs no
-API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d", "Spoon 5c-1" and "Spoon 5c-2" blocks
-for the rulings and what is still not yet used.
+API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d", "Spoon 5c-1", "Spoon 5c-2" and
+"Spoon 5c-3" blocks for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
 
@@ -1312,6 +1313,10 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **Consent is a third module, and one record per cell that actually moved** | agent, spoon 5c-2 | `reconcile.ts` decides, `ledger.ts` records, `consent.ts` writes — so the rule that a proposal may only carry design-stated values is enforced at the only place that touches the draft. Row 3's proposal fills three cells and so produces three entries; a cell already holding the proposed value produces none, because the invariant is *the ledger records every change and only changes*, and a ledger of non-events hides the events |
 | 2026-10-01 | **Accepting a refusal throws instead of degrading to a blank or a guess** | agent, spoon 5c-2 | The row-2 finding tells her the design states no value for `assessmentMethods`; a click on that card must not produce a write. `NothingProposedError` re-raises the refusal at the moment it would otherwise be silent, and the draft is left untouched — proven by removing the guard and watching 2 tests fail |
 | 2026-10-01 | **Where two guards cover one behaviour, the roadmap says the tests cannot tell them apart** | agent, spoon 5c-2 | An invented column is refused both by the `hasOwnProperty` check and by the not-a-string check, so flipping either one alone keeps all 15 green and only flipping both fails one. The behaviour is proven; the individual guard is not. Stating that is cheaper than pretending coverage, and it is the same honesty rule that retired "fully offline" from the script |
+| 2026-10-01 | **An override rewrites its line in place; it is never appended, and never written back to the repository's pack** | agent, spoon 5c-3 | `derive.ts`'s `ask()` answers with the first statement whose args bind, so an appended `waived` row would sit under the live `mandatory` row and the override would silently do nothing — the worst failure here, because she would believe she had said it. Proven by flipping to `splice`: 8 tests fail. Replace-in-place also keeps every other line number intact, and the text only ever lives in the copy one run is handed, so a waiver is a dated claim recorded in the ledger rather than an edit to shared rules |
+| 2026-10-01 | **The certification threshold cannot be overridden, in code rather than in prose** | agent, spoon 5c-3 | A column's obligation and a gap's severity are the teacher's to argue with; `blocking-must-be-zero` is not. `UnoverridableRuleError` refuses it even for a caller who constructs the request by hand (a CLI argument, a policy file read off disk), because the gate is the one claim in this submission that has to survive without her agreement — a negotiable gate is not a gate. Removing the check fails exactly 1 test |
+| 2026-10-01 | **A waived column stays a finding: advisory, cited at the line the override wrote** | agent, spoon 5c-3 | The obvious implementation drops the column from `mandatoryFields` and the gap disappears — a checker that forgets. Instead `reconcile.ts` re-raises `field-obligation-waived-by-teacher` on every later run with the override's own line among its citations, and the policy pack gained two rows to say so (severity and sentence), because asking for a gap kind the pack never stated throws by design. This is the difference between an audit trail and a status report |
+| 2026-10-01 | **The ledger accepts records about the rules: `row: 'pack'`, and the free-text note is inside the hash** | agent, spoon 5c-3 | A policy override is not about a row of her draft, so `LedgerEntryDraft.row` is widened to `number | 'pack'` rather than inventing row 0. Her reason is free text — the one field a reviewer would expect to be editable afterwards — so `note` goes into the hashed payload and a test proves editing it breaks the chain |
 
 ---
 
@@ -2342,9 +2347,75 @@ guard → **2** fail — each restored byte-identical. Narrowed `tsc` over the o
 consent tests: **exit 0**, ~390 MB. Full suite, because the spoon adds a module two others will import:
 `npx vitest run --no-file-parallelism` → **exit 0, 106 files, 1012 passed, 17 skipped, 73 s, 189 MB peak**.
 
-**Not yet wired.** No button calls this, the terminal runner does not know about it, an override still cannot
-survive a second run, and nothing stands in front of the lesson-plan handoff. Those are 5b's accept path (a UI
-change, needs the browser pass), 5c-3 and 5c-4.
+**Not yet wired.** No button calls this, the terminal runner does not know about it, and nothing stands in front
+of the lesson-plan handoff. The override it depends on is the next block (5c-3); the handoff gate and
+`out/diff.json` are 5c-4; and the accept button in the page needs the browser pass the owner has not authorised.
+
+### Spoon 5c-3 is done: the override is a line in the pack, and every later run reads it (2026-10-01, Tier A)
+
+`studio/src/lib/scheme/override.ts` + 17 tests in `scheme-override.test.ts`, and two rows added to the checker's
+own policy pack. This is the promise `scheme_check.metta` has made since spoon 3 — *"the teacher's override is a
+response to that line, not to a number in somebody's code"* — finally implemented.
+
+**Replacing in place, and `derive.ts` is the reason.** `ask()` answers with the *first* statement whose args
+bind. So an appended `(= (scheme-field-obligation g8 assessmentMethods) waived)` would sit underneath the
+original `mandatory` row, never be reached, and the override would silently do nothing — she would believe she
+had said it. This is the least visible failure mode in the whole design and it was found by reading the matcher
+before writing the writer. The flip that proves the reading: change one line to `lines.splice(row.line, 0, …)`
+and **8 tests fail**, including `no longer blocks on the waived column` and `the scheme certifies`.
+
+**The pack in the repository is never touched.** The caller passes policy *text* and gets policy *text* back, and
+one test reads the file off disk afterwards to show it still says `mandatory`. An override is a claim about one
+run of one scheme, recorded in the ledger with who made it and when — not an edit to shared rules. Where the text
+goes on disk is 5c-4's job.
+
+**A waived column is reported, not erased.** The new severity is that nothing blocks; the new *silence* would be
+a checker that forgets. `reconcile.ts` now re-raises a waived column every run as an advisory whose citations
+include the line the override itself wrote, so a reader three months on sees: the column is empty, the pack says
+`waived`, here is the line, and here is the dated record of who said so. The gap kind is stated in the policy
+pack like any other (`advisory`, plus the sentence she reads), because asking for a kind the pack never wrote
+down throws — that rule has been in the pack's comments since spoon 3 and this is the first gap kind added to
+it.
+
+**The gate is not negotiable, and that is the guard the spoon exists for.** A column's obligation and a gap's
+severity are hers to argue with. `scheme-certification-threshold` is refused with `UnoverridableRuleError` — she
+may say *that column does not apply to my scheme*, she may not say *blocking gaps need not be zero*, and this
+module will not help her say it either. Removing the check fails exactly 1 test; the certification is the claim
+that has to survive without her agreement, so the code refuses the request rather than logging it.
+
+**Two more refusings, each worth a test.** `UnreadableValueError`: `mandatoryFields` selects rows that say
+`mandatory`, so *any other word* un-mandates a column — a typo like `pineapple` would quietly stop a check while
+recording a waiver no run can find, so a value the reconciler has no reading for is refused (flip: 1 test).
+`OverrideChangesNothingError`: if the pack already states the value, there is nothing to record — the same
+no-event rule 5c-2 enforces on cells, now enforced on rules (flip: 1 test). And a hand-edited pack that states
+both `mandatory` and `waived` for one column is read as the stricter one; the waiver filter drops any field still
+in `mandatoryFields` (flip: 1 test).
+
+**`row: 'pack'`, and a hashed `note`.** A policy record is not about a row of her draft, so `LedgerEntryDraft.row`
+is widened to `number | 'pack'` and says so instead of inventing row 0. The override also carries her reason in
+free text, which is the one field in a record a reviewer would expect to be editable after the fact — so `note`
+goes into the hashed payload, and a test edits it afterwards and watches the chain refuse the ledger.
+
+**The money test, because it is the submission's claim in one assertion:** with her accepted proposal (5c-2) and
+her waiver (5c-3) both handed to the run, `counts.blocking` is 0, `certification.certified` is true, `handoff` is
+`allowed`, and the transcript still prints the waived column. Two human acts, each cited, each recorded, each
+visible afterwards — and no model anywhere in the path.
+
+**One test was wrong before the code was, again.** The strict-pack test asserted `counts.blocking === 1` while
+handing in a row that also has an empty `assessmentMethods`, so the real figure was 2 and the *guard* had
+nothing to do with it. Fixed by asserting what the guard actually protects: the resources column keeps its
+blocking finding and no waived finding appears anywhere. Recorded here because a wrong expectation caught
+against a correct implementation is the useful kind of failure, not an embarrassment to delete from the log.
+
+**Evidence.** Red: `Cannot find package '@/lib/scheme/override'`. Green: `scheme-override.test.ts` **17 passed**,
+`scheme-check-pack.test.ts` and `scheme-ledger.test.ts` with it → **57 passed**; four drift flips — append
+instead of replace (8 fail), waive-any-mandatory (1), open gate (1), trust an unreadable value (1) — each
+restored byte-identical. Narrowed `tsc` over the omega surface and the three new test files: **exit 0**, ~386 MB.
+Full suite, because `reconcile.ts` and the policy pack are shared: `npx vitest run --no-file-parallelism` →
+**exit 0, 107 files, 1030 passed, 17 skipped, 57 s, 229 MB peak**.
+
+**Not yet.** No UI or terminal path calls any of 5c; `out/diff.json` and the handoff gate are 5c-4; and the page
+still has no accept button, which needs the browser pass the owner has not authorised yet.
 
 ### What this does not change
 

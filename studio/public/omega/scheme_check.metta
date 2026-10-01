@@ -54,6 +54,15 @@
 (= (scheme-gap-severity g8 key-inquiry-question-drifted) advisory)
 (= (scheme-gap-reason g8 key-inquiry-question-drifted) "The inquiry question differs from the design's wording, which is allowed, but the difference is worth reading once more.")
 
+;; The one gap kind that is about the checker's stance rather than about the curriculum: she has said a
+;; mandatory column does not apply to her scheme. It is advisory and never silent — an overridden rule must
+;; still show up in every later run, cited, so that a reader three months on can see the column is empty, that
+;; the pack says waived, and that the waiver was recorded by a named person on a dated line of the ledger.
+;; Nothing in this file is edited by that override: the override rewrites a line in the copy a run is handed,
+;; and the record of who did it lives in the ledger, not here.
+(= (scheme-gap-severity g8 field-obligation-waived-by-teacher) advisory)
+(= (scheme-gap-reason g8 field-obligation-waived-by-teacher) "You recorded that this column does not apply to your scheme, so it no longer blocks certification, and this run still says so out loud: the column is empty, and the reason it is allowed to stay empty is your waiver rather than the checker's opinion.")
+
 ;; The gate between a checked scheme and everything that consumes it. The threshold is stated here and the
 ;; count is compared by the caller, because this parser reads one statement per line and does no arithmetic
 ;; — the rule is the pack's, the arithmetic is honest bookkeeping.

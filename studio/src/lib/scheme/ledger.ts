@@ -51,13 +51,19 @@ export type LedgerEntryDraft = {
   /** Supplied by the caller, not by this module: the reconciler's no-clock rule ends at this boundary. */
   readonly timestamp: string;
   readonly actor: string;
-  readonly row: number;
+  /** A row of the draft, or `'pack'` for a record about the policy itself — an override has no row. */
+  readonly row: number | 'pack';
   readonly field: string;
   readonly before: string;
   readonly after: string;
   readonly basis: LedgerBasis;
   /** Pack lines of the form `file:line`, exactly as the reconciler cites them. */
   readonly citations: readonly string[];
+  /**
+   * Her reason, in her words, when the change needs one. Hashed: a note that could be edited afterwards would
+   * turn the only free-text field in the record into the place to hide a rewrite.
+   */
+  readonly note?: string;
 };
 
 export type LedgerEntry = LedgerEntryDraft & {
@@ -105,6 +111,7 @@ function canonicalForm(
     draft.after,
     draft.basis,
     [...draft.citations],
+    draft.note ?? null,
   ]);
 }
 

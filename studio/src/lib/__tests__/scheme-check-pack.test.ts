@@ -45,6 +45,7 @@ const GAP_KINDS = [
   'strand-mismatch',
   'lesson-count-mismatch',
   'key-inquiry-question-drifted',
+  'field-obligation-waived-by-teacher',
 ] as const;
 
 /** The scheme columns a checker is allowed to call empty. Mirrors `SchemeRow` in `curriculum/types.ts`. */
@@ -110,12 +111,14 @@ describe('deriveGapPolicy: what a gap is, and why, both by the pack', () => {
     });
   }
 
-  it('makes the two gaps that break a lesson blocking, and the two that merely disagree advisory', () => {
+  it('makes the three gaps that break a lesson blocking, and the three that merely disagree advisory', () => {
     expect(deriveGapPolicy({ grade: 'g8', gap: 'mandatory-field-empty' }, pack).conclusion).toBe('blocking');
     expect(deriveGapPolicy({ grade: 'g8', gap: 'sub-strand-not-in-design' }, pack).conclusion).toBe('blocking');
     expect(deriveGapPolicy({ grade: 'g8', gap: 'strand-mismatch' }, pack).conclusion).toBe('blocking');
     expect(deriveGapPolicy({ grade: 'g8', gap: 'lesson-count-mismatch' }, pack).conclusion).toBe('advisory');
     expect(deriveGapPolicy({ grade: 'g8', gap: 'key-inquiry-question-drifted' }, pack).conclusion).toBe('advisory');
+    // A waiver she recorded is advisory: it stops the block and keeps the sentence in every later run.
+    expect(deriveGapPolicy({ grade: 'g8', gap: 'field-obligation-waived-by-teacher' }, pack).conclusion).toBe('advisory');
   });
 
   it('throws on a gap kind the pack never wrote down, instead of defaulting to advisory', () => {
