@@ -132,8 +132,8 @@ export async function authorizeHandoff(input: HandoffInput): Promise<HandoffDeci
     allowed,
     gate: allowed ? 'ok' : details[0].gate,
     reason: allowed
-      ? `Handoff allowed — ${certification.blocking} blocking against the rule ${certification.threshold}, ` +
-        `and every one of the ${ledger.entries.length} records recomputes. ${certification.reason}`
+      ? `${certification.blocking} blocking against the rule ${certification.threshold}, and every one of the ` +
+        `${ledger.entries.length} records recomputes. ${certification.reason}`
       : details.map((detail) => detail.reason).join(' '),
     citations: details.flatMap((detail) => (detail.gate === 'certification' ? detail.citations : [])),
     invalid: verdict.invalid,

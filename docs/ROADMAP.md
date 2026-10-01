@@ -59,12 +59,16 @@ path: three cells written, three records, a refusal that still refuses) and 5c-3
 reads it and says so out loud, and the certification threshold refuses to be overridden) and 5c-4a is done
 (`studio/src/lib/scheme/handoff.ts`: both gates asked on every call — the pack's threshold and the ledger's chain —
 and the lesson-plan handoff refused by a module that returns a decision or throws, so `handoff: 'refused'` stopped
-being a field the page displays and became a thing that stops work). Only 5c-4b is left — the terminal path that
-writes `out/diff.json`, the new policy text and the ledger to disk, and re-runs the checker against its own
-output — before the README, the disclosure and the video. The
+being a field the page displays and became a thing that stops work) and 5c-4b is done
+(`scripts/reconcile.mts --accept 3 --waive assessmentMethods --actor … --note … --at … --out /tmp/run1` writes
+`policy.metta`, `ledger.json` and `diff.json`, prints the record and the gate's decision, exits 2 under
+`--require-handoff`, and a later run pointed at the written policy reproduces the waiver as an advisory with no
+waiver flag anywhere). **Spoon 5c is code-complete and terminal-verified.** What is left before submission is
+spoon 6 — the README, the mandatory AI disclosure, the ~3-minute video — plus the owner's decision on whether the
+page grows an accept button, which needs the browser pass. The
 offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature needs no
 API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d", "Spoon 5c-1", "Spoon 5c-2",
-"Spoon 5c-3" and "Spoon 5c-4a" blocks for the rulings and what is still not yet used.
+"Spoon 5c-3", "Spoon 5c-4a" and "Spoon 5c-4b" blocks for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
 
@@ -1326,12 +1330,23 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **`Certification` carries `citations`, because the gate is the first verdict that blocks something real** | agent, spoon 5c-4a | `scheme-certification-threshold g8` and its reason line were already in the pack and already used by `deriveCertificationRule`; they simply were not returned. Dropping `citations: citationsOf(rule)` from `reconcile.ts` fails 5 handoff tests, which is the proof that the refusal quotes the file rather than this module |
 | 2026-10-01 | **A prefix cut verifies: history tests must delete from the middle** | agent, spoon 5c-4a, found in the red phase | The both-gates test was written with `slice(0, 1)`, which leaves a legitimate prefix — `verifyLedger` says so by design, documented in 5c-1 — so the test asserted a chain failure that could never occur and would have failed against correct code. Third spoon running where the expectation, not the implementation, was the bug. Caught because red is witnessed before the module exists, not after |
 | 2026-10-01 | **Widen the narrowed typecheck to every test file in the surface, not only the new ones** | agent, found by running it | Including `src/lib/__tests__/scheme-*.test.ts` (the config had named only the ledger and CLI tests) surfaced **two pre-existing type errors in `scheme-fixture.test.ts`**: a `PackRow.value` of `string \| null` returned as `string \| undefined`, and a `SchemeRow as Record<string, unknown>` cast. Vitest ran both files green the whole time, because Vitest does not typecheck. The net only earns its keep if it covers the surface it claims to |
+| 2026-10-01 | **The terminal's module resolver learns the bundler's habit; the app's import style does not** | agent, spoon 5c-4b, found by running the terminal | `scripts/omega-alias.mjs` answered `@/…` and passed everything else to Node, so `handoff.ts`'s `import … from './ledger'` — the first *runtime* relative import the CLI has ever followed, since consent/override/ledger only import each other type-only — died with `ERR_MODULE_NOT_FOUND`. The fix is in the hook, not in `studio/src`: `./ledger.ts` is an import style nothing else in the app uses, and the page must keep resolving through the specifiers the tests do. Writing the extension to make a runner happy would have made the browser the odd one out |
+| 2026-10-01 | **The CLI refuses to mutate without somewhere to record it, without a name, and without a reason** | agent, spoon 5c-4b | Three guards, each failing exactly one test when removed. `--accept`/`--waive` with no `--out` dies before any read, because consent with nowhere to write its ledger is the unaccountable write 5c-2 was built to prevent; a `--waive` with no `--note` and any change with no `--actor` likewise. An anonymous change and an unexplained one are the same hole in the audit, and a CLI is where this kind of discipline usually gets loosened "for convenience" |
+| 2026-10-01 | **`--at` makes a run reproducible, and reproducibility is asserted on the files** | agent, spoon 5c-4b | The clock still belongs to the caller — the reconciler has never seen a `Date` — but without a way to pin it the artifacts differ on every run and a hash chain printed in a video cannot be rebuilt by anyone watching. Same flags, same `--at`, same output directory ⇒ byte-identical `policy.metta`, `ledger.json`, `diff.json` and stdout. The printed paths are run-specific, so the claim is about one directory, not two |
+| 2026-10-01 | **A waiver counts only when a later run reads it off disk, and that run cites the file it actually read** | agent, spoon 5c-4b | The loop is the submission's claim in one command pair: write `policy.metta` with the waiver on one line, then `--policy <that file>` with no waiver flag reproduces `field-obligation-waived-by-teacher` as an advisory, cited at the severity row of *that* file. Writing the untouched pack instead of the waived text fails **4** tests at once, and `--policy` makes citations name the path given rather than the repository's pack — a run must not claim a line of a file it did not read |
+| 2026-10-01 | **The handoff gate is allowed to be an exit code** | agent, spoon 5c-4b | 0 when a check ran, whatever it concluded (that rule is from 5d and still holds); 2 only under `--require-handoff`, for a caller that has to be stopped rather than told. Removing the `exit(2)` costs exactly 1 test, and the read-only default still prints `handoff · refused · gate certification` without failing, so the demo never mistakes "not certified" for "the program broke" |
 
 ---
 
 ## 9. Standing verification gaps
 
 Things that are *not* proven, restated so nobody (including a future session) has to guess:
+
+- **`scripts/reconcile.mts` is not typechecked by anything.** It sits at the repository root, outside the
+  narrowed net (`studio/.omega-tsconfig.tmp.json` covers `studio/src/**` and `src/lib/__tests__/scheme-*.test.ts`),
+  and the full `tsc --noEmit` is not run on this machine. Its behaviour is proven by 19 spawned-process tests
+  against real Node, which catches everything a test can reach; a type error in a branch no test walks would
+  survive. Adding the root scripts to the net is a small job for the session after the submission.
 
 - `next build` has never been run locally on this batch, and will not be: it is the heaviest thing on
   a 3.7 GB machine and Vercel runs it anyway on deploy. What was run 2026-09-29: `tsc --noEmit`
@@ -2474,6 +2489,75 @@ both files green throughout. Fixed with `?? undefined` and `as unknown as Record
 **Not yet.** The gate has no production caller: `/api/generate/lesson-plan` still does not `requireHandoff`, and
 no UI or terminal path reaches 5c at all. `out/diff.json`, the CLI flags, and the loop-closing re-run are 5c-4b.
 The accept button is still absent, pending the browser pass the owner has not authorised.
+
+### Spoon 5c-4b is done: the terminal changes things, writes the record, and reads its own output back (2026-10-01, Tier A)
+
+**What got wired.** `scripts/reconcile.mts` is now the first real caller of 5c-1 … 5c-4a, and it does it in one
+command a judge can type:
+
+```
+node scripts/reconcile.mts --accept 3 --waive assessmentMethods \
+  --actor teacher:kibera_mama_joy --note 'Lesson 2 is oral.' \
+  --at 2026-10-02T09:04:15+03:00 --out /tmp/run1
+```
+
+writes `/tmp/run1/policy.metta` (the pack with her waiver on one line of it), `/tmp/run1/ledger.json` (4 records,
+hash-chained) and `/tmp/run1/diff.json` (the three cells consent wrote, with what each said before), prints the
+transcript plus a `── record ──`, `── written ──` and `── handoff ──` section, and exits **2** under
+`--require-handoff` when the gate refuses. Then the loop closes:
+
+```
+node scripts/reconcile.mts --policy /tmp/run1/policy.metta
+```
+
+reproduces `field-obligation-waived-by-teacher` as an advisory in a run that never mentions waiving anything,
+cited at the line of *that* file it answered from (`policy.metta:63`, re-derived by the test from the written
+pack rather than trusted from the earlier run's memory). New file:
+`studio/src/lib/__tests__/scheme-reconcile-cli-record.test.ts`, 19 tests.
+
+**Three refusals, because a CLI is where discipline goes to die.** A mutation with no `--out` is refused before
+anything is read — consent with nowhere to write its record is the unaccountable write 5c-2 exists to prevent. A
+`--waive` with no `--note` is refused, and any change with no `--actor` is refused: an anonymous change and an
+unexplained one are the same hole. A second identical waiver is refused (`already says waived, so recording this
+would add a non-event to the ledger`), and accepting a row whose only finding is a refusal re-raises
+`NothingProposedError` in the module's own words rather than this script's.
+
+**The runner bug, found by running it — the third time that phrase has been true in this hackathon.** First
+execution of the mutating path died with `ERR_MODULE_NOT_FOUND: …/studio/src/lib/scheme/ledger`, imported from
+`handoff.ts`. Root cause: `scripts/omega-alias.mjs` answered `@/…` and handed everything else to Node, and Node's
+ESM resolver refuses an extensionless relative specifier. The reason 5d never hit it is that `consent.ts`,
+`override.ts` and `ledger.ts` import each other **type-only** — erased at build time — so `handoff.ts`'s
+`import { verifyLedger } from './ledger'` is the first *runtime* relative import the terminal has ever followed
+(`check-view.ts:4` has one too, and the CLI has never imported that file). Fixed in the hook, not in the app:
+`./ledger.ts` would be an import style nothing else in `studio/` uses and the page must resolve through the same
+specifiers the tests do. Consequence worth having: any future relative runtime import inside `studio/src` now
+works in a terminal with no flags.
+
+**Four test expectations were wrong before the code was** — the fourth spoon running, so it is listed rather than
+buried. The record-citation assertion counted `scheme_check.metta:` matches in a section that contains exactly
+one, because a finding's `extraCitations` live in `finding.citations` and the transcript prints the rendered
+derivation instead (checked: `scheme-override.test.ts:140` already covers the citation itself, so the claim held
+and the *test* was the thing in the wrong place). The reproducibility test asked two runs in two different temp
+directories for identical stdout, which cannot happen while the printed paths are run-specific. The
+already-waived test omitted `--out`, so it would have failed for the wrong reason — refused for no record
+directory, not for changing nothing. And `reconcileScheme({ ...draft, … })` fails `tsc` on an excess `origin`
+property where Vitest would have shrugged.
+
+**Evidence.** First red was a `PARSE_ERROR` in the new test file (an unclosed `findIndex(` after a string literal
+ending in `)`) — not a valid red, fixed, and then the real one: **19 failed, 0 passed**. After the hook fix:
+16/19, then **19 passed in 8.95 s**. Five drift flips, each restored byte-identical and confirmed by `diff`:
+no-`--out` guard removed → 1 failed; `--note` requirement removed → 1; `--at` ignored (always now) → 1;
+`policy.metta` written from the untouched pack instead of the waived text → **4 failed** (the loop is load-bearing
+for four claims at once); `exit(2)` removed → 1. Narrowed `tsc`: **exit 0, 424 MB**. Full suite, because the alias
+hook and the transcript are shared with 5d's byte-equality test:
+`npx vitest run --no-file-parallelism` → **exit 0, 108 files passed + 1 skipped, 1061 passed, 17 skipped,
+94.66 s, 258 MB peak**.
+
+**Not yet.** `scripts/reconcile.mts` lives at the repository root, outside the narrowed typecheck net, so its
+types are unchecked — recorded in §9 rather than quietly fixed. `/api/generate/lesson-plan` still does not call
+`requireHandoff`; the page still mounts none of 5c and has no accept button; a run never writes back to the
+repository's own pack, by design. Spoon 5c is now code-complete and terminal-verified; the browser pass and spoon
+6 (README, AI disclosure, video) are what is left before submission.
 
 ### What this does not change
 
