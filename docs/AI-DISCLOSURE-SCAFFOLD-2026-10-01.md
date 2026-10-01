@@ -23,7 +23,7 @@ by rule derivation over two MeTTa files and makes **no model call** — verified
 | Wrote the reconciler, the MeTTa subset interpreter (`derive.ts`), the hash-chained ledger, the handoff gate, the CLI and the page | `scripts/reconcile.mts`, `studio/src/lib/attest/`, `studio/src/app/omega/check/`, with tests in `studio/src/lib/__tests__/scheme-*.test.ts` |
 | Wrote the tests before the code, red first, and recorded the flip | commit messages and `docs/ROADMAP.md` §9 name the red counts (e.g. `1 failed / 10 passed` before `11 passed`) |
 | Wrote this document's scaffold, `README.md`'s submission section, `docs/ROADMAP.md`, `docs/BASIX-PR-BODY.md` | those files |
-| Ran the commands: test suite, `vercel deploy`, `curl`, `git` | suite **1078 passed / 17 skipped** across 110 files, exit 0, 61.4 s, 237 MB peak, 2026-10-01 |
+| Ran the commands: test suite, `vercel deploy`, `curl`, `git` | suite **1079 passed / 17 skipped** across 110 files, exit 0, 80.0 s with `--testTimeout=30000`, 2026-10-01 |
 | Corrected its own false claims in public | `docs/ROADMAP.md` §9 records that a preview deploy described as "Ready in 54 s, 200, shows the sign-in page" was wrong, and what `vercel inspect` actually printed |
 
 **WRITE IN YOUR OWN WORDS (a) — why you let an agent write this much, and what you required of it.** One

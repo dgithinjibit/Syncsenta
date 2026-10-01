@@ -99,7 +99,12 @@ reproducible six months later. Ledger entries are chained with SHA-256 from WebC
 terminal). The packs are MeTTa source, read by this repository's own parser in
 `studio/src/lib/attest/derive.ts`; running them under real Hyperon is on the list below, not a claim.
 
-Run the check the way a reviewer can, from the repository root:
+Run the check the way a reviewer can, from the repository root. **Needs Node.js 22.18 or newer** and nothing
+else — no `npm install`, because the runner imports only `node:fs`, `node:path` and its own alias shim
+(`scripts/omega-alias.mjs`), and the repository root has no `package.json` to install from. The version is not
+a preference: the file is TypeScript loaded by Node's own type stripping (unflagged from v22.18.0) plus
+`module.registerHooks()` (from v22.15.0), so on Node 20 this command stops with
+`ERR_UNKNOWN_FILE_EXTENSION` before it has read a single rule.
 
 ```bash
 node scripts/reconcile.mts
@@ -124,7 +129,9 @@ the page's transcript, so "same engine, two faces" is a checked claim; `basix-re
 directory re-runs the terminal and holds the block above to it.
 
 Proof of the suite, on this machine: `npx vitest run --no-file-parallelism` in `studio/` →
-**1078 passed, 17 skipped** across 110 files — exit 0, 61.4 s, peak 237 MB, 2026-10-01. (`docs/ROADMAP.md` §9
+**1079 passed, 17 skipped** across 110 files — exit 0, 80.0 s with `--testTimeout=30000` (the flag exists
+because one guard spawns the CLI and the default 5 s budget loses it on this laptop; the same suite ran
+61.4 s at 237 MB peak earlier the same day). (`docs/ROADMAP.md` §9
 carries the same number as its baseline, and `basix-readme.test.ts` fails if the two documents stop agreeing
 — which is weaker than it sounds: only re-running the suite can tell that both are stale in the same
 direction, and that is how this number moved once already.)

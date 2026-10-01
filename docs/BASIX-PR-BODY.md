@@ -35,7 +35,7 @@ node scripts/reconcile.mts --policy /tmp/run1/policy.metta
 | The browser shows the identical decision | `npx vitest run --no-file-parallelism src/lib/__tests__/scheme-reconcile-cli.test.ts` in `studio/` | the terminal's stdout equals the page's transcript, byte for byte |
 | A waiver counts only because a later run reads it off disk | `--policy /tmp/run1/policy.metta` with no waiver flag | reproduces `field-obligation-waived-by-teacher`, citing the file it read |
 | The record reports being edited | `npx vitest run --no-file-parallelism src/lib/__tests__/scheme-ledger.test.ts` | a middle deletion returns `gate: 'chain'` and names the entry |
-| The suite is green on this machine | `npx vitest run --no-file-parallelism` in `studio/` | **1078 passed, 17 skipped** across 110 files, exit 0, 61.4 s |
+| The suite is green on this machine | `npx vitest run --no-file-parallelism --testTimeout=30000` in `studio/` | **1079 passed, 17 skipped** across 110 files, exit 0, 80.0 s |
 | The deploy *upload* works; nothing has been served | `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/`, then `vercel inspect` | uploaded **355.6 KB** and created `sentastudio-gady22na2-…vercel.app`, which `vercel inspect` reports as `status ● Blocked` — *"the commit author doesn't have permission to create deployments for this project"*. `curl -L` on `/` and `/omega/check` both end at `https://vercel.com/login` (Vercel's SSO, not our page). **This row proves the upload, not the app** |
 
 ## What this pull request does not claim

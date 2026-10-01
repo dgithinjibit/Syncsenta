@@ -1343,8 +1343,10 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 ## 9. Standing verification gaps
 
 **Suite baseline — the number `README.md`'s submission section must quote:** `npx vitest run
---no-file-parallelism` in `studio/` → **1078 passed / 17 skipped** across 110 files, exit 0, 61.4 s, 237 MB
-peak, 2026-10-01 16:39 EAT. `basix-readme.test.ts` compares the README against this line, so a count cannot
+--no-file-parallelism` in `studio/` → **1079 passed / 17 skipped** across 110 files, exit 0, 80.0 s with
+`--testTimeout=30000`, 2026-10-01 ~18:5x EAT (the previous baseline, 1078/17 at 61.4 s and 237 MB peak, was
+the 16:39 run; the +1 is the Node-version guard added tonight, and peak RSS was not re-measured on this run).
+`basix-readme.test.ts` compares the README against this line, so a count cannot
 go stale in one document while the other moves — and note the limit, found the same minute it was written:
 the guard passed while *both* documents said 1089/16/125, a state that had been reverted under them. Only
 re-running the suite catches that.
@@ -2723,6 +2725,75 @@ preview deploy is `● Blocked` and no logged-in teacher has walked the page on 
 Not yet done, and the owner owns all of it: the four paragraphs, trimming to 400–600 words, and pasting the
 result into `README.md` as an "AI Disclosure" section. ~45 minutes of writing once the GitHub scope and the
 Vercel permission are settled, because those decide whether the document can also carry a screenshot.
+
+### Spoon 6c is done: the reviewer's path was audited, and the one line that could have made the demo look broken is now in the README (2026-10-01, Tier A)
+
+The owner's question was the right one — *"if the judge decides to try out the feature, will they get it as
+we expect?"* — so this spoon measured the reviewer's route instead of describing it.
+
+**What a judge can actually do tonight.** There is no link to click (production `/omega/check` → **404**; the
+preview is `● Blocked` behind Vercel SSO), so the terminal is the demo. That route is genuinely good:
+`scripts/reconcile.mts` imports only `node:fs`, `node:path` and `scripts/omega-alias.mjs`, so
+`node scripts/reconcile.mts` works on a bare clone with no install — no `npm ci`, no `node_modules`, no env.
+The web route is also better than the docs admitted: `/omega/check` is **not** behind the auth wall
+(`PROTECTED_ROLE_ROOTS` in `studio/src/lib/auth/route-policy.ts:30` names student/teacher/parent/head only),
+and `scheme-check.tsx:174-176` fetches three same-origin static files — no Supabase client, no `process.env`.
+
+**The defect, found by reading rather than guessing.** The runner is TypeScript loaded by Node's own type
+stripping, and `omega-alias.mjs` calls `module.registerHooks()`. Those need Node v22.18.0 and v22.15.0
+respectively, and **nothing in the repository said so**: no `engines` field, no version in the run block. A
+reviewer on Node 20 types the headline command and gets `ERR_UNKNOWN_FILE_EXTENSION` before the first rule is
+read — which reads as a broken project, not a wrong runtime. Added the sentence to `README.md` and
+`"engines": { "node": ">=22.18" }` to `studio/package.json`. Red at **1 failed / 11 passed**, green at **12
+passed**, then the whole suite at **1079 passed / 17 skipped** across 110 files, exit 0.
+
+Two things recorded rather than papered over. (1) The first version of the guard asserted
+`engines.node` in a **root** `package.json` — which does not exist, and is precisely what makes the
+zero-install run possible. Inventing a root manifest to satisfy my own check would change how every tool reads
+the repository root, three days out, so the guard now asserts `studio/package.json` only and the comment says
+why. (2) `engines` is advisory here: no `.npmrc` sets `engine-strict`, so this cannot fail the Vercel build —
+checked before editing, because a build we cannot re-run is not a place to experiment.
+
+**Still not proven, and it is the biggest remaining gap:** nobody has watched a first-time visitor reach
+either route. The browser has not seen this page since spoon 5b, and `next dev`/`next build` have never been
+run on this batch locally — the only build attempt is the blocked Vercel one. That is the next spoon, and it
+needs the owner's terminal (the machine-veto on `next dev` still stands).
+
+### Laya, not JEV: what the research changed in the plan (2026-10-01, Tier B unless marked)
+
+Owner's decision: **Laya** — "no jev since that will cost us $$". Research streams (two subagents, web-only)
+then corrected the design note in four ways, all worth keeping because a future session will otherwise re-argue
+from the old numbers:
+
+- **A first-party INT8 build exists.** `laya-int8` (327M) and `laya-ml-int8` (322M, **310 MB** quantised) run
+  on `onnxruntime>=1.20`, CPU-only, measured by their own docs at 641 ms mean on a Xeon CPU / 16 threads for a
+  1,793-token batch, with fp16 KV on CUDA. So "needs 8 GB, GPU for the 33 ms figure" is no longer the whole
+  story: the multilingual INT8 checkpoint plausibly fits a paid-small Render instance *and* this 3.7 GB laptop
+  (115 MB fp16 embeddings for a SetFit comparison, 310 MB for Laya-ML-INT8).
+- **Abstention is ours either way, and Laya ships the better version:** opt-in `min_confidence` →
+  `low_confidence: true` with the structured output nulled. JEV has no abstain primitive (its own guides say
+  add a no-match option), and JEV costs **$0.042 per million input tokens** — the $0.0042 in the earlier note
+  was an order of magnitude off.
+- **The probabilities ship over-confident.** Their `BENCHMARKS.md` reports mean confidence 0.75–0.83 against
+  much lower accuracy, ECE 0.21 on typed decisions, and temperature refit taking mean ECE 0.47→0.08 — so
+  mapping a raw `p` straight onto an STV confidence is a claim that cannot be cashed until a refit on *our*
+  relabelled data. Their docs say the quiet part: *"a typed answer guarantees the shape, not the truth"*, and
+  *"calibration is a property of the aggregate, not the individual answer."*
+- **Swahili is the quality risk, not the latency risk.** On MASSIVE 20-way intent, `laya-multilingual` scores
+  **0.16** for sw (chance 0.05, macro 0.40, best calibration ECE 0.56), there is no Sheng/code-mixed/child-text
+  evaluation anywhere, and the only multilingual label corpus found has **no Swahili at all**. SetFit on
+  `paraphrase-multilingual-MiniLM-L12-v2` (115 MB, 3–8 ms single-core CPU, 0.093 ECE after temperature,
+  **98.3% of its coverage guarantee achieved**) is the better low-resource recipe today. Nothing is published
+  on abstain-aware routing accuracy — `abstain` as a third action is our own code.
+
+Standing consequences for the plan, none of them buildable this week: the submitted reconciler stays
+model-free (that is the auditable decision, and it is Tier A); a `choice` question must always carry an
+explicit `unsure` option (the fix for the closed-choice-set risk is in the question, not a database);
+`min_confidence` maps onto `requireHandoff()`, which already exists; and because there is no Hyperon/MeTTa
+bridge for Laya — integrations are serve/mcp/langchain/llamaindex/crewai/onnx/fast — the probability→STV
+mapping and the atomspace asserts are entirely ours to write and defend. Also: the Laya repository is **8 days
+old** (created 2026-09-18, ~160 open issues, weights *and* training/eval code Apache-2.0), so fine-tuning is
+possible in principle and abandonment is a named risk in any write-up.
 
 ---
 

@@ -117,6 +117,25 @@ describe('the section is backed by the thing it shows', () => {
     expect(`${quoted![1]} passed, ${quoted![2]} skipped`)
       .toBe(`${current![1]} passed, ${current![2]} skipped`);
   });
+
+  it('tells a reviewer the Node version the headline command actually needs', () => {
+    // `node scripts/reconcile.mts` runs on a bare clone with no install, which is its whole value to a judge --
+    // and it is TypeScript loaded by Node's own type stripping plus `module.registerHooks()` from
+    // scripts/omega-alias.mjs. Type stripping is unflagged from Node v22.18.0 and registerHooks landed in
+    // v22.15.0, so on Node 20 -- still everywhere -- the first command a reviewer types dies with
+    // ERR_UNKNOWN_FILE_EXTENSION, which reads as broken project rather than wrong runtime. Proven here: no
+    // `engines` field in studio/package.json, no version anywhere in the run block, and only v22.23.3 installed
+    // on this laptop, so the older-Node failure could not be reproduced locally (the two version numbers are
+    // Tier B from the Node release index). The fix is a sentence, so the sentence is now enforced.
+    const body = section();
+    expect(body, 'the submission section must name a minimum Node version').toMatch(/Node\.?js? ?(v|>=|≥)? ?22\.\d+/);
+    expect(body).toContain('scripts/omega-alias.mjs');
+    // Only `studio/package.json` is asserted, because the repository root has no package.json at all -- which is
+    // what makes the zero-install CLI run possible. Adding a root manifest to satisfy a check would change how
+    // every tool reads the repo root, three days out; the README sentence is the fix, and this is its record.
+    const studioPkg = JSON.parse(readFileSync(join(REPO, 'studio', 'package.json'), 'utf8'));
+    expect(studioPkg.engines?.node, 'studio/package.json must declare engines.node').toBeTruthy();
+  });
 });
 
 describe('the sentences the north star bans stay banned', () => {
