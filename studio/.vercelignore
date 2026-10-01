@@ -1,15 +1,20 @@
-node_modules
-.next
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.next/
+node_modules/
+coverage/
+test-results/
 *.log
-.DS_Store
-.vscode
-.idea
-*.swp
-*.swo
-.kiro
-.claude
-.idx
+.vercelignore
+
+# Upload-only trim for `vercel deploy` from this laptop: the wire died at 28.8 MB of a 115 MB
+# payload, and these two image trees are 85 MB of it. A preview built with them absent renders the pages
+# that do not reference them -- which is what the Omega check, the demo login and the tutor flows need to
+# be tested on. Git deployments are unaffected: Vercel ignores this file when it builds from a commit.
+public/designs/
+public/images/learning-catalog/
+
+# Third attempt died at 15.4 MB of a 20.6 MB payload, so size alone is not the cause. Dropping the 19 MB
+# illustration tree brings the upload to a few hundred KB -- the smallest test of "can this connection
+# finish a Vercel upload at all". `public/assets/` holds PNG/JPG artwork only; the Omega check page, the
+# demo login and the tutor routes do not fetch it, so its absence does not invalidate what is being
+# tested here. A real submission deploy must come from git, with all assets present.
+public/assets/

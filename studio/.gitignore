@@ -40,3 +40,8 @@ next-env.d.ts
 # genkit
 .genkit/
 .genkit-cache.json
+.env*
+
+# vercel link appends `.env*` here too, and a rule in a deeper file overrides the root negation — without this line the
+# three env templates under studio/ silently stop being committable (gitignore-hygiene.test.ts names the paths).
+!.env*.example

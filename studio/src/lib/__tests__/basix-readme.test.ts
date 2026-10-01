@@ -79,6 +79,34 @@ describe('the section is backed by the thing it shows', () => {
     const numbers = body.match(/\b\d{3,}\b/g) ?? [];
     if (numbers.length > 0) expect(body).toContain('npx vitest run --no-file-parallelism');
   });
+
+  it('names the deployment it was checked against, and does not pretend the click-through happened', () => {
+    // "It 404s in production" was itself an unverified claim about a URL nobody had opened. So the section has
+    // to carry the deployment it was checked on, what a signed-out visitor actually sees, and the sentence that
+    // says the teacher screen has not been walked through. Pinning the hedges is the point: a later edit that
+    // upgrades "not been done" into a demonstration fails here.
+    const body = section();
+    const url = /https:\/\/[a-z0-9.-]*sentastudio[a-z0-9.-]*\.vercel\.app/.exec(body)?.[0];
+    expect(url, 'the section must name the deployment it was checked against').toBeTruthy();
+    expect(body).toContain('sign-in page');
+    expect(body).toMatch(/click-through[^.]*has not been done|has not been done[^.]*click-through/);
+  });
+
+  it('quotes the suite count that §9 of the roadmap records as the current baseline', () => {
+    // §9 is where a run is recorded with its timing; the README is where a judge reads the number. Comparing
+    // against the *first* "N passed" anywhere in the roadmap would pass on a month-old green run, so the
+    // anchor is the line §9 labels as the baseline.
+    const quoted = /\*\*(\d+) passed, (\d+) skipped\*\*/.exec(section());
+    expect(quoted, 'the section must state the suite result as "**N passed, M skipped**"').toBeTruthy();
+    const roadmap = readFileSync(join(REPO, 'docs', 'ROADMAP.md'), 'utf8');
+    const anchor = roadmap.search(/Suite baseline/i);
+    expect(anchor, '§9 must carry a line labelled "Suite baseline" for the README to be checked against')
+      .toBeGreaterThan(-1);
+    const current = /(\d+) passed[^\d]{0,12}(\d+) skipped/.exec(roadmap.slice(anchor, anchor + 400));
+    expect(current, 'the baseline line must state a passed/skipped count').toBeTruthy();
+    expect(`${quoted![1]} passed, ${quoted![2]} skipped`)
+      .toBe(`${current![1]} passed, ${current![2]} skipped`);
+  });
 });
 
 describe('the sentences the north star bans stay banned', () => {
@@ -88,5 +116,16 @@ describe('the sentences the north star bans stay banned', () => {
 
   it('never claims the submitted feature needs no connection to a browser it is served from', () => {
     expect(section()).not.toMatch(/fully offline|works without (an )?internet|no internet required/i);
+  });
+
+  it('keeps the on-chain sentence in the future tense it belongs to', () => {
+    // The ledger's SHA-256 chain is Tier A: the CLI recomputes it and rejects a tampered file. *Publishing* that
+    // head hash on-chain is a different action, needs a wallet and a testnet decision, and has not happened.
+    // Left unmarked, "on-chain" reads as the second claim borrowing the first one's evidence.
+    const body = section();
+    const line = body.split('\n').find((l) => /on-chain/i.test(l));
+    expect(line).toBeDefined();
+    expect(line).toMatch(/not started|has not|we'd build|next/i);
+    expect(body).not.toMatch(/is recorded on-chain|已上链|anchored on (the )?(Polygon|Ethereum)/i);
   });
 });

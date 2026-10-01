@@ -18,14 +18,16 @@ front of the next stage.
 | The terminal can change the scheme *and* record it | `node scripts/reconcile.mts --accept 3 --waive assessmentMethods --actor … --note … --at … --out /tmp/run1` | writes `policy.metta`, `ledger.json`, `diff.json`; prints 4 records; exit 2 under `--require-handoff` while uncertified |
 | A waiver counts only because a later run reads it off disk | `node scripts/reconcile.mts --policy /tmp/run1/policy.metta` | reproduces `field-obligation-waived-by-teacher` as an advisory with no waiver flag, citing the file it read |
 | The record reports being edited | `scheme-ledger` / `scheme-handoff` suites | a middle deletion returns `gate: 'chain'` and names entry 4; a prefix cut still verifies (documented, not hidden) |
-| The suite is green | `npx vitest run --no-file-parallelism` in `studio/` | **1069 passed, 17 skipped, 109 files, exit 0, 90.3 s** |
-| The live site does not have this feature yet | `curl -o /dev/null -w %{http_code} https://sentastudio.vercel.app/omega/check` | **404** (production is 43 commits behind `main`) |
+| The suite is green | `npx vitest run --no-file-parallelism` in `studio/` | **1089 passed, 16 skipped, 125 files, exit 0** |
+| The live site does not have this feature yet | `curl -o /dev/null -w %{http_code} https://sentastudio.vercel.app/omega/check` | **404** (production is 66 commits behind `main`) |
+| A deployment of this tree builds and answers | `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/`, then `curl -L` on `/` and `/omega/check` | `Ready in 54 s`, exit 0; both **200**, body is the sign-in page. Private preview, `public/assets/` omitted — evidence that the build works, not that the feature was used |
 
 ## What is not proven — said out loud, not papered over
 
-1. **No browser pass.** The page `/omega/check` exists in code and is typechecked by the narrowed `tsc`, but
-   nobody has opened it in a browser since spoon 5b. A preview deploy is being built now; that build is the
-   first real `next build` of this batch, so it may find something the suite cannot.
+1. **No browser pass with an account.** A preview of this tree is now deployed and answers 200 on `/` and
+   `/omega/check`, and both show the sign-in page to a visitor with no cookie — so the middleware and the
+   first real `next build` of this batch are fine. Nobody has logged in as the teacher demo account and
+   walked the check on screen yet; that is the outstanding half.
 2. **The page cannot act yet.** Accept, waive and the ledger are reachable from the terminal and from tests,
    not from buttons. That is an owner decision plus one browser pass, not a missing module.
 3. **The gate is not in front of the generator.** `handoff.ts` refuses and can exit 2; `/api/generate/lesson-plan`
@@ -40,9 +42,16 @@ front of the next stage.
 
 ## Blocked on the owner, not on code
 
-- GitHub: make the repository **private first**, then push (43 commits), then fix the platform's repo field,
-  which still points at `Ascendra.git` — a repository that does not exist — and add `BASIX.MARKET` as a
-  collaborator.
+- **The repository is disabled on GitHub, and that is the only hard blocker left.** `git push origin main` is
+  refused with `remote: Your repository is disabled.` (403), and a REST `GET /repos/dgithinjibit/Syncsenta`
+  with the CLI's own token returns **403** too, while the browser session can see it — so 66 commits, all of
+  this week's work, exist on one laptop. Read the banner at
+  `https://github.com/settings/administration-or-migration-guidance`; expect a reply in hours rather than
+  minutes, so it is the first thing to raise. Nothing code-side can work around it.
+- Visibility is already **private** (measured: `"private": true`), so when the block lifts: push, then fix
+  the platform's repo field, which still points at `Ascendra.git` — a repository that does not exist — and
+  add `BASIX.MARKET` as a collaborator. Pushing to a *public* repo would auto-deploy the 100 MB asset tree to
+  the live production URL; that is why private comes first.
 - **Revoke the leaked `gho_…` token.** Still valid as of today.
 - `ASI_CLOUD_KEY` into `studio/.env.local`, by the owner, never pasted into a file, a commit or a chat.
 

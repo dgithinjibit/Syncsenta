@@ -1342,22 +1342,41 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 
 ## 9. Standing verification gaps
 
+**Suite baseline — the number `README.md`'s submission section must quote:** `npx vitest run
+--no-file-parallelism` in `studio/` → **1078 passed / 17 skipped** across 110 files, exit 0, 61.4 s, 237 MB
+peak, 2026-10-01 16:39 EAT. `basix-readme.test.ts` compares the README against this line, so a count cannot
+go stale in one document while the other moves — and note the limit, found the same minute it was written:
+the guard passed while *both* documents said 1089/16/125, a state that had been reverted under them. Only
+re-running the suite catches that.
+
 Things that are *not* proven, restated so nobody (including a future session) has to guess:
 
-- **There is no deployed URL carrying this batch, and a CLI deploy cannot produce one from this machine.**
-  `vercel deploy --yes` against the linked `sentastudio` project got as far as `Uploading … (28.8MB/115.1MB)`
-  and died twice with `Error: fetch failed` / `This operation was aborted` — the payload is `studio/public`
-  (104 MB, of which `designs/` is 60 MB), which cannot be trimmed without breaking the app. Exit 1, no
-  deployment created, nothing half-published. The route that does not need a 115 MB upload from a laptop is
-  the Git integration: push, and Vercel builds from the commit — which is §7 item 9's owner decision
-  (private first), not a code task. Meanwhile `curl https://sentastudio.vercel.app/omega/check` → **404**:
-  production is 43 commits behind `main`, so the submitted feature is not on the live site. Proven 2026-10-01.
-- **`vercel link` wrote `.env.local` at the repository root and appended `.env*` to `.gitignore`.** The file
-  is ignored and its contents were never read into this session; the blanket rule was the surprise, because it
-  also swallows a future `studio/.env.newthing.example` — the file a new developer needs most. `!.env*.example`
-  is now in `.gitignore`, six template paths are in the hygiene guard, and the guard's own parser had to be
-  fixed to prove it (`-v` prints a line for a *negating* pattern too, and treating that as an ignore reported
-  three templates as missing; red at **3 failed / 10 passed**, green at 13).
+- **A preview deployment exists now; a browser pass does not.** Corrected the same evening: the bullet that
+  stood here claimed "there is no deployed URL, and a CLI deploy cannot produce one from this machine". That
+  was wrong within the hour — `vercel deploy --yes --local-config vercel-cli-preview.json` from `studio/`
+  uploaded **355.6 KB** and went `Ready in 54 s` at
+  `https://sentastudio-pi0lk0r58-dans-projects-5f474b51.vercel.app`. The two earlier deaths at 115.1 MB and
+  20.6 MB were *full* tree uploads; once Vercel had the tree, only the diff crossed the wire, so the
+  connection was never the blocker the record said it was. `studio/.vercelignore` excludes `public/assets/`
+  (19 MB), so this preview is a test artefact, not the submission build. What the preview does and does not
+  prove: `curl -L /` → **200**, `curl -L /omega/check` → **200**, with no cookie the body contains the
+  sign-in page — middleware and build are good, and **the teacher click-through with a real account has not
+  been done**. Production `sentastudio.vercel.app` is still 66 commits behind and still 404s on
+  `/omega/check`.
+- **`vercel link` wrote `.env.local` and appended `.env*` to *two* gitignores, and the deeper one wins.** The
+  root `.gitignore` carries `!.env*.example`; the second `vercel link` (run from `studio/`) appended `.env*`
+  to `studio/.gitignore`, and a rule in a deeper file overrides a parent's negation — so
+  `studio/.env.example` and `studio/.env.cbc-agent.example` were ignored again, and `git add` would have
+  refused the template the next developer needs. The hygiene guard caught it unprompted: red at
+  **2 failed / 11 passed**, green at **13** once `!.env*.example` is in `studio/.gitignore` too. The file's
+  contents were never read into this session.
+- **Something in this workspace reverts working-tree edits to `HEAD`.** On 2026-10-01, README.md and
+  `docs/ROADMAP.md` were found byte-identical to `HEAD` after their edits had been applied and reported
+  successful, and an untracked `docs/BASIX-README-DRAFT.md` had disappeared; `basix-readme.test.ts` had lost
+  its two newest assertions. Cause unknown — no `git checkout`/`restore`/`stash` was run in this session, and
+  `git stash list` is empty. The defence adopted here: verify the file on disk with `git status`/`grep`
+  immediately before committing, and commit the spoon as soon as it is green rather than leaving it in the
+  worktree.
 
 - **`scripts/reconcile.mts` is not typechecked by anything.** It sits at the repository root, outside the
   narrowed net (`studio/.omega-tsconfig.tmp.json` covers `studio/src/**` and `src/lib/__tests__/scheme-*.test.ts`),

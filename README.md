@@ -116,14 +116,18 @@ node scripts/reconcile.mts --accept 3 --waive assessmentMethods \
 node scripts/reconcile.mts --policy /tmp/run1/policy.metta
 ```
 
-The page mounts the same module: `/omega/check` with no account, `/teacher/omega` inside the workspace, with
+The page mounts the same module: `/omega/check` locally with no account, `/teacher/omega` inside the
+workspace, with
 the view model in `studio/src/lib/scheme/check-view.ts` between the engine and the JSX so a screen cannot
 decide anything. `studio/src/lib/__tests__/scheme-reconcile-cli.test.ts` compares the terminal's bytes with
 the page's transcript, so "same engine, two faces" is a checked claim; `basix-readme.test.ts` in the same
 directory re-runs the terminal and holds the block above to it.
 
-Proof of the suite, on this machine, 2026-10-01: `npx vitest run --no-file-parallelism` in `studio/` →
-**1069 passed, 17 skipped** across 109 files — exit 0, 90.3 s, run on 2026-10-01.
+Proof of the suite, on this machine: `npx vitest run --no-file-parallelism` in `studio/` →
+**1078 passed, 17 skipped** across 110 files — exit 0, 61.4 s, peak 237 MB, 2026-10-01. (`docs/ROADMAP.md` §9
+carries the same number as its baseline, and `basix-readme.test.ts` fails if the two documents stop agreeing
+— which is weaker than it sounds: only re-running the suite can tell that both are stale in the same
+direction, and that is how this number moved once already.)
 
 
 ### What this does not claim
@@ -131,9 +135,17 @@ Proof of the suite, on this machine, 2026-10-01: `npx vitest run --no-file-paral
 - The gate is enforced where a caller asks for it — `--require-handoff` exits 2 on a refusal — and it is
   **not yet wired into `/api/generate/lesson-plan`**, so the generator route is the next spoon, not a
   finished fact.
-- The browser pass on the deployed URL and `next build` have not been run on this batch; `tsc` on the
-  narrowed file set exits 0, and the full `tsc --noEmit` is recorded in `docs/ROADMAP.md` §9 as a standing
-  gap.
+- The page renders with no account **locally**; on a deployed instance the middleware asks every visitor to
+  sign in first, including `/omega/check`. `next build` has not been run on this batch; `tsc` on the
+  narrowed file set exits 0, and the full `tsc --noEmit` is recorded in `docs/ROADMAP.md` §9 as a standing gap.
+- What a browser *has* seen, as of 2026-10-01: a private preview deployment,
+  `https://sentastudio-pi0lk0r58-dans-projects-5f474b51.vercel.app`, built from this tree by
+  `vercel deploy --yes` in `studio/` (54 s, exit 0, `▲ Next.js 16.1.1 (build 5)` — the version the lockfile
+  pins, so the build ran from this checkout's dependencies). With no cookie, `/` and `/omega/check` both
+  return **200** and show the sign-in page. That is middleware and build evidence only: the teacher
+  click-through with a real account has not been done, and the preview omits `studio/public/assets/` (19 MB)
+  to fit the upload, so it is not the submission build. Production `sentastudio.vercel.app` is 66 commits
+  behind this tree and does not carry the feature.
 - No learner data, no payments, and no real school's records are involved: four hand-seeded demo accounts
   and one hand-written Grade 8 AI pack.
 
@@ -141,7 +153,8 @@ Proof of the suite, on this machine, 2026-10-01: `npx vitest run --no-file-paral
 
 1. **Put the gate in front of the generator**, so a scheme that does not certify cannot produce lesson
    plans from the UI either — the module exists; the call site does not.
-2. **Publish the ledger's head hash on-chain.** Today the record is a tamper-evident, recompute-able
+2. **Publish the ledger's head hash on-chain — not started, and it needs a wallet plus a testnet decision
+   the owner owns.** Today the record is a tamper-evident, recompute-able
    evidence anchor that lives in this repository; committing its head to a chain is what lets a county
    office verify a signed scheme without trusting this codebase.
 3. **Run the packs under real Hyperon** and diff the answers against `derive.ts`, so the MeTTa claim is
