@@ -43,6 +43,12 @@ commits, locally green (`tsc` exit 0, 686 tests passing), and deliberately not p
 deploy was spent on PR #20. See the §1 block "Items 1–4 (the security gate) are closed on `main`
 locally".**
 
+**Added 2026-10-01, for the two days that remain before the BASIX deadline.** The submission's scope is now
+fixed by the owner: Track 5, challenge 1 — one agent producing an auditable decision — and the agent is the
+scheme-of-work reconciler. §11's Spoon 3 is done (the checker's policy pack and the three derivations that ask
+it), the offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature
+needs no API key. Read §11's "Spoon 3" block for the rulings and what is still not yet used.
+
 Evidence for that sentence, run on this machine on 2026-09-29:
 
 - `npx tsc --noEmit` → **exit 0, no diagnostics.** This is what proves the deletions were clean:
@@ -1272,6 +1278,11 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-09-30 | **The 2026-09-29 decision "CI runs the Rust tests" is not in force, and no Rust test in this repository has ever executed** | agent, Tier A | `git ls-tree origin/main .github/workflows/` lists `fetch-bible-corpus.yml`, `omega-threshold-sync.yml`, `studio-gates.yml` only; `GET /actions/workflows/rust-gates.yml` returns **404**. So `rust-core`'s **99 `#[test]`s** (5,075 lines) and the façade's 24 have never run anywhere. This does not reverse the 2026-09-29 finding that the engine itself was broken — it says the fix is also unproven. Unblocking needs the `workflow` scope on the token, not more code: §7, §9 |
 | 2026-09-30 | **The gap we claim narrows: tamper-evident agent records already have prior art** | agent | `docs/PAPERS-AND-POSITIONING.md` §6 asserted verifiable tutor records were unclaimed. They are not — [Agent Audit Trail](https://datatracker.ietf.org/doc/draft-sharif-agent-audit-trail/) (Raza Sharif, IETF **individual** draft, rev 06, updated 29 Sep 2026) specifies tamper-evident chained JSON agent logs for regulatory duties. What stays defensible: **child data, a named teacher as the verifier, and the override wired into the next turn**. My first correction guessed "June 2026" for the date; the fetch said September, and the document now carries the verified date and URL |
 | 2026-09-30 | **Deviation from the mirror freeze needs the owner's ruling: `4e7babb` added `omegaClawActivitiesFor` to `omega-claw-rules.ts`** | agent, self-reported | The 2026-09-29 decision says the mirror is frozen, not extended. A listing getter was added to satisfy the frontend card because the Rust service has no activity-listing route; it has **zero importers** today. Either the owner accepts it as the pre-cut-over exception, or the getter is deleted and the card stops asking. Recorded, not quietly kept — §10 |
+| 2026-10-01 | **The submission is Track 5 challenge 1 — one agent producing an auditable decision. Challenge 3 is not claimed.** | owner | Two agents resolving one conflicting claim would need a second agent *process*; here it is one agent against a normative pack, and the transcript is the resolution. The code does not change, the sentence on the submission form does — and a claim the repo cannot survive is the integrity failure Track 5 names |
+| 2026-10-01 | **The offline draft is input, not something SyncSenta generates** | owner, after the authoring-path audit | `/api/generate/scheme` and `/api/generate/lesson-plan` both need a round trip to Render, so nothing in the repo authors a scheme with no network and the video will not imply it does. The fixture stands in for what she wrote on paper; the queue/replay design stays the delivery path. Consequence worth keeping: **the submitted feature needs no API key** — rules decide, rules fill, rules cite |
+| 2026-10-01 | **Consent model: the agent may fill only what the design pack states, and a surviving blocking gap refuses the handoff** | owner | Name, strand, lesson count and inquiry question are values the pack already holds, so proposing them after consent is not a guess; learning outcomes, experiences and resources are flagged and never invented. `scheme-certification-threshold` is the gate in front of the lesson-plan generator, and every accepted change is logged as row/field/before/after/citing-rule/timestamp, hash-chained — a diffable trail, never called a git integration |
+| 2026-10-01 | **Kiswahili moves from translating the output to authoring the input** | owner ("*no need for swahili not unless we are to use it on a kiswahili schemes of work*") | The 2 hours go to reconciling a scheme written in Kiswahili, which tests the property that matters — the verdict must not change with the language. The alias table ships only after the owner's language review, because invented KICD terminology in front of Kenyan teachers is a worse failure than shipping no Kiswahili |
+| 2026-10-01 | **Policy lives in `scheme_check.metta`, not in TypeScript; facts stay in the generated pack** | agent, owner's scope agreed | Two authorities, one each: the design pack is generated and byte-lock tested because a curriculum sits above it; the policy pack is hand-written and *is* its own authority, so it has no drift lock and says so in its header. Consequence: every severity the teacher is argued with names a line she can override, and an unlisted gap kind throws rather than defaulting to advisory |
 
 ---
 
@@ -1901,6 +1912,67 @@ still exists — `git check-ignore -v .next` → `.gitignore:62:.next`, so `igno
 null — and removing `public` untracked exactly one path, the new `studio/public/omega/` directory, so no build
 junk arrived with the fix. Evidence: `npx vitest run --no-file-parallelism` over `gitignore-hygiene.test.ts` and
 `ai-design-pack.test.ts` → **exit 0, 12 passed (2 files)**.
+
+### Spoon 3 is done: the checker's policy pack, and three questions the reconciler can ask it (2026-10-01, Tier A)
+
+`studio/public/omega/scheme_check.metta` — 34 statements, hand-written — plus `deriveGapPolicy`,
+`deriveFieldObligation` and `deriveCertificationRule` in `derive.ts`, and
+`studio/src/lib/__tests__/scheme-check-pack.test.ts` (26 tests). This is the submission's first provable
+piece: the engine that will read a teacher's scheme-of-work draft now has somewhere to ask what a gap *is*.
+
+**The two-authority split, stated because it is the design decision, not a file layout.** `ai_g8_design.metta`
+is generated from the curriculum and states **facts** — which sub-strands exist, how many lessons, what the
+inquiry question says. `scheme_check.metta` is written by hand and states **policy** — which empty column
+blocks, which mismatch is only worth a note, and the exact sentence the teacher reads. Keeping severity in
+TypeScript would have made the verdict unarguable: "where did *blocking* come from?" would have had the answer
+"line 812 of somebody's code". Now the transcript names the row, and the teacher's override is a response to a
+sentence she can disagree with. The facts pack has a byte-identity drift lock because it has an authority above
+it (the curriculum); the policy pack has none because it *is* the authority, which is why its header says so.
+
+**Three properties the pack encodes that a lazy checker would get wrong.** `optional` is a row with a reason
+("the reflection is written after the lesson has been taught, so an empty cell on Monday morning is not a
+gap"), not an absence — absence of a row now throws instead of defaulting to advisory, so an unlisted gap kind
+cannot quietly pass. `grade8` throws rather than borrowing `g8`'s verdicts, because one pipeline with two
+spellings for a grade is how a checker starts answering for grades it never covered. And the certification rule
+returns the *threshold* (`blocking-must-be-zero`) with its reason, not the verdict: this parser reads one
+statement per line and does no arithmetic, and the comparison is left in the caller and documented as such
+rather than pretended away.
+
+**The owner's rulings from this session, recorded because they bind the remaining spoons.** (1) Track 5,
+challenge 1 — one agent producing an auditable decision; challenge 3 is not claimed, because the reconciler is
+one agent against a normative pack, not two agent processes, and saying otherwise would be a claim the code
+cannot survive. (2) The offline draft is **input, not output**: the generators at `/api/generate/scheme` and
+`/api/generate/lesson-plan` need a server round trip to Render, so nothing in the repo can author a scheme with
+no network, and the submission will not imply otherwise. (3) Consent model: the agent may fill only values the
+design pack already states — name, strand, lesson count, inquiry question — and flags judgment fields without
+inventing them; a surviving blocking gap **refuses the lesson-plan handoff**. (4) Every accepted change is
+logged as row, field, before, after, citing rule, timestamp, hash-chained to the previous record — a diffable
+audit trail, not a git integration and never described as one. (5) The Kiswahili translation layer is dropped;
+the 2 hours move to reconciling a scheme **written in Kiswahili**, which tests the property that matters — the
+verdict must not change with the language. That alias table is gated on the owner's language review and will
+ship labelled as needing it, because invented KICD terminology in front of Kenyan teachers is a worse failure
+than no Kiswahili at all. (6) Consequence worth noting: **the submitted feature needs no API key at all.**
+Rules decide, rules fill, rules cite.
+
+**Evidence.** Red first: the suite written before the pack and the functions → `npx vitest run
+src/lib/__tests__/scheme-check-pack.test.ts --no-file-parallelism` → **exit 1, 26 failed**, each failure
+`deriveGapPolicy is not a function` or the pack's absence — failing for absence, not for a typo. Green: the same
+command → **26 passed**. Then the claim that the pack drives the verdict, tested rather than asserted: one byte
+of `scheme_check.metta` flipped, `(= (scheme-gap-severity g8 strand-mismatch) blocking)` → `advisory` → exactly
+one test failed, the one that names severities, and the citation-integrity tests stayed green because the pack
+still said what the transcript printed. Restored → green. Full local run over the five affected files
+(scheme-check, derive, derive-browser-safe, ai-design-pack, gitignore-hygiene) → **exit 0, 76 passed (5 files)**.
+`gitignore-hygiene.test.ts` gained `studio/public/omega/scheme_check.metta` in `MUST_BE_COMMITTABLE`, so the
+bare-`public` defect cannot swallow this pack the way it nearly swallowed the last one.
+
+**Tier B, and it is the same gap as before:** `npx tsc --noEmit` has not been run since these edits (~830 MB,
+~5 min on this laptop). It must be green before any deploy, and nothing here is deployed.
+
+**What this is not yet: used.** No fixture and no runner exist yet, so nothing has reconciled a real draft — the
+three derivations are asked only by their own suite. Next spoon is `fixtures/kibera_g8_week14.json` (three rows:
+clean, empty `assessmentMethods`, and sub-strand `2.7 Neural network training`, which the design does not
+contain) and then the runner that prints the cited transcript, applies the certification rule, and writes the
+hash-chained ledger.
 
 ### What this does not change
 

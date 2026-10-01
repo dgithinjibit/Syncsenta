@@ -22,6 +22,7 @@ const MUST_BE_COMMITTABLE = [
   'studio/public/sw.js',
   'studio/public/manifest.json',
   'studio/public/omega/ai_g8_design.metta',
+  'studio/public/omega/scheme_check.metta',
   'studio/src/lib/attest/derive.ts',
 ];
 
