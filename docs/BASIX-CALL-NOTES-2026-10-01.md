@@ -18,16 +18,17 @@ front of the next stage.
 | The terminal can change the scheme *and* record it | `node scripts/reconcile.mts --accept 3 --waive assessmentMethods --actor … --note … --at … --out /tmp/run1` | writes `policy.metta`, `ledger.json`, `diff.json`; prints 4 records; exit 2 under `--require-handoff` while uncertified |
 | A waiver counts only because a later run reads it off disk | `node scripts/reconcile.mts --policy /tmp/run1/policy.metta` | reproduces `field-obligation-waived-by-teacher` as an advisory with no waiver flag, citing the file it read |
 | The record reports being edited | `scheme-ledger` / `scheme-handoff` suites | a middle deletion returns `gate: 'chain'` and names entry 4; a prefix cut still verifies (documented, not hidden) |
-| The suite is green | `npx vitest run --no-file-parallelism` in `studio/` | **1089 passed, 16 skipped, 125 files, exit 0** |
-| The live site does not have this feature yet | `curl -o /dev/null -w %{http_code} https://sentastudio.vercel.app/omega/check` | **404** (production is 66 commits behind `main`) |
-| A deployment of this tree builds and answers | `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/`, then `curl -L` on `/` and `/omega/check` | `Ready in 54 s`, exit 0; both **200**, body is the sign-in page. Private preview, `public/assets/` omitted — evidence that the build works, not that the feature was used |
+| The suite is green | `npx vitest run --no-file-parallelism` in `studio/` | **1078 passed, 17 skipped, 110 files, exit 0** (61.4 s, 237 MB peak, 2026-10-01) |
+| The live site does not have this feature yet | `curl -o /dev/null -w %{http_code} https://sentastudio.vercel.app/omega/check` | **404** (production is 68 commits behind this branch) |
+| The upload works; the build never served anything | `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/`, then `vercel inspect` and `curl -L` on `/`, `/omega/check`, `/teacher/omega`, `/api/auth/demo-login` | uploaded **355.6 KB**, created `sentastudio-gady22na2-…`; `vercel inspect` → `status ● Blocked`, reason *"the commit author doesn't have permission to create deployments for this project"*; every path lands on `https://vercel.com/login?next=/sso-api…` (`<title>Login – Vercel</title>`). **Tier A for the upload and the block; nothing about the app.** An earlier row here claimed `Ready in 54 s` and 200s showing the sign-in page — both false, corrected 2026-10-01 17:3x EAT |
 
 ## What is not proven — said out loud, not papered over
 
-1. **No browser pass with an account.** A preview of this tree is now deployed and answers 200 on `/` and
-   `/omega/check`, and both show the sign-in page to a visitor with no cookie — so the middleware and the
-   first real `next build` of this batch are fine. Nobody has logged in as the teacher demo account and
-   walked the check on screen yet; that is the outstanding half.
+1. **No browser pass, on any host.** The preview this table used to describe does not exist as recorded: the
+   deployment is `● Blocked` by a Vercel project permission and sits behind Vercel's own SSO, so a signed-out
+   `curl` never reaches our middleware and never reaches `/omega/check`. Locally the page renders with no
+   account and has been read there. Nobody has logged in as the teacher demo account and walked the check on
+   a served page; that half is still outstanding, and it needs the Vercel permission resolved first.
 2. **The page cannot act yet.** Accept, waive and the ledger are reachable from the terminal and from tests,
    not from buttons. That is an owner decision plus one browser pass, not a missing module.
 3. **The gate is not in front of the generator.** `handoff.ts` refuses and can exit 2; `/api/generate/lesson-plan`
@@ -48,9 +49,12 @@ front of the next stage.
   '.github/workflows/rust-gates.yml' without 'workflow' scope`, and `gh auth status` reports
   `Token scopes: 'gist', 'read:org', 'repo'`. Exactly one commit in the range touches workflows
   (`2f37915`, which adds that Rust CI file). The fix is owner-side and takes a minute:
-  `gh auth refresh-scopes -s workflow`. A push of `main` separately reported
+  **`gh auth refresh -s workflow`** (gh 2.63.2 has no `refresh-scopes` subcommand — the command written here
+  earlier failed in the owner's terminal with `unknown shorthand flag: 's' in -s`). It opens a browser with a
+  device code; run it in whichever terminal you like, since all of them read the same
+  `~/.config/gh/hosts.yml`. A push of `main` separately reported
   `remote: Your repository is disabled.` — recorded here as observed, with that command, rather than
-  explained. Until the scope is refreshed, 67 commits of this week's work exist on one laptop.
+  explained. Until the scope is refreshed, 68 commits of this week's work exist on one laptop.
 - Visibility is already **private** (measured: `"private": true`), so once the scope is refreshed: push, then
   fix the platform's repo field, which still points at `Ascendra.git` — a repository that does not exist —
   and add `BASIX.MARKET` as a collaborator. Pushing to a *public* repo would auto-deploy the 100 MB asset

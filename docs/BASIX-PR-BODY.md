@@ -34,15 +34,18 @@ node scripts/reconcile.mts --policy /tmp/run1/policy.metta
 | The engine decides and cites its own policy lines | `node scripts/reconcile.mts` | exit 0, `2 clean · 2 blocking · 0 advisory · 4 rows`, `∴ not certified` |
 | The browser shows the identical decision | `npx vitest run --no-file-parallelism src/lib/__tests__/scheme-reconcile-cli.test.ts` in `studio/` | the terminal's stdout equals the page's transcript, byte for byte |
 | A waiver counts only because a later run reads it off disk | `--policy /tmp/run1/policy.metta` with no waiver flag | reproduces `field-obligation-waived-by-teacher`, citing the file it read |
-| The record reports being edited | `npx vitest run --no-file-parallelism` in `studio/` | **1078 passed, 17 skipped** across 110 files, exit 0 |
-| The app builds and serves | `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/` | `Ready in 54 s`; `/` and `/omega/check` answer 200 and show the sign-in page |
+| The record reports being edited | `npx vitest run --no-file-parallelism src/lib/__tests__/scheme-ledger.test.ts` | a middle deletion returns `gate: 'chain'` and names the entry |
+| The suite is green on this machine | `npx vitest run --no-file-parallelism` in `studio/` | **1078 passed, 17 skipped** across 110 files, exit 0, 61.4 s |
+| The deploy *upload* works; nothing has been served | `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/`, then `vercel inspect` | uploaded **355.6 KB** and created `sentastudio-gady22na2-…vercel.app`, which `vercel inspect` reports as `status ● Blocked` — *"the commit author doesn't have permission to create deployments for this project"*. `curl -L` on `/` and `/omega/check` both end at `https://vercel.com/login` (Vercel's SSO, not our page). **This row proves the upload, not the app** |
 
 ## What this pull request does not claim
 
-- The refusal gate is real where a caller asks for it (`--require-handoff` exits 2) and is **not yet wired
+- The refusal gate is real where a caller asks it to be (`--require-handoff` exits 2) and is **not yet wired
   into `/api/generate/lesson-plan`**.
-- Nobody has logged in as the teacher demo account and walked the check on a deployed URL. The 200s above
-  are the sign-in page.
+- Nobody has logged in as the teacher demo account and walked the check on a served page. There is currently
+  no URL that carries this branch: the preview is blocked by a Vercel project permission, and production
+  `sentastudio.vercel.app` returns **404** on `/omega/check` because it is 68 commits behind. The page has
+  been read locally, in the browser, with no account — that is the extent of what has been *seen*.
 - The packs are read by this repository's own MeTTa parser (`studio/src/lib/attest/derive.ts`). Running them
   under real Hyperon and diffing the answers is scheduled, not done.
 - No efficacy evidence: four hand-seeded demo accounts, one hand-written pack.

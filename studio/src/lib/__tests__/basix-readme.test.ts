@@ -82,13 +82,23 @@ describe('the section is backed by the thing it shows', () => {
 
   it('names the deployment it was checked against, and does not pretend the click-through happened', () => {
     // "It 404s in production" was itself an unverified claim about a URL nobody had opened. So the section has
-    // to carry the deployment it was checked on, what a signed-out visitor actually sees, and the sentence that
-    // says the teacher screen has not been walked through. Pinning the hedges is the point: a later edit that
-    // upgrades "not been done" into a demonstration fails here.
+    // to carry the deployment it was checked on and the sentence that says the teacher screen has not been
+    // walked through. Pinning the hedges is the point: a later edit that upgrades "not been done" into a
+    // demonstration fails here. Measured 2026-10-01, 17:2x EAT: `vercel inspect` on
+    // sentastudio-gady22na2-… says `status ● Blocked`, reason "The deployment was blocked because the commit
+    // author doesn't have permission to create deployments for this project", and `curl -L` on `/` and
+    // `/omega/check` both end at `https://vercel.com/login?next=/sso-api…` -- Vercel's own SSO wall, not our
+    // app's sign-in page. The previous version of this guard *required* the string "sign-in page", which is how
+    // a wrong sentence survived an assertion meant to catch wrong sentences: it pinned a hedge instead of a
+    // fact. So the guard now requires what the commands printed and forbids what they did not.
     const body = section();
-    const url = /https:\/\/[a-z0-9.-]*sentastudio[a-z0-9.-]*\.vercel\.app/.exec(body)?.[0];
-    expect(url, 'the section must name the deployment it was checked against').toBeTruthy();
-    expect(body).toContain('sign-in page');
+    expect(body, 'the section must name the deployment it was checked against').toContain(
+      'sentastudio-gady22na2-dans-projects-5f474b51.vercel.app',
+    );
+    expect(body).toMatch(/●\s*Blocked|status[\s\S]{0,20}Blocked/);
+    expect(body).toMatch(/permission\s+to\s+create\s+deployments/);
+    expect(body).toMatch(/vercel\.com\/login/);
+    expect(body).not.toMatch(/show the sign-in page|Ready in 54/);
     expect(body).toMatch(/click-through[^.]*has not been done|has not been done[^.]*click-through/);
   });
 

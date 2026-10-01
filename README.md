@@ -135,17 +135,21 @@ direction, and that is how this number moved once already.)
 - The gate is enforced where a caller asks for it — `--require-handoff` exits 2 on a refusal — and it is
   **not yet wired into `/api/generate/lesson-plan`**, so the generator route is the next spoon, not a
   finished fact.
-- The page renders with no account **locally**; on a deployed instance the middleware asks every visitor to
-  sign in first, including `/omega/check`. `next build` has not been run on this batch; `tsc` on the
-  narrowed file set exits 0, and the full `tsc --noEmit` is recorded in `docs/ROADMAP.md` §9 as a standing gap.
-- What a browser *has* seen, as of 2026-10-01: a private preview deployment,
-  `https://sentastudio-pi0lk0r58-dans-projects-5f474b51.vercel.app`, built from this tree by
-  `vercel deploy --yes` in `studio/` (54 s, exit 0, `▲ Next.js 16.1.1 (build 5)` — the version the lockfile
-  pins, so the build ran from this checkout's dependencies). With no cookie, `/` and `/omega/check` both
-  return **200** and show the sign-in page. That is middleware and build evidence only: the teacher
-  click-through with a real account has not been done, and the preview omits `studio/public/assets/` (19 MB)
-  to fit the upload, so it is not the submission build. Production `sentastudio.vercel.app` is 67 commits
-  behind this tree and does not carry the feature.
+- The page renders with no account **locally**, and locally is the only place anyone has seen it. On a
+  deployed instance we cannot report what our own middleware does to a signed-out visitor, because Vercel
+  answers first — see the next bullet. `next build` has not been run on this batch; `tsc` on the narrowed
+  file set exits 0, and the full `tsc --noEmit` is recorded in `docs/ROADMAP.md` §9 as a standing gap.
+- What the commands have seen as of 2026-10-01 — and it is **not** a browser pass:
+  `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/` uploaded **355.6 KB** and created
+  `https://sentastudio-gady22na2-dans-projects-5f474b51.vercel.app`, which `vercel inspect` reports as
+  `status ● Blocked`, reason: *"The deployment was blocked because the commit author doesn't have permission
+  to create deployments for this project."* `curl -L` on `/` and `/omega/check` both end at
+  `https://vercel.com/login?next=/sso-api…` with `<title>Login – Vercel</title>` — that is Vercel's SSO wall,
+  not our sign-in page. So the honest reading is: the CLI upload works (an earlier claim in this file that it
+  could not was wrong and is corrected in §9), the project is linked, and **no build of this tree has ever
+  been observed to serve a page**. The teacher click-through with a real account has not been done, on any
+  host. Production `sentastudio.vercel.app` returns **404** on `/omega/check` and is 68 commits behind this
+  branch, so the submitted feature is not on the live site.
 - No learner data, no payments, and no real school's records are involved: four hand-seeded demo accounts
   and one hand-written Grade 8 AI pack.
 

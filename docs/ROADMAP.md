@@ -1351,28 +1351,48 @@ re-running the suite catches that.
 
 Things that are *not* proven, restated so nobody (including a future session) has to guess:
 
-- **A preview deployment exists now; a browser pass does not.** Corrected the same evening: the bullet that
-  stood here claimed "there is no deployed URL, and a CLI deploy cannot produce one from this machine". That
-  was wrong within the hour — `vercel deploy --yes --local-config vercel-cli-preview.json` from `studio/`
-  uploaded **355.6 KB** and went `Ready in 54 s` at
-  `https://sentastudio-pi0lk0r58-dans-projects-5f474b51.vercel.app`. The two earlier deaths at 115.1 MB and
-  20.6 MB were *full* tree uploads; once Vercel had the tree, only the diff crossed the wire, so the
-  connection was never the blocker the record said it was. `studio/.vercelignore` excludes `public/assets/`
-  (19 MB), so this preview is a test artefact, not the submission build. What the preview does and does not
-  prove: `curl -L /` → **200**, `curl -L /omega/check` → **200**, with no cookie the body contains the
-  sign-in page — middleware and build are good, and **the teacher click-through with a real account has not
-  been done**. Production `sentastudio.vercel.app` is still 67 commits behind and still 404s on
-  `/omega/check`.
+- **No deployment of this tree has ever served a page, and the previous bullet in this list was wrong twice.**
+  First it claimed "a CLI deploy cannot produce a URL from this machine" — wrong: `vercel deploy --yes
+  --local-config vercel-cli-preview.json` from `studio/` uploaded **355.6 KB** and created a preview. Then I
+  recorded that preview as `Ready in 54 s` at `sentastudio-pi0lk0r58-…`, with `/` and `/omega/check` returning
+  **200** and "showing the sign-in page". Testing killed all of it at 17:2x EAT. The URL I wrote down does not
+  exist; the real one is `https://sentastudio-gady22na2-dans-projects-5f474b51.vercel.app`. `vercel ls` and
+  `vercel inspect` both report `status ● Blocked`, reason: *"The deployment was blocked because the commit
+  author doesn't have permission to create deployments for this project."* `curl -L` on `/`, `/omega/check`,
+  `/teacher/omega` and `/api/auth/demo-login` all land on `https://vercel.com/login?next=/sso-api…` with
+  `<title>Login – Vercel</title>` — Vercel's SSO wall answering before anything of ours is reachable. So what
+  is proven is the *upload* and the *link*, not a build serving this tree, not our middleware, and not the
+  page: **the teacher click-through with a real account has not been done, on any host.** Production
+  `sentastudio.vercel.app` → **404** on `/omega/check` (re-checked 17:31 EAT), and the branch is **68 commits
+  ahead** of `origin/main` (`git rev-list --left-right --count origin/main...HEAD` → `0  68`), so none of it
+  is on GitHub or on the live site. `studio/.vercelignore` still excludes `public/assets/` (19 MB) and
+  `public/designs/`, so even a permitted deploy from this laptop would not be the submission build.
+- **The guard that was supposed to catch this caught nothing, and the reason is in the assertion.**
+  `basix-readme.test.ts` had a test requiring the README to name a `sentastudio*.vercel.app` URL, to contain
+  the string `'sign-in page'`, and to hedge the click-through. It passed on a document that was describing a
+  deployment that does not exist, because it pinned my *hedges* rather than the *facts*: any true sentence
+  could be swapped for a false one as long as the defensive phrasing stayed. Retargeted at the measured
+  output — the exact blocked URL, `● Blocked`, the inspect reason, `vercel.com/login` — plus a
+  `not.toMatch(/show the sign-in page|Ready in 54/)` to forbid the two sentences that were false. Red at
+  **1 failed / 10 passed**, green at 11, both runs this evening. Recording the flake rather than hiding it:
+  the green file re-ran at the default 5 s timeout and went **1 failed / 10 passed** again — the failing test
+  is the one that spawns `scripts/reconcile.mts` and compares stdout byte for byte, and on this laptop that
+  child sometimes passes 5 s. With `--testTimeout=30000` it is **11 passed**, exit 0. Same load artifact §9 has
+  named before, not a doc that disagrees with itself; but it means the honest command for this guard is
+  `npx vitest run src/lib/__tests__/basix-readme.test.ts --no-file-parallelism --testTimeout=30000`.
 - **The push is blocked by a token scope, and the record's earlier explanation was wrong.** `git push
-  --set-upstream origin feat/safe-data-retrieval` (the branch holding all 67 commits) is rejected with
+  --set-upstream origin feat/safe-data-retrieval` (the branch holding all 68 commits) is rejected with
   `refusing to allow an OAuth App to create or update workflow
   '.github/workflows/rust-gates.yml' without 'workflow' scope`. `gh auth status` reports
   `Token scopes: 'gist', 'read:org', 'repo'`, and `git log origin/main..HEAD -- .github/workflows` names
   exactly one commit — `2f37915`, the Rust CI file already recorded as unpushed in §7. A `main` push
   separately reports `remote: Your repository is disabled.`; both messages are recorded as observed, and the
-  actionable one is the scope, which is `gh auth refresh-scopes -s workflow` in the account holder's browser.
-  The 67 commits are not on GitHub, so the private → push → add BASIX.MARKET order in §7's decision still has
-  its first step outstanding.
+  actionable one is the scope. The command is **`gh auth refresh -s workflow`** — gh 2.63.2 has no
+  `refresh-scopes` subcommand, and the one written here earlier failed in the owner's terminal with
+  `unknown shorthand flag: 's' in -s`. It opens a browser with a device code; whichever terminal the owner
+  runs it in writes the same `~/.config/gh/hosts.yml`, so the push works from any shell afterwards, including
+  this one. Until then the 68 commits are not on GitHub, and the private → push → add BASIX.MARKET order in
+  §7's decision still has its first step outstanding.
 - **`vercel link` wrote `.env.local` and appended `.env*` to *two* gitignores, and the deeper one wins.** The
   root `.gitignore` carries `!.env*.example`; the second `vercel link` (run from `studio/`) appended `.env*`
   to `studio/.gitignore`, and a rule in a deeper file overrides a parent's negation — so
