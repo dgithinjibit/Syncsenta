@@ -51,9 +51,12 @@ is done (`studio/src/lib/scheme/reconcile.ts` — the Monday-morning decision it
 refusing to invent a judgment column), Spoon 5b is done (a page mounts it: `/omega/check` with no account,
 `/teacher/omega` inside the workspace, and a view model between the engine and the JSX so the screen cannot
 decide) and Spoon 5d is done (`node scripts/reconcile.mts` prints the identical transcript in a terminal, and
-running it is what exposed that a finding had been quoting the wrong pack line — see §11's 5d block). The
+running it is what exposed that a finding had been quoting the wrong pack line — see §11's 5d block). Spoon 5c
+has begun: 5c-1 is done (`studio/src/lib/scheme/ledger.ts`, an append-only hash-chained record that reports an
+edit made to it afterwards), and 5c-2 to 5c-4 — the accept path, the override that the next run reads, and the
+gate in front of the lesson-plan handoff — are what is left before the README and the video. The
 offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature needs no
-API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b" and "Spoon 5d" blocks
+API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d" and "Spoon 5c-1" blocks
 for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
@@ -1300,6 +1303,10 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **Retest the whole suite whenever `vitest.config.ts` changes, and re-measure stale numbers in this file** | agent | Rendering a `.tsx` required `oxc.jsx.runtime = 'automatic'` in the test config (Vite 8 ignores `esbuild:` and reads `"jsx": "preserve"` from `tsconfig.json`). That is a global change, so the full run was spent: **exit 0, 103 files, 974 passed, 17 skipped, 94 s, 218 MB peak** — which also retires the "74 files" this file had been quoting |
 | 2026-10-01 | **A citation may name only a line the derivation used; considered-and-rejected lines stay in the trace** | agent, found by running the terminal | `sentenceFrom` and `citationsOf` took the first step mentioning a head, and a derivation records its search — so row 3 quoted row 2's sentence while citing a line about a different gap kind. Now both read `usedSteps()` (matched/applied). The 15 earlier tests could not see it because every one of them asked whether the reason appeared in the transcript, and a wrong sentence used consistently passes that; the two replacement tests are oracles that re-read the pack. Consequence for the video: an audit trail is only worth opening if the line it points at is the line that answered |
 | 2026-10-01 | **The terminal runner imports the app's modules through a Node resolve hook, and the two outputs are compared as strings** | agent, spoon 5d | `scripts/omega-alias.mjs` answers `@/` for Node so `scripts/reconcile.mts` can import `reconcile.ts` rather than copy it — one engine, and a CLI test that asserts stdout equals the in-process transcript byte for byte (proven: one stray full stop fails exactly that test). Chosen over a standalone script or a `tsx`/esbuild step because a reviewer must be able to type `node scripts/reconcile.mts` with no install and no flags |
+| 2026-10-01 | **The ledger is a second module, and the clock lives only there** | agent, spoon 5c-1 | `reconcile.ts` states that it is pure — same draft, same packs, same transcript forever — and a record of what the teacher did on Tuesday morning would break that promise. So timestamps are supplied to `ledger.ts` by the caller and the decision keeps no mutable field. The alternative, one object holding both, is how an "auditable decision" stops being reproducible |
+| 2026-10-01 | **Ledger hashes are WebCrypto SHA-256 over a fixed-order `JSON.stringify` array that includes the citations and the subject** | agent, spoon 5c-1 | `crypto.subtle` exists in the browser bundle and in Node 22, so one implementation covers the page and the terminal runner; a hand-rolled digest is the one thing a reviewer is right to distrust and `node:crypto` would not bundle. The payload includes the cited pack lines and the four-file subject, so a record quoting an edited rule, or moved to another scheme's history, hashes differently — proven by two flips, each failing exactly one named test |
+| 2026-10-01 | **A broken chain reports one reason per entry, with `chain` over `hash` over `order`** | agent, spoon 5c-1 | Deleting a middle record breaks the chain *and* jumps the numbering; listing both reports one event twice, and the cryptographic link is the evidence. `order` survives for what the others cannot see: a backdated file whose hashes are all self-consistent but whose history does not start at 1 — the test builds that entry with a legitimately recomputed hash and `verifyLedger` still refuses it |
+| 2026-10-01 | **A narrowed `tsc -p` over the demo's files stands in for the full typecheck between spoons** | agent, found by `3b2c6fb` | The full `npx tsc --noEmit` is ~830 MB and gets skipped on this laptop, which is exactly how `dc129d0` landed `DerivationStep[]` with no import for it: Vitest never typechecks, so 984 green tests said nothing. The narrowed config covers `src/lib/scheme`, `src/lib/attest`, `src/types`, `src/components/omega`, both omega pages and the CLI/ledger tests in **14–18 s at ~370–390 MB**, and it caught three more real errors in the ledger test file the same evening. Not a replacement for the full run — the rest of the app is still unchecked |
 
 ---
 
@@ -2225,6 +2232,66 @@ run.
 **What this is not yet: the ledger.** Nothing records an accepted proposal, no override survives a second run,
 and no gate stands in front of the lesson-plan handoff. That is 5c, the last unclaimed piece of the auditable
 decision.
+
+### Spoon 5c-1 is done: the ledger exists, and editing it afterwards says so (2026-10-01, Tier A)
+
+`studio/src/lib/scheme/ledger.ts` — the append-only, hash-chained record the 5b page deliberately had no
+button for. 13 tests in `scheme-ledger.test.ts`, written red first (`Cannot find package '@/lib/scheme/ledger'`),
+and every one of them about an attack rather than about a function.
+
+**Why this is a separate module from the reconciler.** `reconcile.ts` is pure so the same draft and the same
+packs print the same transcript forever; a decision that has to stay reproducible cannot also carry the time it
+was accepted. The reconciler answers *what do the rules say about this scheme?*; the ledger answers *who changed
+what, when, on whose authority, citing which line?* The no-clock rule ends at this boundary and the timestamp is
+supplied by the caller.
+
+**Three properties, three attacks closed.** Appending returns a new ledger and never writes into the one it was
+handed, so "append-only" is a property of the data structure rather than a comment. Each entry hashes the
+previous entry's hash, so removing a middle record breaks the chain *at the record that moved* instead of
+silently shortening the file — the test cuts three down to two and gets `{index: 3, reason: 'chain'}`. And the
+citation list is inside the hashed payload, so an entry quoting a pack line that was edited afterwards is a
+different hash: a record that cites nothing is not a record.
+
+**The hash covers the subject too** (`grade`, `draftFile`, `designFile`, `policyFile`), which is why
+`hashOfEntry` takes them explicitly. A record written against the Kibera draft cannot be pasted into another
+scheme's history and still verify.
+
+**A break is reported once, in this precedence: chain, then hash, then order.** A removed middle entry breaks
+the chain *and* jumps the numbering; reporting both would be reporting the same event twice, and the chain is
+the evidence. `order` exists for the case the other two miss: a backdated file whose hashes are all
+self-consistent but whose history does not start at 1 — the test builds exactly that entry with a legitimately
+recomputed hash, and `verifyLedger` still refuses it.
+
+**WebCrypto SHA-256, and therefore an async API.** `crypto.subtle` is in the browser bundle and in Node 22, so
+one implementation serves the page and the terminal runner. A hand-rolled digest would be the one thing in this
+submission a reviewer is right to distrust; `node:crypto` would not bundle for the page. If `subtle` is missing
+the module throws rather than degrading to a weaker digest, because a ledger we cannot hash is a ledger we
+cannot verify.
+
+**The canonical form is `JSON.stringify` of a fixed-order array**, not joined fields. Escaping is done for us,
+so no scheme cell containing a separator character can forge one record as another, and the field order is
+stated in one function with the comment that a field added there without a test is a field nothing proves is
+hashed.
+
+**Two drift flips, one named test each.** Dropping `draft.after` from the hashed payload failed
+`catches a rewrite of the value that was written in`; dropping `draft.citations` failed
+`catches a changed citation, because a record quoting no rule is not a record`. Both flipped back and the file
+is restored byte-identical.
+
+**Also in this spoon, because it was found on the way: the omega surface now has a typecheck that fits the
+laptop.** The full `npx tsc --noEmit` is ~830 MB and gets skipped between spoons, which is how `dc129d0` landed
+`DerivationStep[]` at `reconcile.ts:139` with no import for it — Vitest does not typecheck, so 984 green tests
+said nothing. A narrowed config over exactly the demo's files (`src/lib/scheme`, `src/lib/attest`, `src/types`,
+`src/components/omega`, both pages, the two CLI/ledger test files) runs in **14–18 s at ~370–390 MB, exit 0**,
+and it caught three more real errors in the new test file the same evening. The rest of the app is still not
+typechecked; the omega surface is.
+
+**Evidence.** `scheme-ledger.test.ts` **13 passed**; full suite `npx vitest run --no-file-parallelism` →
+**exit 0, 105 files, 997 passed, 17 skipped, 54 s, 257 MB peak**; narrowed `tsc` **exit 0**.
+
+**What this is not yet.** Nothing calls it: there is no accept button, no `out/diff.json`, no override that
+survives a second run, and no gate standing in front of the lesson-plan handoff. Those are 5c-2, 5c-3 and 5c-4.
+The ledger is a value that nothing persists yet, so it is verified and not deployed.
 
 ### What this does not change
 
