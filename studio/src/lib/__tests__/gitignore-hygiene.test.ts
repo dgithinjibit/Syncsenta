@@ -17,13 +17,16 @@ import { join } from 'node:path';
 
 const REPO = join(process.cwd(), '..');
 
-/** Paths the deployed app must be able to serve, and which therefore must be committable. */
+/** Paths the deployed app must serve, or a CI checkout must contain, and which therefore must be committable. */
 const MUST_BE_COMMITTABLE = [
   'studio/public/sw.js',
   'studio/public/manifest.json',
   'studio/public/omega/ai_g8_design.metta',
   'studio/public/omega/scheme_check.metta',
   'studio/src/lib/attest/derive.ts',
+  // The reconciler suite asserts a whole scheme's defects from this one file; ignored, it is present on the
+  // laptop that wrote it and the suite passes there while CI has nothing to read.
+  'studio/src/lib/__tests__/__fixtures__/kibera_g8_week14.json',
 ];
 
 function ignoredBy(path: string): string | null {

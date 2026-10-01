@@ -46,8 +46,9 @@ locally".**
 **Added 2026-10-01, for the two days that remain before the BASIX deadline.** The submission's scope is now
 fixed by the owner: Track 5, challenge 1 — one agent producing an auditable decision — and the agent is the
 scheme-of-work reconciler. §11's Spoon 3 is done (the checker's policy pack and the three derivations that ask
-it), the offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature
-needs no API key. Read §11's "Spoon 3" block for the rulings and what is still not yet used.
+it) and Spoon 4 is done (the teacher's week-14 draft, with its own claims recomputed from both packs), the
+offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature
+needs no API key. Read §11's "Spoon 3" and "Spoon 4" blocks for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
 
@@ -1283,6 +1284,7 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **Consent model: the agent may fill only what the design pack states, and a surviving blocking gap refuses the handoff** | owner | Name, strand, lesson count and inquiry question are values the pack already holds, so proposing them after consent is not a guess; learning outcomes, experiences and resources are flagged and never invented. `scheme-certification-threshold` is the gate in front of the lesson-plan generator, and every accepted change is logged as row/field/before/after/citing-rule/timestamp, hash-chained — a diffable trail, never called a git integration |
 | 2026-10-01 | **Kiswahili moves from translating the output to authoring the input** | owner ("*no need for swahili not unless we are to use it on a kiswahili schemes of work*") | The 2 hours go to reconciling a scheme written in Kiswahili, which tests the property that matters — the verdict must not change with the language. The alias table ships only after the owner's language review, because invented KICD terminology in front of Kenyan teachers is a worse failure than shipping no Kiswahili |
 | 2026-10-01 | **Policy lives in `scheme_check.metta`, not in TypeScript; facts stay in the generated pack** | agent, owner's scope agreed | Two authorities, one each: the design pack is generated and byte-lock tested because a curriculum sits above it; the policy pack is hand-written and *is* its own authority, so it has no drift lock and says so in its header. Consequence: every severity the teacher is argued with names a line she can override, and an unlisted gap kind throws rather than defaulting to advisory |
+| 2026-10-01 | **The demo draft states its own defects, and the suite recomputes them from the packs before anything reads them** | agent, spoon 4 | `kibera_g8_week14.json` carries an `expected` block; `scheme-fixture.test.ts` derives each row's gaps from `ai_g8_design.metta` + `scheme_check.metta` and fails on any disagreement, both ways. Chosen over a plain fixture because the whole submission is claims about this one file: a draft that can overstate its own gaps makes the transcript decoration. Proven by flipping two fields — filling the blank column broke 3 tests including the computed-vs-claimed one, tidying the `观察` artefact broke the sanitising guard |
 
 ---
 
@@ -1973,6 +1975,69 @@ three derivations are asked only by their own suite. Next spoon is `fixtures/kib
 clean, empty `assessmentMethods`, and sub-strand `2.7 Neural network training`, which the design does not
 contain) and then the runner that prints the cited transcript, applies the certification rule, and writes the
 hash-chained ledger.
+
+### Spoon 4 is done: the teacher's week-14 draft, and the suite that will not let it overstate itself (2026-10-01, Tier A)
+
+`studio/src/lib/__tests__/__fixtures__/kibera_g8_week14.json` (4 rows, 4,239 bytes),
+`studio/src/lib/__tests__/scheme-fixture.test.ts` (13 tests), and one path added to `MUST_BE_COMMITTABLE`.
+Spoon 3's plan said three rows; it is four, and the extra row is the one that tests the property the demo's
+credibility rests on.
+
+**The fixture is allowed to make claims, and every claim is recomputed.** The file carries an `expected` block —
+row 1 clean, row 2 blocking on `mandatory-field-empty`, row 3 blocking on `sub-strand-not-in-design`, row 4
+clean. None of that is taken on trust: the suite re-derives each row's gaps from `ai_g8_design.metta` for the
+facts and `scheme_check.metta` for the obligations and severities — asking severity through `deriveGapPolicy`,
+the same function the browser will call — and fails if the computed set differs from the claimed one, in either
+direction. A row that quietly gains a third defect fails. A row the fixture calls clean that the packs say is
+not, fails. So the transcript the video will print is a statement about the packs, not about my ability to
+write a plausible-looking JSON file, which is the difference between a demo and an illustration.
+
+**Field names come from the policy pack, never from a list copied into the test.** The suite asserts
+`scheme-field-obligation g8 …`'s field spellings are a subset of `SchemeRow`'s keys, so a rename on either side
+is a red test rather than a field that silently stops being checked — absence of a mandatory key is caught as
+"omits `assessmentMethods` entirely instead of filling or leaving it", not read as an empty string.
+
+**The id lives inside the cell, because that is how a Kenyan scheme writes it.** `subStrand` is
+`"3.3 Introduction to Neural Networks"`, not `"3.3"`: strand and sub-strand columns carry number-plus-name. The
+reconciler therefore has to parse, and the suite pins the parse — clean rows must equal
+`${id} ${ai-design-name}` and `${ai-design-strand} ${ai-design-strand-name}` character for character, so a row
+cannot be "clean" while drifting from the curriculum's own wording.
+
+**Four rows, four different things gone right or wrong.** Row 1 is the control. Row 2 leaves the assessment
+column genuinely empty — and a test asserts nothing in the rest of that row smuggles an assessment strategy in
+(`observation|rubric|checklist` must not appear), because the draft filling it in would make the reconciler's
+central refusal false. Row 3 cites `2.7 Neural network training`, which does not exist in the Grade 8 design:
+the suite pins that `(ai-design-name g8 2.7)` binds nothing *and* that the design's only "Neural" entry is 3.3
+under strand 3.0, so the conflict is a curriculum fact, not a fixture convenience. It also pins that row 3 has
+exactly one gap — a second defect would hide the one being demonstrated. Row 4 is clean *and* still carries
+`观察`, a Chinese example word left in from a shared template. The byte-level check (`once in the file, still
+there after the parse, on a clean row, with no gap) is what stops any future "tidy the input" change from
+sanitising what the teacher typed instead of showing her it.
+
+**`lesson-count-mismatch` is deliberately not testable from one row.** It compares a whole sub-strand's rows
+against `(ai-design-lessons g8 3.3)`, so it belongs to the runner, and the suite says so in a comment instead of
+pretending coverage it does not have.
+
+**Evidence.** Red first, before the fixture existed: `npx vitest run src/lib/__tests__/scheme-fixture.test.ts
+--no-file-parallelism` → **12 failed, 1 passed** — 12 for `kibera_g8_week14.json does not exist`, and the one
+green test is the design-pack fact (no `2.7`; 3.3 is the only Neural entry), which needs no fixture by design.
+Green after: **13 passed (13)**. Then the proof that the suite can catch a lying draft, two field flips, each
+restored from a `/tmp` copy: row 2's `assessmentMethods` filled with `"Oral questions"` → **3 failed**, exactly
+`leaves exactly one column blank in the blank-column row`, `refuses to invent the column the teacher left
+blank`, and the load-bearing one, `agrees with itself` → `row 2: gaps computed from the packs: expected [] to
+deeply equal ['mandatory-field-empty']`; row 4's `观察` tidied to `watch` → **1 failed**, the artefact test;
+restored → **13 passed**. The new `MUST_BE_COMMITTABLE` entry was itself red-checked: `__fixtures__/` appended
+to `studio/.gitignore` → **1 failed**, naming the rule (`studio/.gitignore:44:__fixtures__/`), removed → green,
+and `git status` shows `studio/.gitignore` unmodified. Six files together (scheme-fixture, scheme-check-pack,
+derive, derive-browser-safe, ai-design-pack, gitignore-hygiene) → **exit 0, 90 passed (6 files)** — 76 before
+this spoon, plus the 13 fixture tests and the 1 new commitmability entry.
+
+**Tier B, unchanged:** `npx tsc --noEmit` still has not been run since these edits (~830 MB, ~5 min on this
+laptop) and must be green before any deploy. Nothing here is deployed.
+
+**What this is not yet: used.** The draft exists and is honest; nothing has read it yet. The runner — spoon 5 —
+is what turns these four rows into the cited transcript, the `2 blocking · 2 clean · 0 advisory` footer, the
+consent prompt, the override written as a row the next run reads, and the hash-chained ledger.
 
 ### What this does not change
 

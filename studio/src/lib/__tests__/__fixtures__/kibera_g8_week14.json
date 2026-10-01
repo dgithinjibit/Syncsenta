@@ -1,0 +1,68 @@
+{
+  "description": "Grade 8 Artificial Intelligence, scheme of work for week 14, as a teacher would have it on Monday morning: written on Saturday night with no network, synced when the school Wi-Fi came up. Four lesson rows, one per column set the reconciler reads. Rows 1 and 4 are clean; row 2 has an empty assessment column; row 3 cites a sub-strand the curriculum does not contain. Row 4 still carries a Chinese example word left in by a shared template — it is proof the reconciler shows what was typed instead of quietly tidying it. Every claim in `expected` is recomputed from the two MeTTa packs by studio/src/lib/__tests__/scheme-fixture.test.ts, so this file cannot overstate or understate its own defects.",
+  "grade": "g8",
+  "curriculumVersion": "2026-09-22.grade6.lovable-import.v1",
+  "origin": {
+    "school": "Kibera Girls' Secondary",
+    "teacher": "A. Njoki — Grade 8 Artificial Intelligence",
+    "term": "2026/27 Term 1, week 14",
+    "drafted": "Saturday 20:10, offline, on a phone",
+    "synced": "Monday 06:40, on the school Wi-Fi"
+  },
+  "rows": [
+    {
+      "week": 14,
+      "lesson": 1,
+      "strand": "3.0 AI Techniques and Programming",
+      "subStrand": "3.3 Introduction to Neural Networks",
+      "specificLearningOutcome": "describe a single artificial neuron as inputs, weights and an output, using a spam-filter example",
+      "keyInquiryQuestion": "How is a neural network different from a set of rules?",
+      "learningExperiences": "Learners play the yes/no spam sorting game with 20 message cards, then trace one neuron on chart paper and copy the weights into the workbook.",
+      "learningResources": "Message cards, chart paper, marker, workbook page 34, one teacher phone",
+      "assessmentMethods": "Oral questions; the traced neuron checked against the worked example on the board",
+      "reflection": ""
+    },
+    {
+      "week": 14,
+      "lesson": 2,
+      "strand": "3.0 AI Techniques and Programming",
+      "subStrand": "3.3 Introduction to Neural Networks",
+      "specificLearningOutcome": "change one weight in a two-input neuron and predict the effect on the output before testing it",
+      "keyInquiryQuestion": "How is a neural network different from a set of rules?",
+      "learningExperiences": "In pairs, learners run the paper neuron twice with different weights and tabulate the outputs, then compare which weight mattered more.",
+      "learningResources": "Worksheet, counters, chart paper",
+      "assessmentMethods": "",
+      "reflection": ""
+    },
+    {
+      "week": 14,
+      "lesson": 3,
+      "strand": "2.0 Data and Representation",
+      "subStrand": "2.7 Neural network training",
+      "specificLearningOutcome": "explain in one sentence why showing a network more examples makes it better at the task",
+      "keyInquiryQuestion": "How does a network get better with practice?",
+      "learningExperiences": "Learners replay the spam game with double the cards and list the mistakes the class made before and after.",
+      "learningResources": "Message cards, chart paper, workbook",
+      "assessmentMethods": "Question and answer on the difference between fixed rules and training",
+      "reflection": ""
+    },
+    {
+      "week": 14,
+      "lesson": 4,
+      "strand": "3.0 AI Techniques and Programming",
+      "subStrand": "3.3 Introduction to Neural Networks",
+      "specificLearningOutcome": "identify one app used in Kenya that recognises faces or speech and say what its network was trained to do",
+      "keyInquiryQuestion": "How is a neural network different from a set of rules?",
+      "learningExperiences": "Learners list apps that unlock a phone or transcribe a voice note, then 观察 one example and describe a case where it got it wrong.",
+      "learningResources": "Teacher phone only, chart paper, workbook page 36",
+      "assessmentMethods": "Classify-and-justify checklist, marks recorded in the workbook",
+      "reflection": ""
+    }
+  ],
+  "expected": [
+    { "row": 1, "status": "clean", "gaps": [] },
+    { "row": 2, "status": "blocking", "gaps": ["mandatory-field-empty"] },
+    { "row": 3, "status": "blocking", "gaps": ["sub-strand-not-in-design"] },
+    { "row": 4, "status": "clean", "gaps": [] }
+  ]
+}
