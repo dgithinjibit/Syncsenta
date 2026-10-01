@@ -46,9 +46,11 @@ locally".**
 **Added 2026-10-01, for the two days that remain before the BASIX deadline.** The submission's scope is now
 fixed by the owner: Track 5, challenge 1 — one agent producing an auditable decision — and the agent is the
 scheme-of-work reconciler. §11's Spoon 3 is done (the checker's policy pack and the three derivations that ask
-it) and Spoon 4 is done (the teacher's week-14 draft, with its own claims recomputed from both packs), the
-offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature
-needs no API key. Read §11's "Spoon 3" and "Spoon 4" blocks for the rulings and what is still not yet used.
+it), Spoon 4 is done (the teacher's week-14 draft, with its own claims recomputed from both packs) and Spoon 5a
+is done (`studio/src/lib/scheme/reconcile.ts` — the Monday-morning decision itself, cited, consent-gated and
+refusing to invent a judgment column). The offline draft is declared *input* rather than something SyncSenta
+generates, and the submitted feature needs no API key. Read §11's "Spoon 3", "Spoon 4" and "Spoon 5a" blocks
+for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
 
@@ -1285,6 +1287,8 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **Kiswahili moves from translating the output to authoring the input** | owner ("*no need for swahili not unless we are to use it on a kiswahili schemes of work*") | The 2 hours go to reconciling a scheme written in Kiswahili, which tests the property that matters — the verdict must not change with the language. The alias table ships only after the owner's language review, because invented KICD terminology in front of Kenyan teachers is a worse failure than shipping no Kiswahili |
 | 2026-10-01 | **Policy lives in `scheme_check.metta`, not in TypeScript; facts stay in the generated pack** | agent, owner's scope agreed | Two authorities, one each: the design pack is generated and byte-lock tested because a curriculum sits above it; the policy pack is hand-written and *is* its own authority, so it has no drift lock and says so in its header. Consequence: every severity the teacher is argued with names a line she can override, and an unlisted gap kind throws rather than defaulting to advisory |
 | 2026-10-01 | **The demo draft states its own defects, and the suite recomputes them from the packs before anything reads them** | agent, spoon 4 | `kibera_g8_week14.json` carries an `expected` block; `scheme-fixture.test.ts` derives each row's gaps from `ai_g8_design.metta` + `scheme_check.metta` and fails on any disagreement, both ways. Chosen over a plain fixture because the whole submission is claims about this one file: a draft that can overstate its own gaps makes the transcript decoration. Proven by flipping two fields — filling the blank column broke 3 tests including the computed-vs-claimed one, tidying the `观察` artefact broke the sanitising guard |
+| 2026-10-01 | **A substitution is proposed only when the teacher's words match exactly one design sub-strand; ambiguity gets a refusal** | agent, inside the owner's consent model | "Neural network training" matches 3.3 alone, so the agent can offer the pack's own name, strand and inquiry question with consent required. "Data pipeline" matches *Data Visualisation* and *Programming Data Pipelines*, and picking between two real sub-strands is pedagogy, not lookup — so the module declines and says why. The video shows the refusal as a feature: an agent that guesses once is an agent nobody can certify |
+| 2026-10-01 | **A threshold the code does not implement throws; it is never treated as the one it does** | agent | `deriveCertificationRule` returns the pack's words (`blocking-must-be-zero`). If the policy pack is edited to a rule `reconcile.ts` has not implemented, the run fails loudly instead of certifying under a rule it silently misread — the same no-silent-defaults stance spoon 3 took for an unlisted gap kind |
 
 ---
 
@@ -2038,6 +2042,57 @@ laptop) and must be green before any deploy. Nothing here is deployed.
 **What this is not yet: used.** The draft exists and is honest; nothing has read it yet. The runner — spoon 5 —
 is what turns these four rows into the cited transcript, the `2 blocking · 2 clean · 0 advisory` footer, the
 consent prompt, the override written as a row the next run reads, and the hash-chained ledger.
+
+### Spoon 5a is done: the reconciler decides, cites, asks consent and refuses to invent (2026-10-01, Tier A)
+
+`studio/src/lib/scheme/reconcile.ts` plus `studio/src/lib/__tests__/scheme-reconcile.test.ts` (15 tests). The
+module is the Monday-morning step; the test suite is written as her morning, not as an API — findings in the
+order she wrote the rows, a *why* she can open, something to accept or refuse, and a verdict on whether the
+lesson-plan generator may read the scheme.
+
+**This is where spoon 3's three derivations stop being exercises.** `reconcileScheme` calls `deriveGapPolicy`
+for every finding's severity and sentence, `deriveFieldObligation` for the reason a column is mandatory,
+`deriveCertificationRule` for the threshold, and `renderDerivation` for the transcript — so the pack lines are
+in the answer because they had to be, not because a test asked for them. Nothing in the module hardcodes the
+word `blocking`, a severity, or a field list: the mandatory fields come from the policy pack and the sub-strand
+facts come from the design pack.
+
+**Three rules, each one a test rather than a comment.** (1) A proposal may carry only `subStrand`, `strand` and
+`keyInquiryQuestion`, because those are the three columns the design pack states values for; a test walks every
+finding and fails if a judgment column — outcome, experiences, resources, assessment, reflection — appears in a
+`proposal.values`. (2) A substitution is offered only when the teacher's own words match **exactly one** design
+sub-strand. "Neural network training" matches 3.3 and nothing else, so it is proposed with consent. "Data
+pipeline" matches both *Data Visualisation* and *Programming Data Pipelines*, so the module refuses and says the
+choice is hers — tested with a row built to be ambiguous. (3) Certification is the pack's threshold applied to a
+count: `blocking-must-be-zero` compared against the blocking findings, and a threshold string this module does
+not implement throws `UnsupportedThresholdError` rather than quietly treating some other rule as the same thing.
+
+**Purity is pinned, not assumed.** One test calls the module twice and requires the two results to be `toEqual`,
+which is what keeps a clock or a `Math.random` out of a decision. Timestamps belong to the ledger — the next
+slice — because a decision and its audit record must not share a mutable field, and if they did, editing the
+demo's time would edit the verdict.
+
+**Two independent readings of the same packs, required to agree.** `scheme-fixture.test.ts` computes each row's
+gaps straight from the packs; `scheme-reconcile.test.ts` asks the module and asserts the two answers match row
+by row. That is the same relationship `omega-claw-rules.ts` has with its MeTTa file, and it is the reason the
+reconciler cannot drift into a second engine.
+
+**Evidence.** Red first: the suite before the module existed → `Cannot find package '@/lib/scheme/reconcile'`,
+1 file failed. Green: `npx vitest run src/lib/__tests__/scheme-reconcile.test.ts --no-file-parallelism` →
+**15 passed**. Two flips, each restored from a `/tmp` copy and both confirmed to break the right thing. The pack
+drives the verdict: `scheme-gap-severity g8 mandatory-field-empty` flipped `blocking`→`advisory` → **3 failed**
+— `takes the severity and the sentence she will read from the policy pack`, `counts the rows the way the footer
+will print them`, and `withholds certification while a blocking gap survives`. The module's own guard:
+`candidates.length === 1` → `>= 1` → **1 failed**, exactly `refuses to guess when the design pack matches more
+than one sub-strand`. Restored, `scheme_check.metta` is byte-identical to HEAD (`git diff` empty). Seven files
+(reconcile, fixture, scheme-check-pack, ai-design-pack, derive, derive-browser-safe, gitignore-hygiene) →
+**exit 0, 105 passed (7 files)**, up from 90.
+
+**Tier B, still open:** `npx tsc --noEmit` and the full 74-file suite have not been run since these edits.
+Nothing is deployed.
+
+**What this is not yet: used.** No page and no runner mount it, so a teacher cannot reach any of this yet — the
+15 tests are the only caller. Next is 5b, the browser surface, because that is what the video shows.
 
 ### What this does not change
 
