@@ -144,7 +144,7 @@ direction, and that is how this number moved once already.)
   pins, so the build ran from this checkout's dependencies). With no cookie, `/` and `/omega/check` both
   return **200** and show the sign-in page. That is middleware and build evidence only: the teacher
   click-through with a real account has not been done, and the preview omits `studio/public/assets/` (19 MB)
-  to fit the upload, so it is not the submission build. Production `sentastudio.vercel.app` is 66 commits
+  to fit the upload, so it is not the submission build. Production `sentastudio.vercel.app` is 67 commits
   behind this tree and does not carry the feature.
 - No learner data, no payments, and no real school's records are involved: four hand-seeded demo accounts
   and one hand-written Grade 8 AI pack.

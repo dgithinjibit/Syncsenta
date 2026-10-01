@@ -42,16 +42,19 @@ front of the next stage.
 
 ## Blocked on the owner, not on code
 
-- **The repository is disabled on GitHub, and that is the only hard blocker left.** `git push origin main` is
-  refused with `remote: Your repository is disabled.` (403), and a REST `GET /repos/dgithinjibit/Syncsenta`
-  with the CLI's own token returns **403** too, while the browser session can see it — so 66 commits, all of
-  this week's work, exist on one laptop. Read the banner at
-  `https://github.com/settings/administration-or-migration-guidance`; expect a reply in hours rather than
-  minutes, so it is the first thing to raise. Nothing code-side can work around it.
-- Visibility is already **private** (measured: `"private": true`), so when the block lifts: push, then fix
-  the platform's repo field, which still points at `Ascendra.git` — a repository that does not exist — and
-  add `BASIX.MARKET` as a collaborator. Pushing to a *public* repo would auto-deploy the 100 MB asset tree to
-  the live production URL; that is why private comes first.
+- **The push is blocked by a token scope, not by the repository's state — and it is one command to fix.**
+  `git push --set-upstream origin feat/safe-data-retrieval` is rejected with
+  `refusing to allow an OAuth App to create or update workflow
+  '.github/workflows/rust-gates.yml' without 'workflow' scope`, and `gh auth status` reports
+  `Token scopes: 'gist', 'read:org', 'repo'`. Exactly one commit in the range touches workflows
+  (`2f37915`, which adds that Rust CI file). The fix is owner-side and takes a minute:
+  `gh auth refresh-scopes -s workflow`. A push of `main` separately reported
+  `remote: Your repository is disabled.` — recorded here as observed, with that command, rather than
+  explained. Until the scope is refreshed, 67 commits of this week's work exist on one laptop.
+- Visibility is already **private** (measured: `"private": true`), so once the scope is refreshed: push, then
+  fix the platform's repo field, which still points at `Ascendra.git` — a repository that does not exist —
+  and add `BASIX.MARKET` as a collaborator. Pushing to a *public* repo would auto-deploy the 100 MB asset
+  tree to the live production URL; that is why private came first.
 - **Revoke the leaked `gho_…` token.** Still valid as of today.
 - `ASI_CLOUD_KEY` into `studio/.env.local`, by the owner, never pasted into a file, a commit or a chat.
 

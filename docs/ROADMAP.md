@@ -1361,8 +1361,18 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   (19 MB), so this preview is a test artefact, not the submission build. What the preview does and does not
   prove: `curl -L /` → **200**, `curl -L /omega/check` → **200**, with no cookie the body contains the
   sign-in page — middleware and build are good, and **the teacher click-through with a real account has not
-  been done**. Production `sentastudio.vercel.app` is still 66 commits behind and still 404s on
+  been done**. Production `sentastudio.vercel.app` is still 67 commits behind and still 404s on
   `/omega/check`.
+- **The push is blocked by a token scope, and the record's earlier explanation was wrong.** `git push
+  --set-upstream origin feat/safe-data-retrieval` (the branch holding all 67 commits) is rejected with
+  `refusing to allow an OAuth App to create or update workflow
+  '.github/workflows/rust-gates.yml' without 'workflow' scope`. `gh auth status` reports
+  `Token scopes: 'gist', 'read:org', 'repo'`, and `git log origin/main..HEAD -- .github/workflows` names
+  exactly one commit — `2f37915`, the Rust CI file already recorded as unpushed in §7. A `main` push
+  separately reports `remote: Your repository is disabled.`; both messages are recorded as observed, and the
+  actionable one is the scope, which is `gh auth refresh-scopes -s workflow` in the account holder's browser.
+  The 67 commits are not on GitHub, so the private → push → add BASIX.MARKET order in §7's decision still has
+  its first step outstanding.
 - **`vercel link` wrote `.env.local` and appended `.env*` to *two* gitignores, and the deeper one wins.** The
   root `.gitignore` carries `!.env*.example`; the second `vercel link` (run from `studio/`) appended `.env*`
   to `studio/.gitignore`, and a rule in a deeper file overrides a parent's negation — so
@@ -1370,13 +1380,16 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   refused the template the next developer needs. The hygiene guard caught it unprompted: red at
   **2 failed / 11 passed**, green at **13** once `!.env*.example` is in `studio/.gitignore` too. The file's
   contents were never read into this session.
-- **Something in this workspace reverts working-tree edits to `HEAD`.** On 2026-10-01, README.md and
-  `docs/ROADMAP.md` were found byte-identical to `HEAD` after their edits had been applied and reported
-  successful, and an untracked `docs/BASIX-README-DRAFT.md` had disappeared; `basix-readme.test.ts` had lost
-  its two newest assertions. Cause unknown — no `git checkout`/`restore`/`stash` was run in this session, and
-  `git stash list` is empty. The defence adopted here: verify the file on disk with `git status`/`grep`
-  immediately before committing, and commit the spoon as soon as it is green rather than leaving it in the
-  worktree.
+- **Two edits were reported applied and were not on disk later in the same session; the cause was not
+  identified, and the README is English.** `basix-readme.test.ts` went from the 10 tests its file list reported
+  back to the 8 in `HEAD`, with the newest assertions gone, and a belief that a Chinese `README.md` section
+  existed — it does not, and never did in any commit; the Chinese prose belongs to a draft note that is not the
+  submitted file. What is *not* in evidence: any `git checkout`, `restore` or `stash` in this session, and
+  `git stash list` is empty — so this is recorded as an unexplained observation, not as a finding about the
+  workspace. The defence that worked: `grep` the file immediately before relying on an assertion, and commit a
+  spoon as soon as it is green instead of leaving it in the worktree. The claim rule in §2 exists for exactly
+  this — a paragraph that reads better than the evidence supports is the failure mode, and an earlier draft of
+  this bullet named a culprit the session has no evidence for.
 
 - **`scripts/reconcile.mts` is not typechecked by anything.** It sits at the repository root, outside the
   narrowed net (`studio/.omega-tsconfig.tmp.json` covers `studio/src/**` and `src/lib/__tests__/scheme-*.test.ts`),
