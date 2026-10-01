@@ -53,10 +53,12 @@ refusing to invent a judgment column), Spoon 5b is done (a page mounts it: `/ome
 decide) and Spoon 5d is done (`node scripts/reconcile.mts` prints the identical transcript in a terminal, and
 running it is what exposed that a finding had been quoting the wrong pack line — see §11's 5d block). Spoon 5c
 has begun: 5c-1 is done (`studio/src/lib/scheme/ledger.ts`, an append-only hash-chained record that reports an
-edit made to it afterwards), and 5c-2 to 5c-4 — the accept path, the override that the next run reads, and the
-gate in front of the lesson-plan handoff — are what is left before the README and the video. The
+edit made to it afterwards) and 5c-2 is done (`studio/src/lib/scheme/consent.ts`, the accept path: three cells
+written, three records, a refusal that still refuses), while 5c-3 — the override the next run reads — and 5c-4,
+the gate in front of the lesson-plan handoff with `out/diff.json`, are what is left before the README and the
+video. The
 offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature needs no
-API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d" and "Spoon 5c-1" blocks
+API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d", "Spoon 5c-1" and "Spoon 5c-2" blocks
 for the rulings and what is still not yet used.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
@@ -1307,6 +1309,9 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 | 2026-10-01 | **Ledger hashes are WebCrypto SHA-256 over a fixed-order `JSON.stringify` array that includes the citations and the subject** | agent, spoon 5c-1 | `crypto.subtle` exists in the browser bundle and in Node 22, so one implementation covers the page and the terminal runner; a hand-rolled digest is the one thing a reviewer is right to distrust and `node:crypto` would not bundle. The payload includes the cited pack lines and the four-file subject, so a record quoting an edited rule, or moved to another scheme's history, hashes differently — proven by two flips, each failing exactly one named test |
 | 2026-10-01 | **A broken chain reports one reason per entry, with `chain` over `hash` over `order`** | agent, spoon 5c-1 | Deleting a middle record breaks the chain *and* jumps the numbering; listing both reports one event twice, and the cryptographic link is the evidence. `order` survives for what the others cannot see: a backdated file whose hashes are all self-consistent but whose history does not start at 1 — the test builds that entry with a legitimately recomputed hash and `verifyLedger` still refuses it |
 | 2026-10-01 | **A narrowed `tsc -p` over the demo's files stands in for the full typecheck between spoons** | agent, found by `3b2c6fb` | The full `npx tsc --noEmit` is ~830 MB and gets skipped on this laptop, which is exactly how `dc129d0` landed `DerivationStep[]` with no import for it: Vitest never typechecks, so 984 green tests said nothing. The narrowed config covers `src/lib/scheme`, `src/lib/attest`, `src/types`, `src/components/omega`, both omega pages and the CLI/ledger tests in **14–18 s at ~370–390 MB**, and it caught three more real errors in the ledger test file the same evening. Not a replacement for the full run — the rest of the app is still unchecked |
+| 2026-10-01 | **Consent is a third module, and one record per cell that actually moved** | agent, spoon 5c-2 | `reconcile.ts` decides, `ledger.ts` records, `consent.ts` writes — so the rule that a proposal may only carry design-stated values is enforced at the only place that touches the draft. Row 3's proposal fills three cells and so produces three entries; a cell already holding the proposed value produces none, because the invariant is *the ledger records every change and only changes*, and a ledger of non-events hides the events |
+| 2026-10-01 | **Accepting a refusal throws instead of degrading to a blank or a guess** | agent, spoon 5c-2 | The row-2 finding tells her the design states no value for `assessmentMethods`; a click on that card must not produce a write. `NothingProposedError` re-raises the refusal at the moment it would otherwise be silent, and the draft is left untouched — proven by removing the guard and watching 2 tests fail |
+| 2026-10-01 | **Where two guards cover one behaviour, the roadmap says the tests cannot tell them apart** | agent, spoon 5c-2 | An invented column is refused both by the `hasOwnProperty` check and by the not-a-string check, so flipping either one alone keeps all 15 green and only flipping both fails one. The behaviour is proven; the individual guard is not. Stating that is cheaper than pretending coverage, and it is the same honesty rule that retired "fully offline" from the script |
 
 ---
 
@@ -2289,9 +2294,57 @@ typechecked; the omega surface is.
 **Evidence.** `scheme-ledger.test.ts` **13 passed**; full suite `npx vitest run --no-file-parallelism` →
 **exit 0, 105 files, 997 passed, 17 skipped, 54 s, 257 MB peak**; narrowed `tsc` **exit 0**.
 
-**What this is not yet.** Nothing calls it: there is no accept button, no `out/diff.json`, no override that
-survives a second run, and no gate standing in front of the lesson-plan handoff. Those are 5c-2, 5c-3 and 5c-4.
-The ledger is a value that nothing persists yet, so it is verified and not deployed.
+**What this is not yet, at the moment it lands.** Nothing calls it, and `out/diff.json`, the override that
+survives a second run and the gate in front of the lesson-plan handoff are still ahead. The next block is the
+first caller: 5c-2 writes to this ledger.
+
+### Spoon 5c-2 is done: accepting a proposal writes the design's cells and records every one of them (2026-10-01, Tier A)
+
+`studio/src/lib/scheme/consent.ts` — `acceptProposal({rows, finding, actor, timestamp})` returns new rows plus
+the ledger entries they deserve. 15 tests in `scheme-consent.test.ts`, red first against
+`Cannot find package '@/lib/scheme/consent'`, then green.
+
+**The invariant the slice exists to hold: *the ledger records every change and only changes.*** Every test is an
+attempt to break that one sentence — writing a cell no proposal named, recording a change that did not happen,
+accepting a refusal, quietly mutating the array she handed over, or dropping the citation that made the write
+legitimate.
+
+**One record per cell that moved, so row 3 becomes three records.** Its proposal carries `subStrand`, `strand`
+and `keyInquiryQuestion` — three cells, three entries, all `basis: 'proposal-accepted'`, all carrying the
+proposal's citation list unchanged, all naming the actor and the timestamp the caller supplied. A cell that
+already held the proposed value gets **no** record: a ledger of non-events buries the events.
+
+**Consent does not turn a refusal into a write.** The row-2 finding — `assessmentMethods` empty, design states
+nothing — throws `NothingProposedError` and leaves the draft byte-for-byte as it was. That is the whole
+consent argument of 5a re-asserted at the only moment it could be silently dropped: the click. Removing the
+guard failed **2** tests, so it is load-bearing rather than decorative.
+
+**The write is real, in the sense that matters: she re-checks and the gap is gone.**
+`check(accept(...).rows).findings.map(f => f.row)` is `[2]` where the first pass said `[2, 3]`, and the three
+columns she wrote herself — outcome, experiences, resources, assessment, reflection, week, lesson — are
+`toBe`-identical to what she wrote. Untouched rows come back as the *same objects*, so a caller can see which
+row moved by reference and not only by value.
+
+**Defense in depth, and the honest limit of what the tests can see.** An invented column
+(`marksOutOf100`) is refused by two independent guards — the key is not on the row, and the current value is not
+a string. Flipping **either one alone leaves all 15 green**; flipping **both fails exactly one**. So the
+behaviour is proven and the individual guard is not distinguishable, which is stated here rather than smoothed
+over, because "a test would catch it" is a claim about the test, not about the code.
+
+**One test was wrong before the code was.** The identity assertion first demanded that *no* row differ from the
+input array — but row 3 is supposed to be a new object, so the correct claim is that *exactly* index 2 differs.
+That was a bug in the spoon's own spec, caught by running it against a correct implementation, and fixed in the
+test rather than accommodated in the code.
+
+**Evidence.** `scheme-consent.test.ts` **15 passed**; three drift flips — drop the no-op skip → the
+`records nothing` test fails, remove both column guards → the invented-column test fails, remove the refusal
+guard → **2** fail — each restored byte-identical. Narrowed `tsc` over the omega surface plus the ledger and
+consent tests: **exit 0**, ~390 MB. Full suite, because the spoon adds a module two others will import:
+`npx vitest run --no-file-parallelism` → **exit 0, 106 files, 1012 passed, 17 skipped, 73 s, 189 MB peak**.
+
+**Not yet wired.** No button calls this, the terminal runner does not know about it, an override still cannot
+survive a second run, and nothing stands in front of the lesson-plan handoff. Those are 5b's accept path (a UI
+change, needs the browser pass), 5c-3 and 5c-4.
 
 ### What this does not change
 
