@@ -1,0 +1,28 @@
+Scheme check · Grade 8 Artificial Intelligence · design 2026-09-22.grade6.lovable-import.v1
+4 rows read · no network, no model, rules only
+
+Row 2, assessmentMethods — ADVISORY · field-obligation-waived-by-teacher
+  You recorded that this column does not apply to your scheme, so it no longer blocks certification, and this run still says so out loud: the column is empty, and the reason it is allowed to stay empty is your waiver rather than the checker's opinion.
+    Omega derivation · scheme-gap-severity · scheme_check.metta (36 statements)
+    1. (scheme-gap-severity g8 field-obligation-waived-by-teacher) — 5 rows tried, no match
+    6. (scheme-gap-severity g8 field-obligation-waived-by-teacher) → advisory — scheme_check.metta:63
+    7. (scheme-gap-reason g8 field-obligation-waived-by-teacher) — 5 rows tried, no match
+    12. (scheme-gap-reason g8 field-obligation-waived-by-teacher) → You recorded that this column does not apply to your scheme, so it no longer blocks certification, and this run still says so out loud: the column is empty, and the reason it is allowed to stay empty is your waiver rather than the checker's opinion. — scheme_check.metta:64
+    ∴ advisory — scheme_check.metta:63
+
+3 clean · 0 blocking · 1 advisory · 4 rows
+∴ certified for classroom use — the lesson-plan generator may read this scheme. Rule: blocking-must-be-zero. A scheme is certified for classroom use only when no blocking gap survives, and a certified scheme is what the lesson-plan generator is allowed to read.
+
+── record · 4 entries · teacher:kibera_mama_joy ──
+  2026-10-02T09:04:15+03:00 · row 3 · subStrand · proposal-accepted · cited studio/public/omega/ai_g8_design.metta:58, studio/public/omega/ai_g8_design.metta:59, studio/public/omega/ai_g8_design.metta:60, studio/public/omega/ai_g8_design.metta:61, studio/public/omega/ai_g8_design.metta:62
+  2026-10-02T09:04:15+03:00 · row 3 · strand · proposal-accepted · cited studio/public/omega/ai_g8_design.metta:58, studio/public/omega/ai_g8_design.metta:59, studio/public/omega/ai_g8_design.metta:60, studio/public/omega/ai_g8_design.metta:61, studio/public/omega/ai_g8_design.metta:62
+  2026-10-02T09:04:15+03:00 · row 3 · keyInquiryQuestion · proposal-accepted · cited studio/public/omega/ai_g8_design.metta:58, studio/public/omega/ai_g8_design.metta:59, studio/public/omega/ai_g8_design.metta:60, studio/public/omega/ai_g8_design.metta:61, studio/public/omega/ai_g8_design.metta:62
+  2026-10-02T09:04:15+03:00 · row pack · assessmentMethods · override-granted · cited studio/public/omega/scheme_check.metta:38
+
+── written to docs/basix-sample-audit ──
+  policy.metta · the policy this run decided on, waiver included
+  ledger.json  · 4 records · chain verifies
+  diff.json    · the cells consent wrote, before and after
+
+── handoff ──
+handoff · allowed · 0 blocking against the rule blocking-must-be-zero, and every one of the 4 records recomputes. A scheme is certified for classroom use only when no blocking gap survives, and a certified scheme is what the lesson-plan generator is allowed to read.

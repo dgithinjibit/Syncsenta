@@ -1,0 +1,25 @@
+{
+  "draft": "studio/public/omega/drafts/kibera_g8_week14.json",
+  "cells": [
+    {
+      "row": 3,
+      "field": "subStrand",
+      "before": "2.7 Neural network training",
+      "after": "3.3 Introduction to Neural Networks"
+    },
+    {
+      "row": 3,
+      "field": "strand",
+      "before": "2.0 Data and Representation",
+      "after": "3.0 AI Techniques and Programming"
+    },
+    {
+      "row": 3,
+      "field": "keyInquiryQuestion",
+      "before": "How does a network get better with practice?",
+      "after": "How is a neural network different from a set of rules?"
+    }
+  ],
+  "rowsChanged": 1,
+  "rowsTotal": 4
+}

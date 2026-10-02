@@ -1,0 +1,26 @@
+Scheme check · Grade 8 Artificial Intelligence · design 2026-09-22.grade6.lovable-import.v1
+4 rows read · no network, no model, rules only
+
+Row 2, assessmentMethods — BLOCKING · mandatory-field-empty
+  A column the design cannot do without is empty, so this row is not yet a lesson plan.
+  Not proposed — The assessmentMethods column is empty and the policy pack calls it mandatory: Evidence of competency is the competency, so a scheme with no assessment method cannot be signed off. The design states no value for it, so the agent will not write one. Fill it yourself, or tell the checker the column does not apply.
+    Omega derivation · scheme-gap-severity · scheme_check.metta (36 statements)
+    1. (scheme-gap-severity g8 mandatory-field-empty) → blocking — scheme_check.metta:46
+    2. (scheme-gap-reason g8 mandatory-field-empty) → A column the design cannot do without is empty, so this row is not yet a lesson plan. — scheme_check.metta:47
+    ∴ blocking — scheme_check.metta:46
+
+Row 3, subStrand — BLOCKING · sub-strand-not-in-design
+  This sub-strand is not in the Grade 8 design, so the scheme plans teaching that the curriculum does not contain.
+Proposed, needs consent — cited studio/public/omega/ai_g8_design.metta:58
+    subStrand: 3.3 Introduction to Neural Networks
+    strand: 3.0 AI Techniques and Programming
+    keyInquiryQuestion: How is a neural network different from a set of rules?
+    Omega derivation · scheme-gap-severity · scheme_check.metta (36 statements)
+    1. (scheme-gap-severity g8 sub-strand-not-in-design) — no match at scheme_check.metta:46
+    2. (scheme-gap-severity g8 sub-strand-not-in-design) → blocking — scheme_check.metta:48
+    3. (scheme-gap-reason g8 sub-strand-not-in-design) — no match at scheme_check.metta:47
+    4. (scheme-gap-reason g8 sub-strand-not-in-design) → This sub-strand is not in the Grade 8 design, so the scheme plans teaching that the curriculum does not contain. — scheme_check.metta:49
+    ∴ blocking — scheme_check.metta:48
+
+2 clean · 2 blocking · 0 advisory · 4 rows
+∴ not certified — 2 blocking, and the rule is blocking-must-be-zero. A scheme is certified for classroom use only when no blocking gap survives, and a certified scheme is what the lesson-plan generator is allowed to read.

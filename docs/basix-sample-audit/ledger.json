@@ -1,0 +1,83 @@
+{
+  "subject": {
+    "grade": "g8",
+    "draftFile": "studio/public/omega/drafts/kibera_g8_week14.json",
+    "designFile": "studio/public/omega/ai_g8_design.metta",
+    "policyFile": "studio/public/omega/scheme_check.metta"
+  },
+  "entries": [
+    {
+      "timestamp": "2026-10-02T09:04:15+03:00",
+      "actor": "teacher:kibera_mama_joy",
+      "row": 3,
+      "field": "subStrand",
+      "before": "2.7 Neural network training",
+      "after": "3.3 Introduction to Neural Networks",
+      "basis": "proposal-accepted",
+      "citations": [
+        "studio/public/omega/ai_g8_design.metta:58",
+        "studio/public/omega/ai_g8_design.metta:59",
+        "studio/public/omega/ai_g8_design.metta:60",
+        "studio/public/omega/ai_g8_design.metta:61",
+        "studio/public/omega/ai_g8_design.metta:62"
+      ],
+      "index": 1,
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "b0fc0a3eeb47718af91273f7a15bba5d212decd4e5fda9f16fd45e1afdd77de3"
+    },
+    {
+      "timestamp": "2026-10-02T09:04:15+03:00",
+      "actor": "teacher:kibera_mama_joy",
+      "row": 3,
+      "field": "strand",
+      "before": "2.0 Data and Representation",
+      "after": "3.0 AI Techniques and Programming",
+      "basis": "proposal-accepted",
+      "citations": [
+        "studio/public/omega/ai_g8_design.metta:58",
+        "studio/public/omega/ai_g8_design.metta:59",
+        "studio/public/omega/ai_g8_design.metta:60",
+        "studio/public/omega/ai_g8_design.metta:61",
+        "studio/public/omega/ai_g8_design.metta:62"
+      ],
+      "index": 2,
+      "prevHash": "b0fc0a3eeb47718af91273f7a15bba5d212decd4e5fda9f16fd45e1afdd77de3",
+      "hash": "0f88bfa0031a0ea21998b3591321ee25a79df33207215416a9315edfad7d7395"
+    },
+    {
+      "timestamp": "2026-10-02T09:04:15+03:00",
+      "actor": "teacher:kibera_mama_joy",
+      "row": 3,
+      "field": "keyInquiryQuestion",
+      "before": "How does a network get better with practice?",
+      "after": "How is a neural network different from a set of rules?",
+      "basis": "proposal-accepted",
+      "citations": [
+        "studio/public/omega/ai_g8_design.metta:58",
+        "studio/public/omega/ai_g8_design.metta:59",
+        "studio/public/omega/ai_g8_design.metta:60",
+        "studio/public/omega/ai_g8_design.metta:61",
+        "studio/public/omega/ai_g8_design.metta:62"
+      ],
+      "index": 3,
+      "prevHash": "0f88bfa0031a0ea21998b3591321ee25a79df33207215416a9315edfad7d7395",
+      "hash": "cf6a3eb14ae564ff146f55676b31b85e8c553ba0b13c5b1e7d83f5c711bc1aee"
+    },
+    {
+      "timestamp": "2026-10-02T09:04:15+03:00",
+      "actor": "teacher:kibera_mama_joy",
+      "row": "pack",
+      "field": "assessmentMethods",
+      "before": "mandatory",
+      "after": "waived",
+      "basis": "override-granted",
+      "citations": [
+        "studio/public/omega/scheme_check.metta:38"
+      ],
+      "note": "Lesson 2 is oral.",
+      "index": 4,
+      "prevHash": "cf6a3eb14ae564ff146f55676b31b85e8c553ba0b13c5b1e7d83f5c711bc1aee",
+      "hash": "a60208120d22c19091cf6d3668edcbdfacfeb0510446b107302ec4d103f03963"
+    }
+  ]
+}

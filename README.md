@@ -125,6 +125,15 @@ node developer_tools/scripts/reconcile.mts --accept 3 --waive assessmentMethods 
 node developer_tools/scripts/reconcile.mts --policy /tmp/run1/policy.metta
 ```
 
+Those three runs have already been made and committed, so a reviewer who does not want to type anything can
+read the record instead: `docs/basix-sample-audit/` holds the three transcripts, the policy the waiver wrote,
+the four-entry hash-chained `ledger.json` and the `diff.json` of the cells consent changed — the audit trail the
+brief asks for, and `studio/src/lib/__tests__/basix-sample-audit.test.ts` re-runs the second command into a
+temporary directory and fails if those artefacts stop matching these bytes. Read together they are the feature
+in one page: `2 clean · 2 blocking · ∴ not certified`, then a named teacher accepting one proposal and waiving
+one mandatory column, then `3 clean · 0 blocking · 1 advisory · ∴ certified for classroom use`, and then a later
+run that honours the waiver from the file with no flag telling it to.
+
 The page mounts the same module: `/omega/check` locally with no account, `/teacher/omega` inside the
 workspace, with
 the view model in `studio/src/lib/scheme/check-view.ts` between the engine and the JSX so a screen cannot
@@ -146,8 +155,8 @@ in the repository: the hand-written Grade 8 AI pack, the scheme pack, and one sa
 the teacher workspace, and *that* one does need a signed-in demo account.
 
 Proof of the suite, on this machine: `npx vitest run --no-file-parallelism --testTimeout=30000` in `studio/` →
-**1085 passed, 17 skipped** across 110 files (109 files green, 1 file skipped), exit 0, 62.75 s on vitest's
-clock and 1:08 wall, 2026-10-02 ~12:15 EAT. Peak memory was not captured on this run; the 2026-10-01 16:39 run
+**1089 passed, 17 skipped** across 111 files (110 files green, 1 file skipped), exit 0, 72.32 s on vitest's
+clock and 1:14 wall, 2026-10-02 ~12:27 EAT. Peak memory was not captured on these runs; the 2026-10-01 16:39 run
 measured 237 MB. The `--testTimeout` flag is part of the command, not decoration: one guard spawns the CLI and the
 default 5 s budget loses it on this laptop. (`docs/ROADMAP.md` §9
 carries the same number as its baseline, and `basix-readme.test.ts` fails if the two documents stop agreeing

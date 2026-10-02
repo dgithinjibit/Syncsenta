@@ -75,8 +75,9 @@ API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d", "
 missing (`3ddb237`) — and every command in the submission docs cites `developer_tools/scripts/reconcile.mts`, the
 form that works on a checkout without symlinks too. `basix-readme.test.ts` grew five clean-checkout tests that
 extract a reference with `git archive` and run the README's own command inside it, so a commit whose tree is
-broken while its working tree is fine can no longer pass as "verified"; see §11's spoon 7. Suite baseline is now
-**1085 passed / 17 skipped**. The push is waiting on one SSH public key on the GitHub account, because HTTPS
+broken while its working tree is fine can no longer pass as "verified"; see §11's spoon 7. The number in §9's
+baseline line, and the one the README quotes, is **1089 passed / 17 skipped**. The push is waiting on one SSH
+public key on the GitHub account, because HTTPS
 pushes of this range are rejected by GitHub's own `workflow`-scope rule.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
@@ -1352,11 +1353,11 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 ## 9. Standing verification gaps
 
 **Suite baseline — the number `README.md`'s submission section must quote:** `npx vitest run
---no-file-parallelism --testTimeout=30000` in `studio/` → **1085 passed / 17 skipped** across 110 files
-(109 files green, 1 file skipped), exit 0, 62.75 s on vitest's clock, 1:08 wall, 2026-10-02 ~12:15 EAT. The
-runs before it were 1078/17 at 61.4 s and 237 MB peak (2026-10-01 16:39), 1079/17 at 80.0 s (~18:5x), and
-1080/17 at 78.45 s (~18:4x); the +5 here is `basix-readme.test.ts` growing five clean-checkout tests, and peak
-RSS has not been re-measured since the 16:39 run.
+--no-file-parallelism --testTimeout=30000` in `studio/` → **1089 passed / 17 skipped** across 111 files
+(110 files green, 1 file skipped), exit 0, 72.32 s on vitest's clock, 1:14 wall, 2026-10-02 ~12:27 EAT. The
+runs before it were 1078/17 at 61.4 s and 237 MB peak (2026-10-01 16:39), 1079/17 at 80.0 s (~18:5x),
+1080/17 at 78.45 s (~18:4x) and 1085/17 at 62.75 s (12:15 today, the five clean-checkout tests); +4 more here is
+`basix-sample-audit.test.ts`, and peak RSS has not been re-measured since the 16:39 run.
 `basix-readme.test.ts` compares the README against this line, so a count cannot
 go stale in one document while the other moves — and note the limit, found the same minute it was written:
 the guard passed while *both* documents said 1089/16/125, a state that had been reverted under them. Only
@@ -2890,6 +2891,51 @@ but not authorised — `ssh -i ~/.ssh/id_ed25519_github -o IdentitiesOnly=yes -T
 key. Once it is pasted at `https://github.com/settings/keys`, `git push git@github.com:dgithinjibit/Syncsenta.git
 HEAD:main` is a fast-forward (75 ahead, 0 behind) and no scope is involved, because SSH keys do not carry
 scopes. The sample audit trail — a required BASIX deliverable — is spoon 8 and is not committed yet.
+
+### Spoon 8 is done: the sample audit trail is in the repository, and a guard re-runs the command that wrote it (2026-10-02 ~12:27 EAT, Tier A)
+
+**What was missing was a deliverable, not a feature.** BASIX Track 5 lists "a sample audit trail" among the
+things a submission carries, and until today the only audit trail this reconciler ever produced was written to
+`/tmp/run1` on the laptop that ran the demo — a directory a judge cannot open. The artefacts are now committed
+under `docs/basix-sample-audit/`: three transcripts (the read-only check, the consent-and-waiver run, and the
+later run that reads the waiver off disk), the `policy.metta` the waiver rewrote, the four-entry chained
+`ledger.json`, the `diff.json` of the three cells consent changed, and a README that carries the exact commands.
+
+The three transcripts are the story the video has to tell, in the tool's own words: run 0 prints
+`2 clean · 2 blocking · 0 advisory · 4 rows` and `∴ not certified`, and refuses to invent the two empty mandatory
+columns; run 1, with `--accept 3 --waive assessmentMethods --actor teacher:kibera_mama_joy --note 'Lesson 2 is
+oral.' --at 2026-10-02T09:04:15+03:00`, prints `3 clean · 0 blocking · 1 advisory` and `∴ certified for classroom
+use`, writes four records each citing a rule line, and reports `handoff · allowed`; run 2, with **no waiver flag
+anywhere in the command**, reproduces `field-obligation-waived-by-teacher` as an advisory against
+`policy.metta:63`. The waiver moved the gap's severity, not the threshold, and the two mechanisms stay separate
+in a way worth stating: run 2 is `∴ not certified` on **row 3, `sub-strand-not-in-design`**, because a waiver
+was never meant to accept a proposal — the teacher's consent lives in the ledger, the waiver lives in the pack,
+and replaying only the pack correctly leaves the un-accepted row blocking.
+
+**Red first, then the artefacts.** `studio/src/lib/__tests__/basix-sample-audit.test.ts` was written before the
+directory existed and run: 4 failed, with `AssertionError: policy.metta is not committed`, an ENOENT on
+`ledger.json`, and the CLI itself answering `cannot read the policy pack at …/policy.metta`. Then the three
+commands were run for real, and the file went 4 passed. One test needed a fix on the test side, not the prose
+side: the citation regex was swallowing the `:58` line anchor out of `` `studio/public/omega/ai_g8_design.metta:58` ``
+and then demanding that file-with-colon exist, so the guard now strips a trailing `:NN` before `existsSync`.
+
+**What makes the committed artefacts checkable rather than decorative is `--at`.** The caller owns the clock, so
+the ledger's timestamps, and therefore its SHA-256 chain, are fixed by the command line; the first test re-runs
+the recorded command into a `mkdtemp` directory and compares `policy.metta`, `ledger.json` and `diff.json`
+byte-for-byte with the committed copies. It passes cold in 264 ms. This works because none of the three files
+embeds the `--out` path — `recordSection` prints the directory into stdout only, and the artefacts carry
+repo-relative source labels — which is worth knowing before someone tries to make the transcript itself
+byte-comparable across machines.
+
+**Cost note, because the machine is the constraint today.** Transcript capture had to separate streams: the CLI
+emits a `MODULE_TYPELESS_PACKAGE_JSON` warning on stderr (Node wants `"type": "module"` in
+`studio/package.json`), and the first capture merged it into the committed file, so the three transcripts were
+regenerated with `> file 2>/tmp/x.err`. The warning is real and unfixed: adding `"type": "module"` would change
+how every tool in `studio/` reads that manifest, three days out, for a cosmetic stderr line a judge never sees.
+
+Suite, re-measured after the four new tests: `npx vitest run --no-file-parallelism --testTimeout=30000` in
+`studio/` → **1089 passed / 17 skipped** across 111 files, exit 0, 72.32 s vitest clock, 1:14 wall,
+09:26:15Z → 09:27:29Z. README, PR body, call notes, disclosure scaffold and §9's baseline line all carry it.
 
 ---
 
