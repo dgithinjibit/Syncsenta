@@ -2979,6 +2979,30 @@ and "needs a translator, not an agent", and the legal citations are marked Tier 
 summary with a §8 list of what a qualified person must confirm before this is quoted to a customer. The primary
 text returned 403 to an agent; a browser will open it.
 
+### Spoon 10 is one line of git metadata: the wrong commit email is why production cannot deploy, and it is fixed from here (2026-10-02 ~14:05 EAT, Tier A)
+
+`vercel ls` at 13:52 EAT shows the two git-triggered Production deployments my push created at 13:35 and
+13:42 as **● Blocked**, reason: *"The deployment was blocked because Vercel couldn't find a Git account for
+the commit author."* `curl -s -o /dev/null -w '%{http_code}'` then proves the consequence for the demo:
+`https://sentastudio.vercel.app/omega/check` → **404**, `/teacher/omega` → **307** to `/auth/signin`, and
+the last **● Ready** Production build is 3 days old — a stale build with no reconciler page in it.
+
+Root cause, measured with `git log --format='%ae'`: **133 commits from 2026-09-27 to 2026-10-02 are authored
+`dgithinji.bit@gmail.com`, and that address is not the owner's and is not on the GitHub account.** The owner's
+email is `dgithinji331@gmail.com` (250 commits, mostly pre-Kiro-era work) with GitHub account
+`dgithinjibit`. An earlier agent session invented the `dgithinji.bit` form and recorded the guess as fact —
+"both are the same person" — which is exactly the failure mode §9 exists to catch: a claim that was never
+traced to a command. Vercel resolves the commit author to a Git account, found nothing, and blocked the
+deploy. Identity has always been applied **per command**, never with `git config`, so nothing in the
+machine's config is wrong and no history needs rewriting; only the `-email` value was.
+
+This commit is the test: it is the first commit on `main` authored
+`GIT_AUTHOR_NAME='dgithinjibit' GIT_AUTHOR_EMAIL='dgithinji331@gmail.com'`. If the diagnosis is right, the
+push triggers a Production build that is not Blocked, and `sentastudio.vercel.app/omega/check` stops being a
+404 within ~3 minutes. If it is still Blocked, the owner-side fix is to add and verify that email on the
+GitHub account, and the video records the terminal instead — `docs/basix-sample-audit/` is already the
+sample audit trail either way, and nothing about the submission depends on the URL.
+
 ---
 
 ## 12. How to update this file
