@@ -1253,9 +1253,13 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 4. Render: `Ascendra-1` has not redeployed from this branch, so `/lesson-architect/*` is unmounted.
    Also needs `LLM_PROVIDER=groq` and a working key.
 5. Netlify: the retired `syncsenta` site is still linked and fails three checks on every PR.
-6. 144 open Dependabot findings.
+6. Dependabot findings on `main`: **163 (5 critical, 69 high, 73 moderate, 16 low)**, measured 2026-10-02;
+   the older 144 it replaces was a stale count. Unstarted, and not a submission blocker.
 7. `@syncsenta.dev` has no DNS, which is why the demo and test accounts are hand-seeded.
-8. Revoke the test LLM keys when testing ends.
+8. Revoke the test LLM keys when testing ends — and as of spoon 11 this has teeth: one Gemini `AIza…` and
+   Groq `gsk_` keys are in the **public commit history** of this repo (removed from the tree; the history
+   stays). Owner-side: rotate the Gemini key, the Groq keys, and the known `gho_…` GitHub token; a stale
+   key in public history is not "revoked", it is "not yet checked".
 9. **Decide whether this repository stays public, and what gets pushed to it.** `dgithinjibit/Syncsenta` is
    public, and every branch here is cut from `main`, so a push publishes the whole map — which party is
    blocked on which credential, the demo accounts' hand-seeded state, the compose file's default
@@ -3011,6 +3015,35 @@ with the invented address, sat at **● Blocked** with no build at all. Measured
 stops 404-ing — is now a fact with a timestamp, and the video can be recorded against the production URL.
 The wrong-address commits stay in history; rewriting pushed history is the worse trade, and the record above
 says plainly which address is the owner's.
+
+### Spoon 11 is the community-health files: LICENSE, CONTRIBUTING, SECURITY, a PR template — and a grilling that mostly belonged to other repos (2026-10-02 ~16:2x EAT, Tier A for the scans)
+
+An external review (owner-pasted) graded "the repo" against production norms. Most findings named
+`dgithinjibit/syncsenta-studio` and `dgithinjibit/studio`, not this repository — measured here, not assumed:
+
+- The bracket-named file `[ABSOLUTE, FULL path…]: not tracked here — `git ls-files` for it returns nothing.
+  The transient root reports (`CODESPACES_FIX.md` and kin): not tracked here either. The "missing favicon"
+  claim: false —
+  `studio/src/app/favicon.ico` and `studio/src/app/icon.png` exist and ship.
+- **True for us, and acted on:** we had no `LICENSE`, no `CONTRIBUTING.md`, no `SECURITY.md`, no PR template,
+  and zero tags. This spoon adds the first three plus `.github/pull_request_template.md`; MIT (owner's pick),
+  copyright line editable by the owner. The `100,000+ concurrent users` line lives in `AGENTS.md` only —
+  `grep -n '100,000'` over `README.md` and `studio/src/app/page.tsx`: no hits — but the README's next-steps
+  now carries item 5 (real domain, key rotation, Dependabot, *architected*-vs-scaled honesty) so the copy
+  stops overclaiming at the submission layer too.
+- **True and unfixable-by-us:** provider keys sit in the public **history** of this repo. Measured with
+  `git log --all -S/-G` (counts, values never pulled into context): one Gemini `AIza…` key added in
+  `9714d93` and removed in `270d407` inside `studio/src/components/school-map.tsx`; `gsk_` touched by 18
+  commits; one `ghp_`; the known `gho_` by 3. The **current tree is clean**: `git grep` for key-shaped
+  strings returns nothing, and `school-map.tsx` holds no key. History rewriting is declined for the same
+  reason as spoon 10 — it would break `1db6334` (which `basix-readme.test.ts` pins as its red control) and
+  a rewritten pushed history is not re-fetchable by judges mid-scoring anyway. The mitigation is rotation,
+  which is owner-side: §7 #8 now names it.
+
+What spoon 11 does **not** do: root-directory surgery (`arduino/`, `unsloth_compiled_cache`, the jupyter
+leftovers stay until after the deadline — they are referenced by Replit-era entry points the AGENTS.md
+bullet still names), Dependabot triage, image diet, or tags — the `v0.1.0-basix` tag is cut in the push
+below, everything else is post-submission spoons 12+.
 
 ---
 

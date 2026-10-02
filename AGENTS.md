@@ -37,7 +37,8 @@ SyncSenta is a **Web4 Education OS** for Kenya's CBC curriculum.
 
 ### Repository layout
 - The repository root holds only deploy and workspace manifests, `README.md`,
-  `AGENTS.md`, and the Replit training entry points. Everything else goes in a
+  `AGENTS.md`, the community-health files (`LICENSE`, `CONTRIBUTING.md`,
+  `SECURITY.md`), and the Replit training entry points. Everything else goes in a
   folder.
 - New documents → `docs/` (`architecture/`, `research/`, `setup/`, `archive/`).
   New developer helpers → `developer_tools/`. Never add a loose file to the root.

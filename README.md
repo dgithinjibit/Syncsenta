@@ -201,6 +201,11 @@ direction, and that is how this number moved once already.)
    made by the MeTTa runtime rather than by a faithful parser.
 4. **The rest of the ladder**: Grade 10–12 AI packs, a Kiswahili scheme, and the same check for the
    blockchain course.
+5. **Production grooming of the repo and the site**: a real domain for a product meant for schools
+   and county offices — a `*.vercel.app` subdomain is honest for an alpha and wrong for
+   infrastructure — rotation of the hackathon provider test keys that touched this repo's early
+   commit history, the Dependabot backlog, and copy that says *architected* for scale until a load
+   test says otherwise.
 
 
 ## How it works
