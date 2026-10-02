@@ -20,7 +20,7 @@ front of the next stage.
 | The record reports being edited | `scheme-ledger` / `scheme-handoff` suites | a middle deletion returns `gate: 'chain'` and names entry 4; a prefix cut still verifies (documented, not hidden) |
 | The audit trail is in the repo, not in someone's /tmp | `docs/basix-sample-audit/`, guarded by `basix-sample-audit.test.ts` | three transcripts (`∴ not certified` → `∴ certified for classroom use` → waiver read off disk), `policy.metta`, a four-entry chained `ledger.json` naming `teacher:kibera_mama_joy`, and `diff.json` with the three cells before and after; the guard re-runs the command and requires the artefacts byte for byte |
 | The suite is green | `npx vitest run --no-file-parallelism --testTimeout=30000` in `studio/` | **1089 passed, 17 skipped, 111 files, exit 0** (72.32 s vitest clock, 1:14 wall, 2026-10-02 ~12:27 EAT; earlier baselines were 1078/17 at 61.4 s with 237 MB peak, then 1079/17, 1080/17, and 1085/17 when `basix-readme.test.ts` gained five clean-checkout tests) |
-| The live site does not have this feature yet | `curl -o /dev/null -w %{http_code} https://sentastudio.vercel.app/omega/check` | **404** (production is 68 commits behind this branch) |
+| ~~The live site does not have this feature yet~~ **resolved 2026-10-02 ~14:12 EAT** | `curl -s -o /dev/null -w '%{http_code}' https://sentastudio.vercel.app/omega/check` | was **404** (production 68 commits behind); `main` now pushes over SSH and the git-triggered Production build went **● Ready in 4m** → **HTTP 200**, reconciler copy in the HTML. Cause of the earlier block was a commit-author email that is not the owner's — see `docs/ROADMAP.md` §11, spoon 10 |
 | The upload works; the build never served anything | `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/`, then `vercel inspect` and `curl -L` on `/`, `/omega/check`, `/teacher/omega`, `/api/auth/demo-login` | uploaded **355.6 KB**, created `sentastudio-gady22na2-…`; `vercel inspect` → `status ● Blocked`, reason *"the commit author doesn't have permission to create deployments for this project"*; every path lands on `https://vercel.com/login?next=/sso-api…` (`<title>Login – Vercel</title>`). **Tier A for the upload and the block; nothing about the app.** An earlier row here claimed `Ready in 54 s` and 200s showing the sign-in page — both false, corrected 2026-10-01 17:3x EAT |
 
 ## What is not proven — said out loud, not papered over
@@ -56,6 +56,9 @@ front of the next stage.
   `~/.config/gh/hosts.yml`. A push of `main` separately reported
   `remote: Your repository is disabled.` — recorded here as observed, with that command, rather than
   explained. Until the scope is refreshed, 68 commits of this week's work exist on one laptop.
+  **(2026-10-02: the scope refresh never happened and was not the route — an ed25519 key added to the GitHub
+  account pushed `main` over SSH; all commits are now on GitHub, and the earlier `repository is disabled`
+  message did not recur.)**
 - Visibility is already **private** (measured: `"private": true`), so once the scope is refreshed: push, then
   fix the platform's repo field, which still points at `Ascendra.git` — a repository that does not exist —
   and add `BASIX.MARKET` as a collaborator. Pushing to a *public* repo would auto-deploy the 100 MB asset

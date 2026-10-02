@@ -43,10 +43,14 @@ node developer_tools/scripts/reconcile.mts --policy /tmp/run1/policy.metta
 
 - The refusal gate is real where a caller asks it to be (`--require-handoff` exits 2) and is **not yet wired
   into `/api/generate/lesson-plan`**.
-- Nobody has logged in as the teacher demo account and walked the check on a served page. There is currently
-  no URL that carries this branch: the preview is blocked by a Vercel project permission, and production
-  `sentastudio.vercel.app` returns **404** on `/omega/check` because it is 68 commits behind. The page has
-  been read locally, in the browser, with no account — that is the extent of what has been *seen*.
+- Nobody has logged in as the teacher demo account and walked the check on a served page. There **is** now a
+  URL that carries this branch: `main` was pushed over SSH on 2026-10-02 and git-triggered a Production build
+  that went **● Ready in 4m**; `https://sentastudio.vercel.app/omega/check` then measured **HTTP 200** with
+  the reconciler's copy in the HTML, and `/teacher/omega` measures **307** to `/auth/signin` — the gate, as
+  designed. (The two pushes an hour earlier were `● Blocked`: the commit-author email was one an earlier agent
+  session invented, corrected and recorded in `docs/ROADMAP.md` §11, spoon 10.) The page has been read locally,
+  in the browser, with no account — that remains the extent of what has been *seen*. The served 200 is proven;
+  the served click-through is not.
 - The packs are read by this repository's own MeTTa parser (`studio/src/lib/attest/derive.ts`). Running them
   under real Hyperon and diffing the answers is scheduled, not done.
 - No efficacy evidence: four hand-seeded demo accounts, one hand-written pack.

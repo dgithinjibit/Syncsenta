@@ -173,17 +173,19 @@ direction, and that is how this number moved once already.)
   deployed instance we cannot report what our own middleware does to a signed-out visitor, because Vercel
   answers first — see the next bullet. `next build` has not been run on this batch; `tsc` on the narrowed
   file set exits 0, and the full `tsc --noEmit` is recorded in `docs/ROADMAP.md` §9 as a standing gap.
-- What the commands have seen as of 2026-10-01 — and it is **not** a browser pass:
+- What the commands have seen — updated 2026-10-02 ~14:12 EAT, and it is **not** a browser pass:
   `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/` uploaded **355.6 KB** and created
   `https://sentastudio-gady22na2-dans-projects-5f474b51.vercel.app`, which `vercel inspect` reports as
   `status ● Blocked`, reason: *"The deployment was blocked because the commit author doesn't have permission
   to create deployments for this project."* `curl -L` on `/` and `/omega/check` both end at
   `https://vercel.com/login?next=/sso-api…` with `<title>Login – Vercel</title>` — that is Vercel's SSO wall,
-  not our sign-in page. So the honest reading is: the CLI upload works (an earlier claim in this file that it
-  could not was wrong and is corrected in §9), the project is linked, and **no build of this tree has ever
-  been observed to serve a page**. The teacher click-through with a real account has not been done, on any
-  host. Production `sentastudio.vercel.app` returns **404** on `/omega/check` and is 68 commits behind this
-  branch, so the submitted feature is not on the live site.
+  not our sign-in page. What changed: pushing `main` over SSH now git-triggers a Production deploy, and after
+  the commit-author email was corrected the build went **● Ready in 4m**;
+  `curl -s -o /dev/null -w '%{http_code}' https://sentastudio.vercel.app/omega/check` then returns **200**
+  with the reconciler's own copy in the HTML, and `/teacher/omega` returns **307** to `/auth/signin`, the
+  auth gate working as designed. So the submitted feature **is** on the live site as of this line. What is
+  still not done: the teacher click-through with a real account has not been done, on any host, and
+  `● Ready` plus a 200 is a served page, not a seen one.
 - No learner data, no payments, and no real school's records are involved: four hand-seeded demo accounts
   and one hand-written Grade 8 AI pack.
 

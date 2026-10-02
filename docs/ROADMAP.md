@@ -2996,12 +2996,14 @@ traced to a command. Vercel resolves the commit author to a Git account, found n
 deploy. Identity has always been applied **per command**, never with `git config`, so nothing in the
 machine's config is wrong and no history needs rewriting; only the `-email` value was.
 
-This commit is the test: it is the first commit on `main` authored
-`GIT_AUTHOR_NAME='dgithinjibit' GIT_AUTHOR_EMAIL='dgithinji331@gmail.com'`. If the diagnosis is right, the
-push triggers a Production build that is not Blocked, and `sentastudio.vercel.app/omega/check` stops being a
-404 within ~3 minutes. If it is still Blocked, the owner-side fix is to add and verify that email on the
-GitHub account, and the video records the terminal instead — `docs/basix-sample-audit/` is already the
-sample audit trail either way, and nothing about the submission depends on the URL.
+This commit was the test, and it passed. The push at ~14:07 EAT produced deployment
+`sentastudio-kqgmd89os` — **● Ready, Production, 4m build** — where the two pushes an hour earlier, authored
+with the invented address, sat at **● Blocked** with no build at all. Measured after Ready:
+`/omega/check` → **HTTP 200** and its HTML carries the reconciler copy, `/teacher/omega` → **307** to
+`/auth/signin` (the workspace gate, correct), `/` → 200. The prediction in the previous paragraph — the page
+stops 404-ing — is now a fact with a timestamp, and the video can be recorded against the production URL.
+The wrong-address commits stay in history; rewriting pushed history is the worse trade, and the record above
+says plainly which address is the owner's.
 
 ---
 
