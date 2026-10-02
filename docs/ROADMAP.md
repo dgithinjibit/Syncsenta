@@ -3289,6 +3289,12 @@ bug the local tests could not see:
 - Verified on production after the fix: `/teacher` shows **Amina** and **Demo Student**, Kibera Girls'
   Secondary, Grade 8. Both read `offline` because their `last_seen_at` is stale — a learner login during
   the video run will flip them to `online`; that is honest behavior, not a bug.
+  **Correction, same night, before the video was rehearsed: that sentence was false.** Nothing in
+  `studio/src` ever wrote `profiles.last_seen_at` — the roster and `roster-shaping.ts` only *read* it, the
+  live column is `timestamp with time zone default now() not null` with no trigger
+  (`supabase/live_schema_export/01_objects.sql:229`), and the only `last_seen` triggers in the repo are on
+  a different table (`student_sessions`, `20260902000001_realtime_teacher_feedback.sql`). So no login,
+  chat message, or page view could ever have flipped anyone online. Fixed in spoon 15b below.
 - Verified on production: the Co-Pilot grid (`/dashboard/tools`) renders all 18 tools — the spoon 12c 500
   is gone — and **Tongue Twisters generated prose through the ASI gateway**, proving the owner's
   `ASI_CLOUD_KEY` is live. Output formatting of that tool is prompt-level and owed a tune (it answered a
@@ -3316,6 +3322,22 @@ Result, run against `4a8be61`: first pass **1 failed / 17 passed**, second **18/
 with exit 0**. The failure message was not captured (my grep swallowed it before I re-ran), and the
 suite's known ~5 s flake on the headline-command test is the prime suspect, but that is a hypothesis,
 not a diagnosis — if it recurs, re-run with the full log kept and name the test.
+
+### Spoon 15b is done: learner presence is now a real write (2026-10-03 ~01:05 EAT)
+
+RED first: `studio/src/lib/presence/__tests__/touch-presence.test.ts` failed on a missing module, then
+3/3 green against the helper. `touchLastSeen(db, userId, now = new Date())`
+(`studio/src/lib/presence/touch-presence.ts`) stamps `profiles.last_seen_at` for one id only, refuses an
+empty id instead of issuing an unscoped update, and returns `{ ok: false, message }` rather than throwing.
+`/api/presence/touch` (`POST`, handler-only export) takes the id from `auth.getUser()` and never reads the
+body, so RLS `profiles_update_own` is the second defense; a failed stamp still answers 200 because
+presence is cosmetic and must not break the learner home. `src/app/student/page.tsx` fires it
+fire-and-forget on mount.
+
+Verified before push: presence 3/3, `route-exports.test.ts` 3/3 (the new push rule — this commit touches
+`src/app/**/route.ts`), `npx tsc --noEmit` exit 0. What this buys the demo: the roster's `online` chip now
+has a writer, so a learner session opened before recording makes the status real instead of permanently
+`offline`.
 
 ---
 

@@ -94,6 +94,10 @@ export default function StudentDashboardPage() {
       return;
     }
     void load();
+    // Presence stamp so the teacher roster's online chip reflects this
+    // session (see /api/presence/touch). Fire-and-forget by design: a failed
+    // stamp must never break or block the learner home.
+    void fetch('/api/presence/touch', { method: 'POST' }).catch(() => {});
   }, [user, authLoading, load]);
 
   const firstName = (profile?.full_name ?? 'Student').trim().split(' ')[0] || 'Student';
