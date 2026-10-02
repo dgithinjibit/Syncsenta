@@ -29,7 +29,6 @@ pub struct DIDUser {
 }
 
 /// Tower middleware: extract + validate Verifiable Presentation from Authorization header
-/// 
 /// Expected format: Authorization: Bearer <base64-encoded-VP>
 pub async fn require_did_auth(
     State(db): State<PgPool>,

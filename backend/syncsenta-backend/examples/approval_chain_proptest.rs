@@ -26,7 +26,7 @@ fn main() {
     println!("\n5. Testing determinism:");
     test_determinism();
     
-    println!("\n✅ All approval chain property tests passed!");
+    println!("\n All approval chain property tests passed!");
     println!("\nNote: Run full property-based tests with:");
     println!("  cargo test --package syncsenta-backend approval_chain_property_tests");
 }

@@ -2,6 +2,8 @@
 
 **Last updated:** 2026-09-21
 
+For the project-wide distinction between learner sandbox coverage, teacher curriculum packs, Blockchain Literacy, and AI/AGI/SI source modules, see the [curriculum status inventory](curriculum/README.md). This document remains specifically about student routes and interaction readiness.
+
 This document is the source of truth for what a student can currently do in SyncSenta. It distinguishes a complete learning path from a playable activity, a generated guided foundation, and a route that is not yet available.
 
 ## Route model

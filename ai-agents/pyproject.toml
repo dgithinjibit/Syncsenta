@@ -57,6 +57,7 @@ pandas = "^2.1.0"
 # Monitoring and logging
 structlog = "^23.2.0"
 prometheus-client = "^0.19.0"
+hyperon = ">=0.1.0"
 
 [tool.poetry.group.dev.dependencies]
 # Testing

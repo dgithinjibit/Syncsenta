@@ -41,9 +41,9 @@
        (Review safety)
        (if (not (child-consent-ok? $age $consent))
            (Review consent)
-           (if (and (= $connectivity offline) (= $intent assessment))
+           (if (and (== $connectivity offline) (== $intent assessment))
                (Review offline-assessment)
-               (Approved)))))
+               Approved))))
 
 ; Explicit expert intent mapping for a future MeTTa-native dispatcher.
 (= (intent-expert socratic-tutor) socratic-tutor)
@@ -130,8 +130,8 @@
 
 (= (attendance-action-route valid granted) Approved)
 (= (attendance-action-route $token $consent)
-   (if (not (= $token valid))
-       (Review attendance-token)
-       (if (not (= $consent granted))
+   (if (not (== $token valid))
+    (attendance-token-route $token)
+    (if (not (== $consent granted))
            (Review consent)
            Approved)))

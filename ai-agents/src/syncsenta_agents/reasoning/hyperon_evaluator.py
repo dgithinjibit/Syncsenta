@@ -80,7 +80,7 @@ def _invalid_input_verdict(evaluator: str) -> "PolicyVerdict":
 # Absolute path to the shared policy file so it works regardless of cwd.
 _POLICY_PATH = (
     Path(__file__).resolve()
-    .parents[5]          # repo root
+    .parents[4]          # repo root
     / "metta-logic"
     / "syncsenta_policy.metta"
 )

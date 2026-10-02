@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_path="$(readlink -f "${BASH_SOURCE[0]}")"
+script_dir="$(dirname "$script_path")"
+python_path="$(uv python find 3.12)"
+site_dir="$HOME/.local/lib/python3.12/site-packages"
+
+if [[ ! -d "$site_dir/hyperon" ]]; then
+  printf 'MeTTa runtime not found at %s\n' "$site_dir" >&2
+  printf 'Install it with: uv pip install --python "%s" --target "%s" hyperon\n' \
+    "$python_path" "$site_dir" >&2
+  exit 1
+fi
+
+PYTHONPATH="$site_dir${PYTHONPATH:+:$PYTHONPATH}" \
+  exec "$python_path" "$script_dir/metta_cli.py" "$@"
