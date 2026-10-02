@@ -7,8 +7,8 @@ import os
 import sys
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Make the production agent package importable from this developer tool.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "ai-agents" / "src"))
 
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -31,7 +31,14 @@ def get_supabase_client() -> Client:
 
 def read_schema_file() -> str:
     """Read the SQL schema file."""
-    schema_path = Path(__file__).parent.parent / "src" / "syncsenta_agents" / "db" / "teacher_feedback_schema.sql"
+    schema_path = (
+        Path(__file__).resolve().parents[3]
+        / "ai-agents"
+        / "src"
+        / "syncsenta_agents"
+        / "db"
+        / "teacher_feedback_schema.sql"
+    )
     
     if not schema_path.exists():
         raise FileNotFoundError(f"Schema file not found: {schema_path}")

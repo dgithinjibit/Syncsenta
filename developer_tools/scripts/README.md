@@ -89,4 +89,4 @@ When adding new scripts:
 4. Update this README
 5. Test on clean environment
 
-See [docs/CODING_STANDARDS.md](../docs/CODING_STANDARDS.md) for more details.
+See [docs/CODING_STANDARDS.md](../../docs/CODING_STANDARDS.md) for more details.

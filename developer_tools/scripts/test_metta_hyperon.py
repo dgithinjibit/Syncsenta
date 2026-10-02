@@ -18,7 +18,7 @@ import traceback
 from pathlib import Path
 
 # Make the ai-agents source importable when running from the repo root.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai-agents" / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ai-agents" / "src"))
 
 from syncsenta_agents.reasoning.hyperon_evaluator import (
     FallbackPolicyEvaluator,

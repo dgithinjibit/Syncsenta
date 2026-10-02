@@ -30,7 +30,7 @@ from urllib.error import HTTPError, URLError
 BASE = "https://api.scripture.api.bible/v1"
 DEFAULT_BIBLE_ID = "be8dc4ba39edf911-01"  # Biblica Open Kikuyu 2013
 DEFAULT_LABEL = "gikuyu"
-OUT_ROOT = Path(__file__).resolve().parent.parent / "data" / "gikuyu_bible"
+OUT_ROOT = Path(__file__).resolve().parents[2] / "data" / "gikuyu_bible"
 
 THROTTLE_SECONDS = 0.2
 MAX_RETRIES = 5

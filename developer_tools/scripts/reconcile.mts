@@ -46,11 +46,11 @@
  * resolved before the hook is registered.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import './omega-alias.mjs';
 
-const REPO_ROOT = join(import.meta.dirname, '..');
+const REPO_ROOT = join(realpathSync(import.meta.dirname), '../..');
 
 /** Labels are repo-relative, so a citation printed here is a path that exists in the repository. */
 const DESIGN = {
@@ -130,11 +130,11 @@ if (outPath !== undefined) {
   }
 }
 
-const { reconcileScheme } = await import('../studio/src/lib/scheme/reconcile.ts');
-const { acceptProposal } = await import('../studio/src/lib/scheme/consent.ts');
-const { applyOverride, overrideEntry } = await import('../studio/src/lib/scheme/override.ts');
-const { emptyLedger, appendToLedger, verifyLedger } = await import('../studio/src/lib/scheme/ledger.ts');
-const { authorizeHandoff } = await import('../studio/src/lib/scheme/handoff.ts');
+const { reconcileScheme } = await import('../../studio/src/lib/scheme/reconcile.ts');
+const { acceptProposal } = await import('../../studio/src/lib/scheme/consent.ts');
+const { applyOverride, overrideEntry } = await import('../../studio/src/lib/scheme/override.ts');
+const { emptyLedger, appendToLedger, verifyLedger } = await import('../../studio/src/lib/scheme/ledger.ts');
+const { authorizeHandoff } = await import('../../studio/src/lib/scheme/handoff.ts');
 
 const design = { file: DESIGN.file, text: read(DESIGN.path, 'design pack') };
 const policyLabel = policyPath === POLICY.path ? POLICY.file : labelFor(policyPath);

@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-root = Path(__file__).resolve().parents[1] / "datasets" / "holistic-development" / "v1"
+root = Path(__file__).resolve().parents[2] / "datasets" / "holistic-development" / "v1"
 schema = json.loads((root / "schema.json").read_text())
 allowed_domains = set(schema["properties"]["domain"]["enum"])
 allowed_sources = set(schema["properties"]["evidence_source"]["enum"])

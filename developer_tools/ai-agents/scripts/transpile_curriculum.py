@@ -339,7 +339,8 @@ def main() -> int:
     parser.add_argument(
         "--dst",
         type=Path,
-        default=Path(__file__).resolve().parents[1]
+        default=Path(__file__).resolve().parents[3]
+        / "ai-agents"
         / "src"
         / "syncsenta_agents"
         / "curriculum",

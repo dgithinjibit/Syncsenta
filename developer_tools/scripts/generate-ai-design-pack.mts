@@ -10,12 +10,12 @@
  * suite exercises as a module. This file only decides which grades get a pack and where the bytes land.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { emitDesignPack } from '../studio/src/data/curriculum/design-pack/emit.ts';
+import { emitDesignPack } from '../../studio/src/data/curriculum/design-pack/emit.ts';
 
-const REPO_ROOT = join(import.meta.dirname, '..');
+const REPO_ROOT = join(realpathSync(import.meta.dirname), '../..');
 const CURRICULUM_FILE = join(REPO_ROOT, 'studio', 'src', 'data', 'curriculum', 'senior-school', 'ai.ts');
 const CURRICULUM_LABEL = 'studio/src/data/curriculum/senior-school/ai.ts';
 

@@ -19,12 +19,12 @@
  * before this module has run.
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { registerHooks } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'studio', 'src');
+const SRC_ROOT = join(realpathSync(dirname(fileURLToPath(import.meta.url))), '..', '..', 'studio', 'src');
 
 /** The extension a bundler would have supplied, in the order the app's own imports use. */
 function resolveFile(base) {

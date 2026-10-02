@@ -27,8 +27,8 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-REPO_ROOT = HERE.parents[1]
-sys.path.insert(0, str(HERE.parent / "src"))
+REPO_ROOT = HERE.parents[2]
+sys.path.insert(0, str(REPO_ROOT / "ai-agents" / "src"))
 
 TS_SOURCE = REPO_ROOT / "studio" / "src" / "lib" / "emotional-intelligence.ts"
 
