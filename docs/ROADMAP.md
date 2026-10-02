@@ -2937,6 +2937,33 @@ Suite, re-measured after the four new tests: `npx vitest run --no-file-paralleli
 `studio/` → **1089 passed / 17 skipped** across 111 files, exit 0, 72.32 s vitest clock, 1:14 wall,
 09:26:15Z → 09:27:29Z. README, PR body, call notes, disclosure scaffold and §9's baseline line all carry it.
 
+### Spoon 9 is a document, not a feature: `docs/DATA_PROTECTION_UAE.md` — what a UAE learner's data would need, measured against this repository (2026-10-02 ~13:10 EAT, Tier A for the code facts, Tier B for the law)
+
+The owner asked whether the data policy is "great for a UAE user, you know age and stuff". It is not, and the
+reason is more specific than a missing paragraph on a privacy page. Written while the machine idles, because it
+is the one submission-adjacent task that costs no RAM.
+
+**What was checked, not assumed.** `supabase/migrations_live/20260928000000_live_baseline.sql` does hold
+`profiles.date_of_birth`, `students.date_of_birth`, `parent_student_links`, `student_link_codes` and a versioned,
+revocable, expiring `learner_consents` — so the schema is roughly right and my own sentence earlier today, "there
+is no date-of-birth or age field at all", was wrong and is corrected in that document's §9. The real finding is
+one level up: `studio/src/app/api/chat/route.ts` reads the date, derives an `ageBand`
+(`:132`, bands `5 and under` … `18+`), interpolates it into the tutor's system prompt
+(`studio/src/lib/chat/socratic-prompts.ts:209`, `:284`) and when the band is `undefined` the prompt prints
+"not provided" and the request continues to a third-party provider anyway — **an unknown age is a pass, not a
+block**. And `studio/src/app/api/parental-consent/route.ts` answers 202 while `persistTrustRecord()` returns
+`persisted: false`, so consent is accepted and not stored, in the same hour that Federal Decree-Law No. 26 of 2025
+(in force 2026-01-01) asks for documented, verifiable parental consent and effective age verification.
+
+**Scope discipline held.** Nothing in this spoon changes code, and the document says plainly that none of spoons
+9–12 belongs in the BASIX submission: the submitted reconciler holds no learner data, calls no model, and is the
+compliant part of the platform. The four spoons it proposes — `age_unknown` gate, consent written to
+`learner_consents` under RLS with `persisted: false` becoming an error, a published provider/retention table plus
+a pseudonymous leaderboard by default, and Arabic for the two trust pages — are estimated at 45 min, 90 min, 2 h
+and "needs a translator, not an agent", and the legal citations are marked Tier B against an official portal
+summary with a §8 list of what a qualified person must confirm before this is quoted to a customer. The primary
+text returned 403 to an agent; a browser will open it.
+
 ---
 
 ## 12. How to update this file
