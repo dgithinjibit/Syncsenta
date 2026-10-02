@@ -76,9 +76,16 @@ missing (`3ddb237`) — and every command in the submission docs cites `develope
 form that works on a checkout without symlinks too. `basix-readme.test.ts` grew five clean-checkout tests that
 extract a reference with `git archive` and run the README's own command inside it, so a commit whose tree is
 broken while its working tree is fine can no longer pass as "verified"; see §11's spoon 7. The number in §9's
-baseline line, and the one the README quotes, is **1089 passed / 17 skipped**. The push is waiting on one SSH
-public key on the GitHub account, because HTTPS
-pushes of this range are rejected by GitHub's own `workflow`-scope rule.
+baseline line, and the one the README quotes, is **1089 passed / 17 skipped**. The push happened: an ed25519
+key the owner added to the GitHub account carries `main` over SSH — `git push
+git@github.com:dgithinjibit/Syncsenta.git HEAD:main`, verified by `git ls-remote` matching `HEAD` — so the
+HTTPS `workflow`-scope rejection never needed beating, and the remote now holds every commit of this batch
+(§11's spoon 10 explains why the *scope* was the wrong diagnosis all along and names the real cause, a commit
+email that is not the owner's). Because the repo is git-linked to Vercel, the corrected push also deployed:
+`https://sentastudio.vercel.app/omega/check` measured **HTTP 200** at ~14:12 EAT with the reconciler's own
+copy in the HTML, `/teacher/omega` **307** to `/auth/signin`. What has *still* not happened is a person
+walking the page in a browser — the 200 is a served page, not a seen one, and that walk is now the owner's
+video rehearsal against production instead of localhost.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
 
