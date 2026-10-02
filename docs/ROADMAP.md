@@ -3211,7 +3211,11 @@ Intelligence, Blockchain)**, all Grade 8. `auth.users` untouched, as ever.
    POSTing at a relative dead URL; `last_active` null renders `—`, not `Invalid Date`.
 
 **Verification:** `tsc --noEmit` exit 0; vitest 52/52 across five files (genkit-asi 2, roster-shaping 6,
-student-chat-transport 27, gikuyu-mwalimu-client 6, orchestrator-agent 11). **Owed post-deploy:** owner adds
+student-chat-transport 27, gikuyu-mwalimu-client 6, orchestrator-agent 11). **This claim was true but
+insufficient, and it cost a build:** the five-file subset skipped `route-exports.test.ts`, the guard that
+exists precisely because `route.ts` modules may export only HTTP handlers and config fields. Vercel rejected
+`2557a75` with `"deriveStatus" is not a valid Route export field` — tsc and vitest both accept that file;
+only the real build (or that guard) catches it. Corrected by spoon 14b below. **Owed post-deploy:** owner adds
 `ASI_CLOUD_KEY` to the Vercel project (that IS the env fix — GEMINI_API_KEY is no longer required for the 18
 tools) and a browser pass on `/teacher` (roster names) plus one Co-Pilot tool generating prose.
 
@@ -3241,6 +3245,28 @@ AGENTS.md's Key Files table on submission eve.
 
 New convention, written into `AGENTS.md`: point-in-time status reports are not committed; `ROADMAP.md`
 carries the position, git carries the history.
+
+### Spoon 14b is done: the route-export build loss, fixed (2026-10-02 ~23:3x EAT)
+
+Both `2557a75` (spoon 13) and `17ff436` (spoon 14) failed their Vercel builds with
+`"deriveStatus" is not a valid Route export field` at "Checking validity of types". Production never
+broke — failed builds do not flip the alias, so spoon 12c stayed live — but the ASI swap and roster route
+were undeployable until this fix.
+
+Root cause: spoon 13 exported the pure shaping helpers (`RosterStudent`, `deriveStatus`, `buildRoster`, and
+their row types) from `src/app/api/teacher/roster/route.ts` to test them. Next.js allows route modules to
+export only HTTP handlers and config fields; `tsc --noEmit` and vitest accept violating files, and my
+five-file test subset did not include `studio/src/lib/__tests__/route-exports.test.ts` — the local gate that
+walks every `route.ts` and would have caught this before pushing.
+
+Fix, TDD-honest: ran the guard first and watched it fail RED naming the same two offenders Vercel did. Moved
+the helpers verbatim to `studio/src/lib/teacher/roster-shaping.ts` (outside `src/app/`, where the export
+contract does not apply), made `route.ts` import from it and export only `GET`, and pointed
+`roster-shaping.test.ts` at the new module. Green on the same checks the loss needed: guard 3/3,
+roster-shaping 6/6, genkit-asi 2/2, `tsc --noEmit` exit 0.
+
+Rule this instals: **any commit touching `src/app/**/route.ts` runs `route-exports.test.ts` in the push
+subset, no matter how small the subset is.** The guard is cheap (~1s); a lost production deploy is not.
 
 ---
 

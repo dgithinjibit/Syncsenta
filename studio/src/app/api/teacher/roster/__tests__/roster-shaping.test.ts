@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * and students.user_id mirrors profiles.id for the last-seen timestamp.
  */
 
-import { buildRoster, deriveStatus } from '@/app/api/teacher/roster/route';
+import { buildRoster, deriveStatus } from '@/lib/teacher/roster-shaping';
 
 const NOW = new Date('2026-10-02T15:00:00.000Z');
 
