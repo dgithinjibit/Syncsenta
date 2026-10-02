@@ -3270,6 +3270,36 @@ subset, no matter how small the subset is.** The guard is cheap (~1s); a lost pr
 
 ---
 
+### Spoon 15 is done: production verified end to end for submission night (2026-10-03 ~00:0x EAT)
+
+`596c89a` built Ready in 2m 2s and flipped production. The browser pass then found and fixed one real
+bug the local tests could not see:
+
+- `/teacher` as teacher01 rendered the honest "No students assigned yet" card — the roster route returned
+  `{success: true, students: []}` with HTTP 200. Diagnosis in the Supabase dashboard (read-only queries):
+  the four active `teacher_student_assignments` rows exist for `3cf1c6e1…` (= teacher01's `profiles.id` =
+  its `auth.uid()`), and `teacher_student_assignments` has a teacher SELECT policy, but **`students` had
+  none** — only service-role and student-self. RLS therefore filtered the route's second query to zero
+  rows and the ghost-row guard dropped every learner. The empty roster was the code working correctly
+  against a half-provisioned policy set.
+- Fix applied to production: two policies, scoped to active-assignment teachers only —
+  `syncsenta_assigned_teacher_read_students` on `students`, and
+  `syncsenta_assigned_teacher_read_profiles` on `profiles` (for `last_seen_at`; keeps self-read too).
+  Recorded as migration `supabase/migrations/20261003000001_assigned_teacher_read_students_profiles.sql`.
+- Verified on production after the fix: `/teacher` shows **Amina** and **Demo Student**, Kibera Girls'
+  Secondary, Grade 8. Both read `offline` because their `last_seen_at` is stale — a learner login during
+  the video run will flip them to `online`; that is honest behavior, not a bug.
+- Verified on production: the Co-Pilot grid (`/dashboard/tools`) renders all 18 tools — the spoon 12c 500
+  is gone — and **Tongue Twisters generated prose through the ASI gateway**, proving the owner's
+  `ASI_CLOUD_KEY` is live. Output formatting of that tool is prompt-level and owed a tune (it answered a
+  pronunciation request as a mini lesson plan), but the transport works.
+
+**Known cosmetic gap:** the dashboard header chip still reads "Live monitoring off / 0 Active" while
+everyone is offline; it goes non-zero as soon as a learner session touches `last_seen_at`. Not touched
+submission-eve.
+
+---
+
 ## 12. How to update this file
 
 At the end of a work session, in the same commit as the work: move the checkboxes, change §1's
