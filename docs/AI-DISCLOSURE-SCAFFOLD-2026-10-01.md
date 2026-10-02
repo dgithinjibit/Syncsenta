@@ -13,17 +13,17 @@ Deadline: 23:59 IST, 2 October 2026.
 
 AI wrote most of this code and none of its decisions: the auditable decision this project submits is produced
 by rule derivation over two MeTTa files and makes **no model call** — verified 2026-10-01 by
-`grep -cE "fetch\(|process\.env|OPENAI|axios"` returning **0** across `scripts/reconcile.mts`,
-`studio/src/lib/attest/derive.ts` and `scripts/omega-alias.mjs`.
+`grep -cE "fetch\(|process\.env|OPENAI|axios"` returning **0** across `developer_tools/scripts/reconcile.mts`,
+`studio/src/lib/attest/derive.ts` and `developer_tools/scripts/omega-alias.mjs`.
 
 ## 2. Where AI was used to *build* (development time)
 
 | What AI did | Evidence in the repository |
 |---|---|
-| Wrote the reconciler, the MeTTa subset interpreter (`derive.ts`), the hash-chained ledger, the handoff gate, the CLI and the page | `scripts/reconcile.mts`, `studio/src/lib/attest/`, `studio/src/app/omega/check/`, with tests in `studio/src/lib/__tests__/scheme-*.test.ts` |
+| Wrote the reconciler, the MeTTa subset interpreter (`derive.ts`), the hash-chained ledger, the handoff gate, the CLI and the page | `developer_tools/scripts/reconcile.mts`, `studio/src/lib/attest/`, `studio/src/app/omega/check/`, with tests in `studio/src/lib/__tests__/scheme-*.test.ts` |
 | Wrote the tests before the code, red first, and recorded the flip | commit messages and `docs/ROADMAP.md` §9 name the red counts (e.g. `1 failed / 10 passed` before `11 passed`) |
 | Wrote this document's scaffold, `README.md`'s submission section, `docs/ROADMAP.md`, `docs/BASIX-PR-BODY.md` | those files |
-| Ran the commands: test suite, `vercel deploy`, `curl`, `git` | suite **1080 passed / 17 skipped** across 110 files, exit 0, 78.45 s with `--testTimeout=30000`, 2026-10-01 |
+| Ran the commands: test suite, `vercel deploy`, `curl`, `git` | suite **1085 passed / 17 skipped** across 110 files, exit 0, 62.75 s with `--testTimeout=30000`, 2026-10-02 |
 | Corrected its own false claims in public | `docs/ROADMAP.md` §9 records that a preview deploy described as "Ready in 54 s, 200, shows the sign-in page" was wrong, and what `vercel inspect` actually printed |
 
 **WRITE IN YOUR OWN WORDS (a) — why you let an agent write this much, and what you required of it.** One

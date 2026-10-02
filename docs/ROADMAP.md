@@ -60,7 +60,7 @@ reads it and says so out loud, and the certification threshold refuses to be ove
 (`studio/src/lib/scheme/handoff.ts`: both gates asked on every call — the pack's threshold and the ledger's chain —
 and the lesson-plan handoff refused by a module that returns a decision or throws, so `handoff: 'refused'` stopped
 being a field the page displays and became a thing that stops work) and 5c-4b is done
-(`scripts/reconcile.mts --accept 3 --waive assessmentMethods --actor … --note … --at … --out /tmp/run1` writes
+(`developer_tools/scripts/reconcile.mts --accept 3 --waive assessmentMethods --actor … --note … --at … --out /tmp/run1` writes
 `policy.metta`, `ledger.json` and `diff.json`, prints the record and the gate's decision, exits 2 under
 `--require-handoff`, and a later run pointed at the written policy reproduces the waiver as an advisory with no
 waiver flag anywhere). **Spoon 5c is code-complete and terminal-verified.** What is left before submission is
@@ -69,6 +69,15 @@ page grows an accept button, which needs the browser pass. The
 offline draft is declared *input* rather than something SyncSenta generates, and the submitted feature needs no
 API key. Read §11's "Spoon 3", "Spoon 4", "Spoon 5a", "Spoon 5b", "Spoon 5d", "Spoon 5c-1", "Spoon 5c-2",
 "Spoon 5c-3", "Spoon 5c-4a" and "Spoon 5c-4b" blocks for the rulings and what is still not yet used.
+
+**Moved since, on 2026-10-02:** the scripts live under `developer_tools/` now — the owner's restructure, landed as
+`1db6334` with its `scripts -> developer_tools/scripts` compatibility symlink, plus the in-file path fixes it was
+missing (`3ddb237`) — and every command in the submission docs cites `developer_tools/scripts/reconcile.mts`, the
+form that works on a checkout without symlinks too. `basix-readme.test.ts` grew five clean-checkout tests that
+extract a reference with `git archive` and run the README's own command inside it, so a commit whose tree is
+broken while its working tree is fine can no longer pass as "verified"; see §11's spoon 7. Suite baseline is now
+**1085 passed / 17 skipped**. The push is waiting on one SSH public key on the GitHub account, because HTTPS
+pushes of this range are rejected by GitHub's own `workflow`-scope rule.
 
 Evidence for that sentence, run on this machine on 2026-09-29:
 
@@ -1343,10 +1352,11 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 ## 9. Standing verification gaps
 
 **Suite baseline — the number `README.md`'s submission section must quote:** `npx vitest run
---no-file-parallelism --testTimeout=30000` in `studio/` → **1080 passed / 17 skipped** across 110 files
-(109 files green, 1 file skipped), exit 0, 78.45 s on vitest's clock, 1:23 wall, 2026-10-01 ~18:45 EAT. The
-two runs before it were 1078/17 at 61.4 s and 237 MB peak (16:39) and 1079/17 at 80.0 s (~18:5x, peak not
-captured); each +1 is a guard added that evening, and peak RSS was not re-measured after the 16:39 run.
+--no-file-parallelism --testTimeout=30000` in `studio/` → **1085 passed / 17 skipped** across 110 files
+(109 files green, 1 file skipped), exit 0, 62.75 s on vitest's clock, 1:08 wall, 2026-10-02 ~12:15 EAT. The
+runs before it were 1078/17 at 61.4 s and 237 MB peak (2026-10-01 16:39), 1079/17 at 80.0 s (~18:5x), and
+1080/17 at 78.45 s (~18:4x); the +5 here is `basix-readme.test.ts` growing five clean-checkout tests, and peak
+RSS has not been re-measured since the 16:39 run.
 `basix-readme.test.ts` compares the README against this line, so a count cannot
 go stale in one document while the other moves — and note the limit, found the same minute it was written:
 the guard passed while *both* documents said 1089/16/125, a state that had been reverted under them. Only
@@ -2823,6 +2833,63 @@ bridge for Laya — integrations are serve/mcp/langchain/llamaindex/crewai/onnx/
 mapping and the atomspace asserts are entirely ours to write and defend. Also: the Laya repository is **8 days
 old** (created 2026-09-18, ~160 open issues, weights *and* training/eval code Apache-2.0), so fine-tuning is
 possible in principle and abandonment is a named risk in any write-up.
+
+### Spoon 7 is done: the docs say the path that works everywhere, and the README's guard now reads a real clone, not this laptop (2026-10-02 ~12:15 EAT, Tier A)
+
+**What the judge would have hit.** The repository root stopped holding loose scripts on 2026-10-01: the owner
+moved them under `developer_tools/` and left `scripts -> developer_tools/scripts` as a compatibility symlink.
+Every command line in the submission docs still said `node scripts/reconcile.mts`. On Linux and macOS that
+resolves, because Git materialises symlinks; on a Windows checkout, or any tool that exports the tree without
+them, the headline command of the README is a missing file. So the README, `docs/BASIX-PR-BODY.md`,
+`docs/BASIX-CALL-NOTES-2026-10-01.md`, `docs/AI-DISCLOSURE-SCAFFOLD-2026-10-01.md` and §1 of this file now cite
+`developer_tools/scripts/reconcile.mts` — the path that works on every checkout — and the README says in one
+sentence that the short `scripts/` form is a symlink, rather than quietly assuming it.
+
+**The re-point was done with a regex, and the regex damaged three documents.** The substitution
+`(?<!developer_tools/)`?\bscripts/(reconcile\.mts|omega-alias\.m[sj])` matched spans that began with a
+backtick, consumed the backtick as part of the optional group, and never put it back:
+`across developer_tools/scripts/reconcile.mts`,` in the disclosure scaffold, an unbalanced markdown cell in a
+PR-body table row. Found by reading `git diff` line by line, not by any test. Repaired in the same spoon, and a
+`grep -E '[^ `]developer_tools/(scripts|studio)/[^ `]*`'` across `README.md` and `docs/` now returns nothing.
+This is the second time this week that an automated edit was more dangerous than a typed one; the diff read is
+now part of the definition of "done" for any doc sweep.
+
+**The guard grew from 13 to 18 tests, and the five new ones are the ones that matter.** A README that quotes a
+transcript produced inside *this* working tree proves nothing about the tree a reviewer gets — that is exactly
+the gap that let commit `1db6334` through: 34 staged renames recorded as `R100` left the in-file `../` → `../../`
+fixes unstaged, so the commit was a broken tree while the working tree was fine, and `node
+developer_tools/scripts/reconcile.mts` inside it died with `cannot read the draft at
+<root>/developer_tools/studio/public/omega/drafts/kibera_g8_week14.json` — the `developer_tools/studio/…` path
+being the tell that `REPO_ROOT` was computed one directory short. `basix-readme.test.ts` now extracts a
+reference with `git archive --format=tar -o x.tar <ref>` plus `tar -x` (no `.git`, no `node_modules`, 1,825
+files), asserts `scripts` is a symlink to `developer_tools/scripts`, runs the command the README actually prints
+in that extraction and requires `2 clean · 2 blocking · 0 advisory · 4 rows` at exit 0, checks every backticked
+path in the section against the extraction rather than the worktree, and — the part that makes the guard itself
+tested — runs the identical probe against `1db6334` and asserts it *fails* with that message, guarded by
+`it.skipIf(!refExists(BROKEN_COMMIT))` so a shallow clone skips instead of lying. Measured: 18 passed,
+13.47 s of tests, 14.42 s duration, 25.0 s wall.
+
+**Cost, stated because it is the machine's constraint, not the code's.** The first two attempts at that same
+file were SIGTERMed at 180 s and 200 s without printing a single result line, with `swapon --show` reporting
+511.9 MB used of 512 MB and ~390 MB available. The extraction was also being done four times over. Fixing the
+redundancy (a `Map` cache keyed on the ref) and running when the machine had ~1.1 GB free took it from "no
+output in 200 s" to green in 25 s. A killed run is not a failing run, and nothing in this section claims
+otherwise: the numbers above come from `/tmp/guard3.log` and `/tmp/suite.log` on this machine.
+
+**Suite, re-measured after the five new tests.** `npx vitest run --no-file-parallelism --testTimeout=30000` in
+`studio/` → **1085 passed / 17 skipped** across 110 files, exit 0, 62.75 s on vitest's clock, 1:08 wall,
+09:14:21Z → 09:15:29Z. §9's baseline line and the README, PR body, call notes and disclosure scaffold all carry
+that number; `basix-readme.test.ts` fails if the README and this line stop agreeing, and it was re-run green
+after the sweep.
+
+**Still open in this spoon's own scope.** The push is blocked on one click that only the account holder can do:
+HTTPS is rejected by GitHub's OAuth-app rule (verbatim: `refusing to allow an OAuth App to create or update
+workflow '.github/workflows/fetch-bible-corpus.yml' without 'workflow' scope`), and the SSH route is prepared
+but not authorised — `ssh -i ~/.ssh/id_ed25519_github -o IdentitiesOnly=yes -T git@github.com` answers
+`Permission denied (publickey)`, which proves the key *is* being offered and the account has no matching public
+key. Once it is pasted at `https://github.com/settings/keys`, `git push git@github.com:dgithinjibit/Syncsenta.git
+HEAD:main` is a fast-forward (75 ahead, 0 behind) and no scope is involved, because SSH keys do not carry
+scopes. The sample audit trail — a required BASIX deliverable — is spoon 8 and is not committed yet.
 
 ---
 

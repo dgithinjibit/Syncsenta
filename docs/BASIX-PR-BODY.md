@@ -15,27 +15,27 @@ a teacher's consent, and any waiver, are recorded with a name and a timestamp.
 Run it from the repository root, read-only, no account and no key:
 
 ```bash
-node scripts/reconcile.mts
+node developer_tools/scripts/reconcile.mts
 ```
 
 Change it and read the record back:
 
 ```bash
-node scripts/reconcile.mts --accept 3 --waive assessmentMethods \
+node developer_tools/scripts/reconcile.mts --accept 3 --waive assessmentMethods \
   --actor teacher:kibera_mama_joy --note 'Lesson 2 is oral.' \
   --at 2026-10-02T09:04:15+03:00 --out /tmp/run1
-node scripts/reconcile.mts --policy /tmp/run1/policy.metta
+node developer_tools/scripts/reconcile.mts --policy /tmp/run1/policy.metta
 ```
 
 ## What is proven, with the command that proves it
 
 | Claim | Command | Result |
 |---|---|---|
-| The engine decides and cites its own policy lines | `node scripts/reconcile.mts` | exit 0, `2 clean · 2 blocking · 0 advisory · 4 rows`, `∴ not certified` |
+| The engine decides and cites its own policy lines | `node developer_tools/scripts/reconcile.mts` | exit 0, `2 clean · 2 blocking · 0 advisory · 4 rows`, `∴ not certified` |
 | The browser shows the identical decision | `npx vitest run --no-file-parallelism src/lib/__tests__/scheme-reconcile-cli.test.ts` in `studio/` | the terminal's stdout equals the page's transcript, byte for byte |
 | A waiver counts only because a later run reads it off disk | `--policy /tmp/run1/policy.metta` with no waiver flag | reproduces `field-obligation-waived-by-teacher`, citing the file it read |
 | The record reports being edited | `npx vitest run --no-file-parallelism src/lib/__tests__/scheme-ledger.test.ts` | a middle deletion returns `gate: 'chain'` and names the entry |
-| The suite is green on this machine | `npx vitest run --no-file-parallelism --testTimeout=30000` in `studio/` | **1080 passed, 17 skipped** across 110 files, exit 0, 78.45 s vitest clock / 1:23 wall |
+| The suite is green on this machine | `npx vitest run --no-file-parallelism --testTimeout=30000` in `studio/` | **1085 passed, 17 skipped** across 110 files, exit 0, 62.75 s vitest clock / 1:08 wall, 2026-10-02 ~12:15 EAT |
 | The deploy *upload* works; nothing has been served | `vercel deploy --yes --local-config vercel-cli-preview.json` in `studio/`, then `vercel inspect` | uploaded **355.6 KB** and created `sentastudio-gady22na2-…vercel.app`, which `vercel inspect` reports as `status ● Blocked` — *"the commit author doesn't have permission to create deployments for this project"*. `curl -L` on `/` and `/omega/check` both end at `https://vercel.com/login` (Vercel's SSO, not our page). **This row proves the upload, not the app** |
 
 ## What this pull request does not claim

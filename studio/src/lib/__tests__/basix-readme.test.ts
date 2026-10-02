@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readlinkSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /**
@@ -24,12 +25,54 @@ import { join } from 'node:path';
  * 4. The claim about tests carries the command that produced it. No bare count, no bare percentage.
  * 5. The banned sentences stay banned: "built on Omega", and any "works fully offline" / "no internet"
  *    line, which is false about a hosted Next.js app and would be an integrity problem, not a typo.
+ * 6. The headline command is executed inside a clean extraction of `HEAD`, and every path the section cites has to
+ *    be in that extraction. Items 2 and 3 read this working tree, and a working tree can contain fixes that the
+ *    commit being submitted does not — which is precisely how `1db6334` went green while a clone of it failed.
  */
 
 const STUDIO = process.cwd();
 const REPO = join(STUDIO, '..');
 const README = readFileSync(join(REPO, 'README.md'), 'utf8');
-const SCRIPT = join(REPO, 'scripts', 'reconcile.mts');
+// The real path, not the `scripts/` alias. A judge on a checkout that does not materialise symlinks — Windows
+// without developer mode — gets a 23-byte text file where `scripts` should be, so the alias is a convenience and
+// the real path is the promise. The guard runs the promise; a separate test below still proves the alias works.
+const SCRIPT = join(REPO, 'developer_tools', 'scripts', 'reconcile.mts');
+/** A commit that shipped the file moves without the in-file path fixes, used to prove the probe can fail. */
+const BROKEN_COMMIT = '1db6334';
+
+/**
+ * Extract `ref` into a throwaway directory the way a reviewer's clone would hold it, with no `.git`, no
+ * `node_modules` and nothing inherited from this working tree. `git archive` rather than `git clone` because the
+ * pack is 101 MB of history and the tree is 1,825 files, and both materialise the compatibility symlink the same
+ * way on this machine.
+ */
+function cleanCheckoutOf(ref: string): string {
+  const work = mkdtempSync(join(tmpdir(), 'basix-clean-checkout-'));
+  const archive = join(work, `${ref}.tar`);
+  const made = spawnSync('git', ['archive', `--format=tar`, `-o`, archive, ref], { cwd: REPO, encoding: 'utf8' });
+  if (made.status !== 0) throw new Error(`git archive ${ref} failed: ${made.stderr}`);
+  const extracted = spawnSync('tar', ['-xf', archive, '-C', work], { encoding: 'utf8' });
+  if (extracted.status !== 0) throw new Error(`tar -x of ${ref} failed: ${extracted.stderr}`);
+  rmSync(archive, { force: true });
+  return work;
+}
+
+function refExists(ref: string): boolean {
+  return spawnSync('git', ['cat-file', '-e', `${ref}^{commit}`], { cwd: REPO }).status === 0;
+}
+
+/**
+ * One extraction per ref, because each costs seconds and tens of megabytes on a 3.7 GB laptop and four tests want
+ * the same tree. `cleanCheckoutOf` is only ever called through here.
+ */
+const checkouts = new Map<string, string>();
+function checkoutOf(ref: string): string {
+  const cached = checkouts.get(ref);
+  if (cached) return cached;
+  const dir = cleanCheckoutOf(ref);
+  checkouts.set(ref, dir);
+  return dir;
+}
 
 function section(): string {
   const start = README.indexOf('## One feature, proven');
@@ -67,7 +110,8 @@ describe('the section is backed by the thing it shows', () => {
   });
 
   it('cites no file that is not in the repository', () => {
-    const cited = [...section().matchAll(/`((?:studio|scripts|docs|supabase)\/[^`\s]+)`/g)].map((m) => m[1]);
+    const cited = [...section().matchAll(/`((?:studio|scripts|developer_tools|docs|supabase)\/[^`\s]+)`/g)]
+      .map((m) => m[1]);
     expect(cited.length).toBeGreaterThan(5);
     for (const path of cited) {
       expect(existsSync(join(REPO, path)), `${path} is cited but not in the tree`).toBe(true);
@@ -152,6 +196,71 @@ describe('the section is backed by the thing it shows', () => {
     // No reviewer should be sent to 3000 for this app; that port belongs to an unrelated local backend.
     expect(body).not.toMatch(/localhost:3000\/omega|localhost:3000\/teacher/);
   });
+});
+
+describe('the headline command is proven against a clean checkout, not against this working tree', () => {
+  // Why this block exists at all: commit `1db6334` moved the scripts into `developer_tools/` and recorded them as
+  // pure renames, because the owner's edits *inside* those files were still unstaged. The suite passed, the README
+  // guard passed, and every one of them was reading a working tree that held fixes the commit did not. A judge
+  // cloning it got: `reconcile: cannot read the draft at <root>/developer_tools/studio/public/omega/drafts/…`.
+  // Nothing that reads `process.cwd()` or `existsSync(REPO, …)` can see that class of bug, so this block reads
+  // HEAD instead.
+  afterAll(() => {
+    for (const dir of checkouts.values()) rmSync(dir, { recursive: true, force: true });
+    checkouts.clear();
+  });
+
+  function runHeadline(dir: string, relative: string) {
+    return spawnSync(process.execPath, [join(dir, relative)], { cwd: dir, encoding: 'utf8' });
+  }
+
+  it('carries the real path in a fresh extraction, with no .git and no node_modules', () => {
+    const dir = checkoutOf('HEAD');
+    expect(existsSync(join(dir, 'developer_tools', 'scripts', 'reconcile.mts'))).toBe(true);
+    expect(existsSync(join(dir, '.git'))).toBe(false);
+    expect(existsSync(join(dir, 'studio', 'node_modules'))).toBe(false);
+  });
+
+  it('runs the command the section tells a judge to type, from that extraction, and gets the verdict', () => {
+    const dir = checkoutOf('HEAD');
+    const run = runHeadline(dir, join('developer_tools', 'scripts', 'reconcile.mts'));
+    expect(run.stdout, `stderr was: ${run.stderr}`).toContain('2 clean · 2 blocking · 0 advisory · 4 rows');
+    expect(run.status, `stderr was: ${run.stderr}`).toBe(0);
+  });
+
+  it('keeps the scripts/ compatibility symlink working in that extraction, which is what its row in the README promises', () => {
+    const dir = checkoutOf('HEAD');
+    expect(readlinkSync(join(dir, 'scripts'))).toBe('developer_tools/scripts');
+    const run = runHeadline(dir, join('scripts', 'reconcile.mts'));
+    expect(run.status, `stderr was: ${run.stderr}`).toBe(0);
+    expect(run.stdout).toContain('∴ not certified');
+  });
+
+  it('cites no path a clean checkout would not have', () => {
+    // The worktree version of this check above can pass on a file that exists only because somebody moved it by
+    // hand. This one asks the only question a reviewer can answer: is it in the thing they clone?
+    const dir = checkoutOf('HEAD');
+    const cited = [...section().matchAll(/`((?:studio|scripts|developer_tools|docs|supabase)\/[^`\s]+)`/g)]
+      .map((m) => m[1]);
+    expect(cited.length).toBeGreaterThan(5);
+    for (const path of cited) {
+      expect(existsSync(join(dir, path)), `${path} is cited but is not in HEAD`).toBe(true);
+    }
+  });
+
+  it.skipIf(!refExists(BROKEN_COMMIT))(
+    'detects the regression it was written for, by running the same probe against the commit that had it',
+    () => {
+      // Proving the probe is not vacuous: `1db6334` is the real tree object where the headline command failed, so
+      // a guard that cannot reproduce that failure is not guarding anything. Skipped, not deleted, if the history
+      // is ever rewritten and the commit stops existing.
+      const dir = checkoutOf(BROKEN_COMMIT);
+      const run = runHeadline(dir, join('scripts', 'reconcile.mts'));
+      expect(run.status).not.toBe(0);
+      expect(run.stderr).toContain('cannot read the draft at');
+      expect(run.stderr).toContain('developer_tools/studio/public');
+    },
+  );
 });
 
 describe('the sentences the north star bans stay banned', () => {

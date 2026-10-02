@@ -44,7 +44,7 @@ teacher's draft — **input, not output:** it is the offline file `studio/public
 and this feature does not claim to have generated it — and emits one finding per problem, each quoting the
 pack's own words and the line they come from.
 
-This is the real output of `node scripts/reconcile.mts`, on the sample draft, with no flags:
+This is the real output of `node developer_tools/scripts/reconcile.mts`, on the sample draft, with no flags:
 
 ```
 Scheme check · Grade 8 Artificial Intelligence · design 2026-09-22.grade6.lovable-import.v1
@@ -101,24 +101,28 @@ terminal). The packs are MeTTa source, read by this repository's own parser in
 
 Run the check the way a reviewer can, from the repository root. **Needs Node.js 22.18 or newer** and nothing
 else — no `npm install`, because the runner imports only `node:fs`, `node:path` and its own alias shim
-(`scripts/omega-alias.mjs`), and the repository root has no `package.json` to install from. The version is not
-a preference: the file is TypeScript loaded by Node's own type stripping (unflagged from v22.18.0) plus
-`module.registerHooks()` (from v22.15.0), so on Node 20 this command stops with
+(`developer_tools/scripts/omega-alias.mjs`), and the repository root has no `package.json` to install from. The
+version is not a preference: the file is TypeScript loaded by Node's own type stripping (unflagged from v22.18.0)
+plus `module.registerHooks()` (from v22.15.0), so on Node 20 this command stops with
 `ERR_UNKNOWN_FILE_EXTENSION` before it has read a single rule.
 
 ```bash
-node scripts/reconcile.mts
+node developer_tools/scripts/reconcile.mts
 ```
+
+`scripts/` is a compatibility symlink to `developer_tools/scripts`, so the shorter
+`node scripts/reconcile.mts` works on a checkout that materialises symlinks — which is every Linux and macOS
+clone, and not every Windows one. The path above is the one that works everywhere, so it is the one printed here.
 
 Change it, record it, and read the record back — the second command carries no waiver flag, and the waiver
 still appears because it is a line in the file it was pointed at:
 
 ```bash
-node scripts/reconcile.mts --accept 3 --waive assessmentMethods \
+node developer_tools/scripts/reconcile.mts --accept 3 --waive assessmentMethods \
   --actor teacher:kibera_mama_joy --note 'Lesson 2 is oral.' \
   --at 2026-10-02T09:04:15+03:00 --out /tmp/run1
 
-node scripts/reconcile.mts --policy /tmp/run1/policy.metta
+node developer_tools/scripts/reconcile.mts --policy /tmp/run1/policy.metta
 ```
 
 The page mounts the same module: `/omega/check` locally with no account, `/teacher/omega` inside the
@@ -142,9 +146,9 @@ in the repository: the hand-written Grade 8 AI pack, the scheme pack, and one sa
 the teacher workspace, and *that* one does need a signed-in demo account.
 
 Proof of the suite, on this machine: `npx vitest run --no-file-parallelism --testTimeout=30000` in `studio/` →
-**1080 passed, 17 skipped** across 110 files (109 files green, 1 file skipped), exit 0, 78.45 s on vitest's
-clock and 1:23 wall, 2026-10-01 ~18:45 EAT. Peak memory was not captured on this run; the 16:39 run measured
-237 MB. The `--testTimeout` flag is part of the command, not decoration: one guard spawns the CLI and the
+**1085 passed, 17 skipped** across 110 files (109 files green, 1 file skipped), exit 0, 62.75 s on vitest's
+clock and 1:08 wall, 2026-10-02 ~12:15 EAT. Peak memory was not captured on this run; the 2026-10-01 16:39 run
+measured 237 MB. The `--testTimeout` flag is part of the command, not decoration: one guard spawns the CLI and the
 default 5 s budget loses it on this laptop. (`docs/ROADMAP.md` §9
 carries the same number as its baseline, and `basix-readme.test.ts` fails if the two documents stop agreeing
 — which is weaker than it sounds: only re-running the suite can tell that both are stale in the same
