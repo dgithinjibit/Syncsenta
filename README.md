@@ -236,16 +236,39 @@ The repository is a monorepo of related components. Most active development
 happens in `studio/`.
 
 ```
-studio/          Next.js 16 — the primary web application (students + teachers)
-ai-agents/       FastAPI — LangGraph orchestrator, CBC content generators
-backend/         Rust — Axum API, blockchain and shared crates
-rust-core/       Rust — adaptive tutoring decision engine (source of truth)
-rust-service/    Rust HTTP wrapper around rust-core (built, not yet wired to prod)
-scheme-scribe/   Vite/React standalone — separate Supabase project
-supabase/        Database migrations and SQL verification scripts
-developer_tools/ Development, test, data, and operational helper scripts
-scripts/         Compatibility symlink to developer_tools/scripts
-docs/            Architecture, development, research, setup, and archived reports
+ACTIVE — the submitted feature and the product it runs in
+studio/          Next.js 14 (14.2.35) web app — the reconciler engine, the MeTTa
+                 packs, /omega/check (public) and /teacher/omega (gated)
+developer_tools/ zero-install scripts incl. the reconcile CLI; scripts/ is the
+                 compatibility symlink to developer_tools/scripts
+docs/            authoritative docs: ROADMAP.md, basix-sample-audit/ (the submitted
+                 audit trail), architecture/, research/, setup/, archive/
+supabase/        migration histories incl. migrations_live/ (what production holds)
+.github/         CI gates (studio-gates, rust-gates) + the corpus-fetch workflow
+
+ACTIVE — deployed service alongside the app
+ai-agents/       FastAPI agents service (Render: Ascendra-1) — teacher generators
+                 and assessment; an older line in this map called it a "LangGraph
+                 orchestrator": its own README never says that and the code
+                 carries two incidental comments. It is not.
+
+DORMANT BUT DOCUMENTED — real code, wired to nothing in production
+backend/         Rust Axum API + blockchain crates — deployed nowhere
+rust-core/       adaptive policy source of truth (MeTTa rules mirrored in TS)
+rust-service/    built; not yet wired; rust-hyperon-bridge/ — bridge scaffolding
+metta-logic/     one legacy policy pack whose role overlaps the packs under
+                 studio/ + docs/basix-sample-audit/ — consolidation task
+scheme-scribe/   standalone Vite app on a separate Supabase project
+
+RESEARCH AND HISTORY — candidates for one consolidation pass
+data/            workflow output directory (gikuyu_bible/ corpus, scheduled)
+datasets/        research datasets with licences and provenance notes
+syncsenta-logo/  brand guidelines + app icons. The served favicon is NOT here:
+                 studio/src/app/favicon.ico + icon.png ship with the app
+arduino/         hardware prototype exploration (Mwalimu camera)
+reports/         point-in-time test reports; our own convention puts these in
+                 docs/archive/ — a known deviation, not a hidden one
+_archive/        retired May-2026 migrations and plans, quarantined on purpose
 ```
 
 The repository root holds only deploy and workspace manifests

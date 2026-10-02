@@ -3045,6 +3045,25 @@ leftovers stay until after the deadline — they are referenced by Replit-era en
 bullet still names), Dependabot triage, image diet, or tags — the `v0.1.0-basix` tag is cut in the push
 below, everything else is post-submission spoons 12+.
 
+### Spoon 11b: the README's monorepo map was itself a Tier C sentence, and it misled an external reviewer for real (2026-10-02 ~17:2x EAT, Tier A)
+
+The owner pasted a second external grilling recommending the repo be rebuilt around "the LangGraph
+multi-agent system". That premise came from **our own map**: `README.md` described `ai-agents/` as a
+"LangGraph orchestrator" and `studio/` as "Next.js 16". Measured now: `grep -rn -i langgraph
+ai-agents/README.md` → 0; in the source it survives only in two comments (`provider_choice.py:4,62`,
+`__init__.py:5,16` — and `__init__.py:16` explicitly says the eager LangGraph re-exports were removed);
+`studio/package.json` pins `next: 14.2.35`. The map has been rewritten to say what each directory
+**is**, tagged ACTIVE / DORMANT-BUT-DOCUMENTED / RESEARCH-AND-HISTORY, with the favicon (ships from
+`studio/src/app`, not `syncsenta-logo/`), `data/` vs `datasets/`, `metta-logic/`'s pack overlap, and the
+`reports/` convention deviation each named in place. The physical consolidation — merging `data/` +
+`datasets/`, folding `metta-logic/` into the live pack set, moving `reports/` under `docs/archive/`,
+retiring the Replit entry points — is spoons 13+ **after** submission, one pass, guard-green, because
+every push re-triggers a production build and the clock says 21:29 EAT. The recommended
+`git filter-repo` history purge is declined for the same traced reason as spoon 10: it would delete
+`1db6334`, the red control the README guard pins, and a rewritten history shared with judges mid-scoring
+is the worse trade. A clean-slate product repo (`syncsenta-omega`-style) can be born from this one later
+without killing the submission's audit trail.
+
 ---
 
 ## 12. How to update this file
