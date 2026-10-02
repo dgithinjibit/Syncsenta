@@ -152,11 +152,16 @@ in `studio/src/lib/auth/route-policy.ts` covers `/student`, `/teacher`, `/parent
 `/omega/check` is none of them — so it asks for no account and no environment variable. Everything it reads is
 in the repository: the hand-written Grade 8 AI pack, the scheme pack, and one sample draft JSON, fetched by
 `studio/src/components/omega/scheme-check.tsx` and nothing else. `/teacher/omega` is the same component inside
-the teacher workspace, and *that* one does need a signed-in demo account.
+the teacher workspace, and *that* one does need a signed-in demo account — and since 2026-10-02 it is the
+interactive half: Accept and Waive buttons that re-run this same reconciler on the new state, a hash-chained
+session ledger the teacher can download, and a lesson-plan handoff that opens only when the scheme certifies
+*and* every record in that ledger recomputes (`studio/src/lib/scheme/teacher-session.ts`). The 18 tests in
+`studio/src/lib/__tests__/scheme-teacher-session.test.ts` walk that path in Node against the real packs; the
+click-through on the deployed page is this build's job, not a claim yet.
 
 Proof of the suite, on this machine: `npx vitest run --no-file-parallelism --testTimeout=30000` in `studio/` →
-**1089 passed, 17 skipped** across 111 files (110 files green, 1 file skipped), exit 0, 72.32 s on vitest's
-clock and 1:14 wall, 2026-10-02 ~12:27 EAT. Peak memory was not captured on these runs; the 2026-10-01 16:39 run
+**1107 passed, 17 skipped** across 112 files (111 files green, 1 file skipped), exit 0, 67.52 s on vitest's
+clock, 2026-10-02 20:18 EAT. Peak memory was not captured on these runs; the 2026-10-01 16:39 run
 measured 237 MB. The `--testTimeout` flag is part of the command, not decoration: one guard spawns the CLI and the
 default 5 s budget loses it on this laptop. (`docs/ROADMAP.md` §9
 carries the same number as its baseline, and `basix-readme.test.ts` fails if the two documents stop agreeing

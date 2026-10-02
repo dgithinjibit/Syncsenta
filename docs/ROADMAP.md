@@ -1253,8 +1253,9 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 4. Render: `Ascendra-1` has not redeployed from this branch, so `/lesson-architect/*` is unmounted.
    Also needs `LLM_PROVIDER=groq` and a working key.
 5. Netlify: the retired `syncsenta` site is still linked and fails three checks on every PR.
-6. Dependabot findings on `main`: **163 (5 critical, 69 high, 73 moderate, 16 low)**, measured 2026-10-02;
-   the older 144 it replaces was a stale count. Unstarted, and not a submission blocker.
+6. Dependabot findings on `main`: **167 (5 critical, 71 high, 75 moderate, 16 low)**, measured 2026-10-02 from
+   the push output; the 163 recorded earlier the same day was already stale when written. Unstarted, and not a
+   submission blocker.
 7. `@syncsenta.dev` has no DNS, which is why the demo and test accounts are hand-seeded.
 8. Revoke the test LLM keys when testing ends — and as of spoon 11 this has teeth: one Gemini `AIza…` and
    Groq `gsk_` keys are in the **public commit history** of this repo (removed from the tree; the history
@@ -1364,11 +1365,12 @@ Not engineering tasks — access. Each was re-checked as outstanding on 2026-09-
 ## 9. Standing verification gaps
 
 **Suite baseline — the number `README.md`'s submission section must quote:** `npx vitest run
---no-file-parallelism --testTimeout=30000` in `studio/` → **1089 passed / 17 skipped** across 111 files
-(110 files green, 1 file skipped), exit 0, 72.32 s on vitest's clock, 1:14 wall, 2026-10-02 ~12:27 EAT. The
+--no-file-parallelism --testTimeout=30000` in `studio/` → **1107 passed / 17 skipped** across 112 files
+(111 files green, 1 file skipped), exit 0, 67.52 s on vitest's clock, 2026-10-02 20:18 EAT. The
 runs before it were 1078/17 at 61.4 s and 237 MB peak (2026-10-01 16:39), 1079/17 at 80.0 s (~18:5x),
-1080/17 at 78.45 s (~18:4x) and 1085/17 at 62.75 s (12:15 today, the five clean-checkout tests); +4 more here is
-`basix-sample-audit.test.ts`, and peak RSS has not been re-measured since the 16:39 run.
+1080/17 at 78.45 s (~18:4x), 1085/17 at 62.75 s (12:15 on 2026-10-02, the five clean-checkout tests) and
+1089/17 at 72.32 s (~12:27, `basix-sample-audit.test.ts`); +18 here is spoon 12's
+`scheme-teacher-session.test.ts`, and peak RSS has not been re-measured since the 2026-10-01 16:39 run.
 `basix-readme.test.ts` compares the README against this line, so a count cannot
 go stale in one document while the other moves — and note the limit, found the same minute it was written:
 the guard passed while *both* documents said 1089/16/125, a state that had been reverted under them. Only
@@ -3063,6 +3065,50 @@ every push re-triggers a production build and the clock says 21:29 EAT. The reco
 `1db6334`, the red control the README guard pins, and a rewritten history shared with judges mid-scoring
 is the worse trade. A clean-slate product repo (`syncsenta-omega`-style) can be born from this one later
 without killing the submission's audit trail.
+
+---
+
+### Spoon 12: the teacher's accept/waive buttons exist in the browser, not only in the terminal (2026-10-02 18:0x–20:2x EAT, Tier A for the tests, pending for the deployed page)
+
+The gap had a sentence in it everywhere we quoted ourselves: the engine could consent, override, chain, and
+gate, and had done all four in `reconcile.mts` since 5c, but the page had no call site — a teacher reading
+"it stays one until you accept it" had nothing to press. Tonight built exactly that call site, on the rule
+that the browser cannot become a fifth decision-maker:
+
+- `studio/src/lib/scheme/teacher-session.ts` orders the existing modules and adds none: accept is
+  `consent.acceptProposal`, waive is `override.applyOverride` against the session's **copy** of the policy
+  text (the pack in `public/omega/` and the repository's file are never touched by this path), each change
+  appends to the `ledger.ts` chain, and the handoff is `handoff.authorizeHandoff` reading the certification
+  the reconciler recomputed from the new state — never from the click.
+- `SchemeCheckBody` takes an optional `actions` prop; the read-only `/omega/check` mount passes nothing and
+  renders byte-identical markup (a test asserts it contains no `<button`), so the judge's page and the
+  README guard's pinned transcript are untouched. `/teacher/omega` passes `mode="teacher"`.
+- RED then GREEN, in that order: `scheme-teacher-session.test.ts` was run failing first (18 tests), then
+  passing; expected numbers were pinned **before** implementing from `docs/basix-sample-audit/ledger.json` —
+  three cells per row-3 accept, one `pack` entry per waiver, read-back `3 clean · 0 blocking · 1 advisory`,
+  handoff open at "4 records recomputes". If browser and recorded audit ever disagree, that test is where it
+  surfaces. Tamper, refusal-acceptance, unknown card keys, and reload-restoration all have their cases.
+- Full suite re-run for the README number, not trusted from the partials: **1107 passed / 17 skipped**, exit
+  0, 67.52 s vitest clock at 20:18 EAT; `npx tsc --noEmit` clean. README §One-feature and §9's baseline both
+  moved to it in this commit; Dependabot count corrected 163 → **167** from tonight's push output.
+- Session persistence is localStorage plus a downloadable ledger JSON, deliberately: a production table for
+  browser decisions was declined tonight because one push is left and a failed migration is not a thing a
+  3.7 GB laptop can rehearse. Durable server-side records stay with the owner-gated migration list.
+
+**What is NOT yet true when this is pushed:** the deployed click-through at `sentastudio.vercel.app/teacher/omega`
+has not been walked in a browser — that verification is the next action after this build goes Ready, and until
+it is done every sentence about it in the README stays in the "the click-through is this build's job" tense.
+The demo teacher account's Grade-8 identity (§7 owner list) is data, not code: `teacher_grade_assignments`
+and `teacher_subject_assignments` do not exist in production at all (schema-coverage allowlist), so "she
+teaches Grade 8 AI" needs the owner to run the prepared SQL in the Supabase dashboard, not another commit.
+
+Also decided tonight, in writing: **Laya's place in the workflow** is the affect/escalation router in
+`ai-agents/` exactly as `docs/architecture/laya-decision-router.md` draws it — it may replace the keyword
+`frustrationSignal`, it may not touch the reconciler or the Rust parity rule, and nothing ships claiming it
+until CPU latency and Kiswahili accuracy are measured; the submitted feature is rules-only and stays so.
+The **Emergent Mind** material (`docs/PAPERS-AND-POSITIONING.md`) is positioning for the video's "why now"
+line, not a repo change at T-1h. **VibeWise** repo-guide and the **i-have-adhd** skills were used as working
+guidance this session, which makes them honest entries in the AI Disclosure the owner is writing.
 
 ---
 
