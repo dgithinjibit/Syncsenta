@@ -3312,6 +3312,11 @@ verifies the README through `git archive HEAD`, so the guard only sees this sect
 that carries it — `basix-readme.test.ts` is run against the committed state, and its result is recorded
 in the next paragraph once it lands.
 
+Result, run against `4a8be61`: first pass **1 failed / 17 passed**, second **18/18**, third **18/18
+with exit 0**. The failure message was not captured (my grep swallowed it before I re-ran), and the
+suite's known ~5 s flake on the headline-command test is the prime suspect, but that is a hypothesis,
+not a diagnosis — if it recurs, re-run with the full log kept and name the test.
+
 ---
 
 ## 12. How to update this file
