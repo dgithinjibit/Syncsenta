@@ -1407,6 +1407,21 @@ Things that are *not* proven, restated so nobody (including a future session) ha
   runs it in writes the same `~/.config/gh/hosts.yml`, so the push works from any shell afterwards, including
   this one. Until then the 68 commits are not on GitHub, and the private → push → add BASIX.MARKET order in
   §7's decision still has its first step outstanding.
+- **Unblocked on 2026-10-02, and not by the `workflow` scope.** The scope route was never completed: the device
+  flow would not finish in either browser. The route that worked is a deploy-style ed25519 key added to the
+  account by the owner (`syncsenta-basix-2026-10-02`), because SSH keys carry no OAuth scopes at all and the
+  rejection was an OAuth-App rule. Verification, run from the repository root:
+  `ssh -i ~/.ssh/id_ed25519_github -o IdentitiesOnly=yes -o BatchMode=yes -T git@github.com` →
+  `Hi dgithinjibit! You've successfully authenticated, but GitHub does not provide shell access.` The bare
+  `ssh -T git@github.com` form still returns `Permission denied (publickey)` because the default identity is a
+  different key, so the push needs the command, not a config change:
+  `GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_github -o IdentitiesOnly=yes' git push git@github.com:dgithinjibit/Syncsenta.git HEAD:main`.
+  Executed at 13:39 EAT: `ef394e4..dbf9cd2 HEAD -> main`, a fast-forward of 78 commits with 0 behind, and
+  `git ls-remote … refs/heads/main` then returned `dbf9cd2b28bd…`, byte-identical to `git rev-parse HEAD`. No
+  `--no-verify`, no force. The private → push → add BASIX.MARKET order now has its second step done; the third
+  (sharing the repository with `BASIX.MARKET`) is still the owner's click. GitHub also reported 163 Dependabot
+  findings on `main` at push time — 5 critical, 69 high, 73 moderate, 16 low — which is a separate, unstarted
+  piece of work, not a submission blocker, and is *not* the same list as §9's locally measured audit findings.
 - **`vercel link` wrote `.env.local` and appended `.env*` to *two* gitignores, and the deeper one wins.** The
   root `.gitignore` carries `!.env*.example`; the second `vercel link` (run from `studio/`) appended `.env*`
   to `studio/.gitignore`, and a rule in a deeper file overrides a parent's negation — so
