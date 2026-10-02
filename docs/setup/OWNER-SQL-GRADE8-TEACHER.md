@@ -93,26 +93,51 @@ this band, so the pair matches the product's spine. (A known naming split — re
 "Artificial Intelligence" — is recorded in ROADMAP; the sidebar reads the DB strings verbatim, so the SQL
 above uses what the packs and README use.)
 
-## Vercel env, not SQL: why the 18 Co-Pilot tools 500 today
+## Vercel env, not SQL: the ASI swap is in the code — one env var still owed
 
-Measured in the browser on 2026-10-02: `sentastudio.vercel.app/dashboard/tools` → Tongue Twisters →
-Generate → the server action POST returns **500**. Root cause, Tier A from code: every one of those flows
-runs through `studio/src/ai/genkit.ts`, which builds `googleAI({ apiKey: process.env.GEMINI_API_KEY })`.
-With no (or dead) `GEMINI_API_KEY` on the Vercel project, all 18 GenKit tools — the 12 generic ones and
-the six dialog generators — fail identically. This does **not** affect the Omega path: the lesson-plan
-handoff on `/teacher/omega` POSTs to `/api/generate/lesson-plan` (Ascendra-1 proxy with the prescribed
-fallback), which is verified working in production.
+Superseded 2026-10-02 ~22:3x EAT (spoon 13). The owner approved "go ahead with asi build": every GenKit
+flow now defaults to the **ASI gateway** — `openAICompatible({name:'asi', apiKey: process.env.ASI_CLOUD_KEY,
+baseURL:'https://llm.c.singularitynet.io/v1'})`, model `asi/asi1-mini` (`studio/src/ai/genkit.ts`, pinned by
+`src/ai/__tests__/genkit-asi.test.ts`). **`GEMINI_API_KEY` is no longer required for the 18 Co-Pilot tools.**
+(The old root cause stands as history: all 18 flows ran through `googleAI({apiKey: process.env.GEMINI_API_KEY})`
+and 500'd identically with no key on Vercel; `/teacher/omega`'s lesson-plan handoff was never on that path.)
 
-Owner fix (no git push needed): Vercel project → Settings → Environment Variables → add `GEMINI_API_KEY`
-with a **fresh** key (the one that leaked into commit history must not be reused; rotation itself is a
-separate item in ROADMAP §7), then redeploy. After that, spot-check one generic tool and the Lesson Plan
-Generator dialog from `/dashboard/tools`.
+Owner action after this pushes and the build goes Ready: Vercel project → Settings → Environment Variables →
+add **`ASI_CLOUD_KEY`** (the bearer key from the organizers' email — never paste it into git or chat) →
+redeploy. Then spot-check one generic tool (e.g. Tongue Twisters on `/dashboard/tools`) and the Lesson Plan
+Generator dialog. The leaked Gemini key still needs rotation (ROADMAP §7) and is not reused here. One caveat:
+ASI serves prose only — Mwalimu's TTS still asks Gemini and silently drops the audio track without a
+`GEMINI_API_KEY`, exactly as before.
 
-**Alternative the owner raised, awaiting go/no-go:** put the BASIX gateway behind the tools instead —
-`llm.c.singularitynet.io/v1` is OpenAI-compatible, GenKit 1.28 has an OpenAI plugin that accepts a custom
-`baseUrl`, and the flows would default to `asi1-mini` with `ASI_CLOUD_KEY` as the only env var. That makes
-the hackathon key the demo's LLM, keeps the auditable-decision claim intact (prose only; the reconciler
-still takes no model call), and costs one small code change plus one deploy.
+## Roster connect, executed 2026-10-02 ~22:0x EAT (same session, third owner action — logged, nothing left to run)
+
+The "phantom student_id" reading in the 12c notes was a **wrong-join artifact**: the FK is
+`teacher_student_assignments.student_id -> students.id` (and `teacher_id -> auth.users.id`), not
+`profiles.id`. `students` row `22222222-…` is Demo Student (`user_id = ada8a968-…`); Amina has row
+`111dd6e6-…`. A corrective UPDATE aimed at profile ids died on `23503` and surfaced that graph; the failed
+batch rolled back atomically. What ran after, verified by a SELECT returning 4 active rows — 2 real learners
+× (Artificial Intelligence, Blockchain), all Grade 8:
+
+```sql
+update public.profiles set grade = 'Grade 8', school_name = 'Kibera Girls'' Secondary'
+where id = 'ada8a968-6a7d-458f-b507-606cbffc1927';              -- Demo Student: last student-side Grade-4 leftover
+
+update public.students set grade = 'Grade 8', class_name = 'Grade 8', school_name = 'Kibera Girls'' Secondary'
+where id = '22222222-2222-4222-8222-222222222222';
+
+update public.students set grade = 'Grade 8', school_name = 'Kibera Girls'' Secondary'
+where id = '111dd6e6-91cc-446d-a875-bb9d9d690b4d';
+
+insert into public.teacher_student_assignments (teacher_id, student_id, subject, class_name, status)
+select t.id, s.id, sub.subject, 'Grade 8', 'active'
+from (select id from public.profiles where email = 'teacher01@syncsenta.dev') t
+cross join (select id from public.students where user_id = 'dca0efd0-922e-47d3-9801-f75b6bde2a5b') s
+cross join (select unnest(array['Artificial Intelligence','Blockchain']) as subject) sub
+on conflict (teacher_id, student_id, class_name, subject) do nothing;   -- Amina joins the class
+```
+
+`/teacher` renders those names through the new `/api/teacher/roster` once this deploys — no owner SQL
+remains for that view. `auth.users` untouched throughout.
 
 ## Still post-submission
 

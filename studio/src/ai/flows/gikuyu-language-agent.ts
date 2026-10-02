@@ -5,7 +5,6 @@
 
 import { kikuyuDictionary } from '@/lib/kikuyu-dictionary';
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/googleai';
 
 interface GikuyuContext {
   grade: string;
@@ -65,9 +64,11 @@ EXAMPLE BAD RESPONSE (DON'T DO THIS):
 Remember: You're a real teacher having a conversation, not a dictionary bot.`;
 
     try {
-      // Generate response using LLM
+      // Spoon 13: no per-flow model pin — ASI (asi/asi1-mini) is the
+      // configured default in src/ai/genkit.ts. The old pin
+      // (googleAI.model('gemini-1.5-flash')) died with the missing
+      // GEMINI_API_KEY like every other Co-Pilot tool.
       const response = await ai.generate({
-        model: googleAI.model('gemini-1.5-flash'),
         system: systemPrompt,
         prompt: userMessage,
         // Genkit v1 uses `messages` (formerly `history`); Gemini models

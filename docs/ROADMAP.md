@@ -3169,6 +3169,54 @@ agent instructions at T-9h before submission is the wrong risk order.
 
 ---
 
+### Spoon 13 is done: the Co-Pilot flows speak to the ASI gateway, and the teacher's monitoring view reads Supabase (2026-10-02 22:0x–22:3x EAT, Tier A for the code and SQL)
+
+Owner, ~22:0x EAT, two orders in one message: "go ahead with asi build" and "connect the student side's
+detail to the teacher so they don't see 'Live monitoring is not connected / No students to show'".
+
+**First correction, earned by a 23503 (Tier A).** The evening-before claim that Mama Joy's assignment rows
+pointed at phantom students was a wrong-join artifact: `teacher_student_assignments.student_id` has an FK to
+**`students.id`**, not `profiles.id`, and `teacher_id` an FK to `auth.users.id`. An UPDATE aimed at Amina's
+*profile* id died on that FK and revealed the real graph: `students` row `22222222-…` **is** Demo Student
+(`user_id = ada8a968-…`), and Amina has her own row `111dd6e6-…`. The roster was never missing a student —
+the frontend was just asking a service that does not exist. The failed batch rolled back atomically; nothing
+partial was written.
+
+**Data, executed in the owner's Supabase session on `tumikgwhrbvirpjswlzh` (~22:0x EAT, Tier A):**
+Demo Student promoted from Grade 4 → Grade 8 in `profiles` **and** `students` (the last student-side Grade-4
+leftover of spoon 12c), school_name set on both learners' rows, and Amina inserted as a second Grade-8
+learner on both subjects. Verified by re-run SELECT: **4 active rows — 2 real students × (Artificial
+Intelligence, Blockchain)**, all Grade 8. `auth.users` untouched, as ever.
+
+**Code, red→green:**
+
+1. `@genkit-ai/compat-oai@1.28.0` installed. (The planned `@genkit-ai/openai` does not exist — npm 404;
+   compat-oai is the OpenAI-wire-compatible factory and its peer is exactly `genkit@^1.28.0`.)
+2. `src/ai/genkit.ts`: `openAICompatible({name:'asi', apiKey: process.env.ASI_CLOUD_KEY, baseURL:
+   'https://llm.c.singularitynet.io/v1'})`, default model `asi/asi1-mini`. The `googleAI` plugin stays
+   registered for the one Gemini-only capability — Mwalimu's TTS (`mwalimu-ai-flow.ts:55`, degrades to no
+   audio without a key, as before). A new guard test (`src/ai/__tests__/genkit-asi.test.ts`) was run RED
+   against the Gemini file first, then GREEN: it pins name/baseURL/key-env/default-model, so a future
+   "helpful" re-pin to googleai fails the suite.
+3. `gikuyu-language-agent.ts`: its `googleAI.model('gemini-1.5-flash')` pin comes out; the flow rides the
+   ASI default like the other 17 tools.
+4. New `/api/teacher/roster`: cookie session → `auth.getUser()` (teacherId never taken from the client, same
+   model as `/api/teacher/assignments`), assignments → `students` → `profiles.last_seen_at` mapped to
+   online/idle/offline. `questions`/`progress` return 0 — no deployed table feeds them per learner, and
+   inventing numbers in a monitoring view is exactly the fake this project has been cutting. Pure shaping
+   helpers exported and tested (6 cases, including the ghost-row drop that the earlier wrong join taught).
+5. `teacher-dashboard.tsx`: the roster fetch points at `/api/teacher/roster`. The test-pinned string
+   "Live monitoring is not connected" stays — but now only on genuine fetch failure; an empty roster gets
+   its own honest "No students assigned yet" card; message send is gated with a clear toast instead of
+   POSTing at a relative dead URL; `last_active` null renders `—`, not `Invalid Date`.
+
+**Verification:** `tsc --noEmit` exit 0; vitest 52/52 across five files (genkit-asi 2, roster-shaping 6,
+student-chat-transport 27, gikuyu-mwalimu-client 6, orchestrator-agent 11). **Owed post-deploy:** owner adds
+`ASI_CLOUD_KEY` to the Vercel project (that IS the env fix — GEMINI_API_KEY is no longer required for the 18
+tools) and a browser pass on `/teacher` (roster names) plus one Co-Pilot tool generating prose.
+
+---
+
 ## 12. How to update this file
 
 At the end of a work session, in the same commit as the work: move the checkboxes, change §1's

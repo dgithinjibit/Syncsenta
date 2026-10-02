@@ -25,14 +25,13 @@ interface Student {
 }
 
 /**
- * Where the live-monitoring backend is reached.
+ * Where the remaining live-monitoring backend is reached.
  *
- * Both the roster and the socket belong to `backend/syncsenta-backend` (Rust,
- * `/api/v1/mvp/*`), which is not deployed anywhere. `next.config.js` rewrites
- * `/api/v1/*` to `http://localhost:8080`, so on Vercel the roster 404s and the
- * socket has no listener. Setting `NEXT_PUBLIC_BACKEND_API_URL` /
- * `NEXT_PUBLIC_BACKEND_WS_URL` is what turns this view on; until then it says
- * so instead of pretending to connect.
+ * Since spoon 13 the ROSTER comes from Supabase via `/api/teacher/roster`
+ * (same Next.js deployment, no extra service). Still owned by
+ * `backend/syncsenta-backend` (Rust, `/api/v1/mvp/*`) are the chat
+ * transcripts and the teacher socket - that service is not deployed
+ * anywhere, so those panels say so instead of pretending to connect.
  *
  * There is no `/api/v1` default any more. A default that points at a route only
  * a local `cargo run` answers means every deployment makes a doomed request and
@@ -220,19 +219,14 @@ export function TeacherDashboard() {
   // Load students
   useEffect(() => {
     const loadStudents = async () => {
-      if (!LIVE_API_CONFIGURED) {
-        // Nothing to reach: the empty-state card below already says which
-        // service is missing, so do not make a doomed request to find out.
-        setRosterError('NEXT_PUBLIC_BACKEND_API_URL is not set');
-        setIsLoading(false);
-        return;
-      }
       try {
         setIsLoading(true);
-        const response = await fetch(`${MVP_API_BASE}/students`);
+        // Spoon 13: the roster is Supabase-backed and always reachable from
+        // this deployment. It used to come from the undeployed Rust service
+        // (`${MVP_API_BASE}/students`), which made this view show "Live
+        // monitoring is not connected" even with real data in the database.
+        const response = await fetch('/api/teacher/roster');
         if (!response.ok) {
-          // A 404 here is the expected answer on Vercel until the Rust service
-          // is deployed; say which service is missing rather than "try again".
           setRosterError(`HTTP ${response.status}`);
           return;
         }
@@ -246,7 +240,7 @@ export function TeacherDashboard() {
         setRosterError('unreachable');
         toast({
           title: 'Live monitoring is not connected',
-          description: 'The student roster comes from the SyncSenta API service, which is not reachable.',
+          description: 'The student roster could not be fetched from this deployment. Try reloading.',
           variant: 'destructive',
         });
       } finally {
@@ -285,6 +279,16 @@ export function TeacherDashboard() {
   // Send teacher message
   const handleSendMessage = async (text: string) => {
     if (!selectedStudent) return;
+    if (!LIVE_API_CONFIGURED) {
+      // Without the Rust service there is no relay; say so instead of
+      // firing a doomed POST at a relative URL.
+      toast({
+        title: 'Chat relay not connected',
+        description: 'Teacher-to-student messages need the SyncSenta API service, which is not deployed yet.',
+        variant: 'destructive',
+      });
+      throw new Error('Live API not configured');
+    }
 
     try {
       const response = await fetch(`${MVP_API_BASE}/teachers/messages/${selectedStudent.id}`, {
@@ -374,7 +378,7 @@ export function TeacherDashboard() {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-6">
-        {students.length === 0 ? (
+        {students.length === 0 && rosterError ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -382,24 +386,41 @@ export function TeacherDashboard() {
                 Live monitoring is not connected
               </CardTitle>
               <CardDescription>
-                No students to show, because the service that answers this view is not
-                reachable from here.
+                No students to show, because the roster request failed on this
+                deployment{rosterError ? ` (last attempt: ${rosterError})` : ''}.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>
-                The roster, the chat transcripts and the agent feed come from the
-                SyncSenta API service (<code>/api/v1/mvp</code>). That service is not
-                deployed yet, and <code>next.config.js</code> sends
-                <code> /api/v1/*</code> to <code>http://localhost:8080</code>, so from
-                Vercel every request fails{rosterError ? ` (last attempt: ${rosterError})` : ''}.
+                The roster comes from <code>/api/teacher/roster</code>, which reads
+                this teacher&apos;s active assignments in Supabase. A reload usually
+                fixes it; if it does not, the session may have expired - sign out and
+                back in.
               </p>
               <p>
-                Everything else you can reach from here - signing in, the Mwalimu
-                tutor and the other Next.js API routes - is unaffected. Fixing this
-                view means deploying that service and pointing
-                <code> NEXT_PUBLIC_BACKEND_API_URL</code> and
-                <code> NEXT_PUBLIC_BACKEND_WS_URL</code> at it.
+                The chat transcripts and the live agent feed still come from the
+                SyncSenta API service (<code>/api/v1/mvp</code>), which is not
+                deployed yet; those two panels stay empty until it is. Everything
+                else on this page works without it.
+              </p>
+            </CardContent>
+          </Card>
+        ) : students.length === 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                No students assigned yet
+              </CardTitle>
+              <CardDescription>
+                This account has no active class assignments, so there is nobody to
+                monitor yet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              <p>
+                Learners appear here as soon as they are linked to one of your
+                classes in <code>teacher_student_assignments</code>.
               </p>
             </CardContent>
           </Card>
@@ -456,7 +477,9 @@ export function TeacherDashboard() {
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-bold">
-                          {new Date(selectedStudent.last_active).toLocaleTimeString()}
+                          {selectedStudent.last_active
+                            ? new Date(selectedStudent.last_active).toLocaleTimeString()
+                            : '—'}
                         </p>
                         <p className="text-xs text-muted-foreground">Last Active</p>
                       </div>
