@@ -3298,6 +3298,20 @@ bug the local tests could not see:
 everyone is offline; it goes non-zero as soon as a learner session touches `last_seen_at`. Not touched
 submission-eve.
 
+**Spoon 15 addendum (same night): the README AI Disclosure.** Auditing the organizer checklist against
+the repo, four of the five required pieces were already Tier A — `### Problem` / `### Solution` /
+`### Technology` and `### What we'd build next` in the README, the live `/omega/check` feature, and the
+byte-reproducible transcripts plus chained ledger in `docs/basix-sample-audit/`. The fifth, an **AI
+Disclosure statement**, had zero matches for `disclosure|AI-generated|human author` in `README.md`.
+Added `### AI Disclosure` (README:216) covering both required surfaces: in the product (LLM tools are
+labelled as AI in the UI; the submitted scheme-of-work check is deterministic reconciliation against
+two MeTTa packs with no LLM on the decision path) and in the build (solo authorship under owner
+direction with agentic coding assistance; every claim names a command, and ROADMAP spoons 10–15 record
+where measurement contradicted an AI-drafted sentence and the measurement won). `basix-readme.test.ts`
+verifies the README through `git archive HEAD`, so the guard only sees this section after the commit
+that carries it — `basix-readme.test.ts` is run against the committed state, and its result is recorded
+in the next paragraph once it lands.
+
 ---
 
 ## 12. How to update this file

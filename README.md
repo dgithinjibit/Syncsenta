@@ -213,6 +213,20 @@ direction, and that is how this number moved once already.)
    test says otherwise.
 
 
+### AI Disclosure
+
+- **In the product:** the teacher Co-Pilot tools and the learner chat surface are LLM-generated, routed
+  through the BASIX ASI gateway (`asi1-mini`) and labelled as AI output in the UI. The submitted feature
+  itself is the opposite kind of system: the scheme-of-work check is a deterministic reconciliation of the
+  teacher's draft against two MeTTa packs by our own rule engine — no LLM sits on the decision path, and
+  every verdict line cites the policy line that produced it. The transcripts in
+  `docs/basix-sample-audit/` are reproducible byte for byte from the command above.
+- **In the build:** this repository was authored solo (Track 5) by Daniel Githinji with agentic coding
+  assistance — an AI pair drafted code, tests and documentation under the owner's direction and review.
+  Every claim in this README names a command that was run on the owner's machine, and the corrections
+  recorded in `docs/ROADMAP.md` (spoons 10–15) are places where measurement contradicted an earlier
+  AI-drafted sentence and the measurement won.
+
 ## How it works
 
 At the heart of SyncSenta is the **Omega tutoring decision engine**. Before
