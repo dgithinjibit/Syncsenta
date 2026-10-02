@@ -1,9 +1,14 @@
 # Owner SQL: make the demo teacher a real Grade 8 teacher in production
 
-Prepared 2026-10-02 (spoon 12b). This is an **owner action**, run in the Supabase dashboard's SQL editor —
-the agent has no session against the production database and none was taken. Read-only facts are Tier A from
+Prepared 2026-10-02 (spoon 12b). Read-only facts are Tier A from
 `supabase/migrations_live/20260928000000_live_baseline.sql` (the `profiles` columns below exist in
-production); the UPDATE has **not** been executed anywhere.
+production). **Executed in production 2026-10-02, ~21:45 EAT**, in the owner's logged-in Supabase
+dashboard session (project `tumikgwhrbvirpjswlzh`, "SyncSenta" under dAN's projects, status Healthy) at
+the owner's explicit instruction ("run the relevant code there"). Before: `teacher_student_assignments`
+held five `Grade 4A` rows (Mathematics, English, AGI, Blockchain, Financial Literacy), all `active`. After:
+two `Grade 8` rows — `Artificial Intelligence` and `Blockchain` — confirmed by re-running the SELECT, and
+the sidebar on `sentastudio.vercel.app/teacher/omega` renders *Your Classes → Grade 8* with no Grade 4
+anywhere. `profiles.full_name` reads *Mama Joy*. `auth.users` was not touched, by design.
 
 Why the frontend looked wrong: `profiles` for `teacher01@syncsenta.dev` carries whatever the hand-seed put
 there, and the header/teacher surfaces read `full_name`/`school_name`/`classes`/`subjects` from that row (the
@@ -102,6 +107,12 @@ Owner fix (no git push needed): Vercel project → Settings → Environment Vari
 with a **fresh** key (the one that leaked into commit history must not be reused; rotation itself is a
 separate item in ROADMAP §7), then redeploy. After that, spot-check one generic tool and the Lesson Plan
 Generator dialog from `/dashboard/tools`.
+
+**Alternative the owner raised, awaiting go/no-go:** put the BASIX gateway behind the tools instead —
+`llm.c.singularitynet.io/v1` is OpenAI-compatible, GenKit 1.28 has an OpenAI plugin that accepts a custom
+`baseUrl`, and the flows would default to `asi1-mini` with `ASI_CLOUD_KEY` as the only env var. That makes
+the hackathon key the demo's LLM, keeps the auditable-decision claim intact (prose only; the reconciler
+still takes no model call), and costs one small code change plus one deploy.
 
 ## Still post-submission
 

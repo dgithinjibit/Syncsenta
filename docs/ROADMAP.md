@@ -3150,6 +3150,23 @@ Deployment note: this rides the same day's one-push budget as a second push, aut
 20:5x EAT ("push to github so vercel can deploy"). Post-deploy check owed: `/teacher/omega` sidebar after
 the SQL, and one Co-Pilot tool after the env add.
 
+**Executed same night, later than the block above (Tier A).** The push landed (`f6e159c`), the build went
+Ready, and the browser walk confirmed no Resources tab on `/teacher/dashboard` and the Material generator
+mounted. The owner then signed the agent's browser into Supabase and said "run the relevant code there":
+the full owner-SQL batch ran ~21:45 EAT on project `tumikgwhrbvirpjswlzh` — five Grade-4A assignment rows
+became the two Grade-8 rows (Artificial Intelligence, Blockchain), `profiles` now reads *Mama Joy*, and
+`/teacher/omega`'s sidebar renders *Your Classes → Grade 8*. `auth.users` untouched, as the doc requires.
+The remaining post-deploy check — one live Co-Pilot tool — waits on the env decision: `GEMINI_API_KEY` or
+the owner's proposal to route the GenKit flows through the ASI gateway instead (OpenAI-compatible,
+`asi1-mini`, one small code change + one deploy; recorded in the owner doc, owner go/no-go pending).
+
+Also tonight, on the owner's instruction: **VibeWise is vendored** at `.claude/skills/vibe-wise/` (the
+owner's fork of Noah Kim's MIT plugin — `learn` + `reset` skills, verbatim, with provenance README), so
+the agent's working style on this repo is now an installed, citable artifact rather than session memory;
+it joins `i-have-adhd` in the AI Disclosure. **Agent Reach was evaluated and declined** for tonight — it is
+keyless internet access, which the browser session and web search already provide, and installing third-party
+agent instructions at T-9h before submission is the wrong risk order.
+
 ---
 
 ## 12. How to update this file
