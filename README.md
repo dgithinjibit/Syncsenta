@@ -223,7 +223,8 @@ rust-core/       Rust — adaptive tutoring decision engine (source of truth)
 rust-service/    Rust HTTP wrapper around rust-core (built, not yet wired to prod)
 scheme-scribe/   Vite/React standalone — separate Supabase project
 supabase/        Database migrations and SQL verification scripts
-scripts/         Development, deployment, and maintenance scripts
+developer_tools/ Development, test, data, and operational helper scripts
+scripts/         Compatibility symlink to developer_tools/scripts
 docs/            Architecture, development, research, setup, and archived reports
 ```
 
@@ -232,7 +233,7 @@ The repository root holds only deploy and workspace manifests
 `uv.lock`), the `README.md` / `AGENTS.md` entry points, and the Replit training
 entry points (`app.py`, `start_notebook.sh`, `jupyter_config.py`,
 `patch_unsloth_cpu.py`). Everything else belongs in a folder: new documents go
-under `docs/`, new executable helpers under `scripts/`.
+under `docs/`, new developer helpers under `developer_tools/`.
 
 ## Documentation
 

@@ -34,8 +34,8 @@ fetches new/missing chapters.
 
 ```bash
 export BIBLE_API_KEY=<your_api.bible_key>
-python scripts/fetch_gikuyu_bible.py                                  # Gikuyu
-python scripts/fetch_gikuyu_bible.py --bible-id bba9f40183526463-01 \
+python developer_tools/scripts/fetch_gikuyu_bible.py                 # Gikuyu
+python developer_tools/scripts/fetch_gikuyu_bible.py --bible-id bba9f40183526463-01 \
     --label english                                                   # BSB English
 ```
 

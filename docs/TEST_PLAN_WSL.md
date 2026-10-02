@@ -50,7 +50,7 @@ nano .env
 cd /mnt/c/Users/hp/codes/Syncsenta/ai-agents
 
 # 1. Test MeTTa/Hyperon Integration
-pytest tests/test_metta_hyperon.py -v -s
+python developer_tools/scripts/test_metta_hyperon.py
 
 # 2. Test Telemetry + Policy Integration (NEW - Task 5)
 pytest tests/test_telemetry_policy_integration.py -v -s

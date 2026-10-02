@@ -40,7 +40,7 @@ SyncSenta is a **Web4 Education OS** for Kenya's CBC curriculum.
   `AGENTS.md`, and the Replit training entry points. Everything else goes in a
   folder.
 - New documents → `docs/` (`architecture/`, `research/`, `setup/`, `archive/`).
-  New executable helpers → `scripts/`. Never add a loose file to the root.
+  New developer helpers → `developer_tools/`. Never add a loose file to the root.
 - Point-in-time status reports go straight to `docs/archive/`, not the root.
 
 ### Testing

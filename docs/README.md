@@ -32,9 +32,11 @@ The student tutoring path uses the TypeScript MeTTa boundary and Omega decision 
 - [`CODING_STANDARDS.md`](CODING_STANDARDS.md) — implementation conventions and safe-change practices.
 - [`SECURITY_AUDIT_REPORT.md`](SECURITY_AUDIT_REPORT.md) — security findings and follow-up controls.
 - [`GRADE_2_STUDENT_WORKFLOW.md`](GRADE_2_STUDENT_WORKFLOW.md) — learner workflow reference.
+- [`curriculum/README.md`](curriculum/README.md) — code-backed Traditional, Blockchain, and AI/AGI/SI status inventory.
 - [`TASKS.md`](TASKS.md) — active task register.
 - [`TEST_PLAN_WSL.md`](TEST_PLAN_WSL.md) — local test and environment notes.
 - [`architecture/`](architecture/) — service-specific architecture notes.
+- [`architecture/metta-omega-target-architecture.md`](architecture/metta-omega-target-architecture.md) — proposed MeTTa/OmegaClaw target, migration gates, and tradeoffs; not yet adopted.
 - [`research/`](research/) — research and evidence notes.
 - [`archive/`](archive/) — historical reports and superseded summaries.
 

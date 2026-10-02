@@ -44,7 +44,7 @@ jobs:
             echo "::error::BIBLE_API_KEY secret is not set. Add it at Settings → Secrets and variables → Actions."
             exit 1
           fi
-          python scripts/fetch_gikuyu_bible.py \
+          python developer_tools/scripts/fetch_gikuyu_bible.py \
             --bible-id "${{ matrix.bible_id }}" \
             --label "${{ matrix.label }}"
 
