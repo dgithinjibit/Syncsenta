@@ -1,6 +1,6 @@
 # Syncsenta documentation
 
-This directory is the maintained source of truth for the Syncsenta platform. Current documents describe the implementation, deployment configuration, test contracts, and product decisions in the repository. Historical reports are retained in [`archive/`](archive/) for context only.
+This directory is the maintained source of truth for the Syncsenta platform. Current documents describe the implementation, deployment configuration, test contracts, and product decisions in the repository. Point-in-time historical reports were removed from the tree on 2026-10-02; git history is the archive.
 
 ## Active architecture
 
@@ -30,16 +30,13 @@ The student tutoring path uses the TypeScript MeTTa boundary and Omega decision 
 ## Supporting references
 
 - [`CODING_STANDARDS.md`](CODING_STANDARDS.md) — implementation conventions and safe-change practices.
-- [`SECURITY_AUDIT_REPORT.md`](SECURITY_AUDIT_REPORT.md) — security findings and follow-up controls.
 - [`GRADE_2_STUDENT_WORKFLOW.md`](GRADE_2_STUDENT_WORKFLOW.md) — learner workflow reference.
 - [`curriculum/README.md`](curriculum/README.md) — code-backed Traditional, Blockchain, and AI/AGI/SI status inventory.
 - [`TASKS.md`](TASKS.md) — active task register.
-- [`TEST_PLAN_WSL.md`](TEST_PLAN_WSL.md) — local test and environment notes.
 - [`architecture/`](architecture/) — service-specific architecture notes.
 - [`architecture/metta-omega-target-architecture.md`](architecture/metta-omega-target-architecture.md) — proposed MeTTa/OmegaClaw target, migration gates, and tradeoffs; not yet adopted.
 - [`research/`](research/) — research and evidence notes.
-- [`archive/`](archive/) — historical reports and superseded summaries.
 
 ## Documentation rules
 
-Update the relevant active document in the same change as any new route, API contract, environment variable, deployment target, database migration, or service-boundary decision. Link to source files and state whether behavior is implemented, optional, or planned. Do not use archived reports as current implementation evidence.
+Update the relevant active document in the same change as any new route, API contract, environment variable, deployment target, database migration, or service-boundary decision. Link to source files and state whether behavior is implemented, optional, or planned. Point-in-time status reports do not get committed here; `ROADMAP.md` carries the position and git carries the history.

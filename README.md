@@ -247,7 +247,7 @@ studio/          Next.js 14 (14.2.35) web app — the reconciler engine, the MeT
 developer_tools/ zero-install scripts incl. the reconcile CLI; scripts/ is the
                  compatibility symlink to developer_tools/scripts
 docs/            authoritative docs: ROADMAP.md, basix-sample-audit/ (the submitted
-                 audit trail), architecture/, research/, setup/, archive/
+                 audit trail), architecture/, research/, setup/
 supabase/        migration histories incl. migrations_live/ (what production holds)
 .github/         CI gates (studio-gates, rust-gates) + the corpus-fetch workflow
 
@@ -271,9 +271,6 @@ datasets/        research datasets with licences and provenance notes
 syncsenta-logo/  brand guidelines + app icons. The served favicon is NOT here:
                  studio/src/app/favicon.ico + icon.png ship with the app
 arduino/         hardware prototype exploration (Mwalimu camera)
-reports/         point-in-time test reports; our own convention puts these in
-                 docs/archive/ — a known deviation, not a hidden one
-_archive/        retired May-2026 migrations and plans, quarantined on purpose
 ```
 
 The repository root holds only deploy and workspace manifests
@@ -331,5 +328,6 @@ the implementation plan for closing them, prioritised by production risk.
 The [Omega/MeTTa status](docs/OMEGA_METTA_STATUS.md) tracks the implementation
 status of the Omega decision engine and the broader MeTTa neuro-symbolic system.
 
-Historical reports and superseded summaries are retained under
-[`docs/archive/`](docs/archive/) and are not authoritative for current behavior.
+Point-in-time reports were removed from the tree on 2026-10-02; the repository's history
+is the archive, and [`docs/ROADMAP.md`](docs/ROADMAP.md) is the record of where the
+project actually stands.

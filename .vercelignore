@@ -3,10 +3,8 @@
 # working tree instead of cloning a repository: without it, the Python and Rust sides of the monorepo — and
 # 168 MB of `target/` build output — get packed for a build that will never look at them.
 target/
-_archive/
 datasets/
 unsloth_compiled_cache/
-reports/
 arduino/
 metta-logic/
 ai-agents/

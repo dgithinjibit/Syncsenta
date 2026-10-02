@@ -2,8 +2,8 @@
 
 **Project**: Syncsenta — a CBC teaching and learning workspace for Kenyan schools
 **Owner**: dgithinjibit
-**Last updated**: 2026-09-29
-**Supersedes**: [`docs/archive/ROADMAP-2026-09-24-superseded.md`](archive/ROADMAP-2026-09-24-superseded.md), which is kept as historical planning data and is **not** release evidence.
+**Last updated**: 2026-10-02
+**Supersedes**: `ROADMAP-2026-09-24-superseded.md`, which lived under `docs/archive/`; the archive batch was removed from the tree on 2026-10-02 (spoon 14) and reads via `git show HEAD~1:docs/archive/<file>` from anyone who needs it. It was never release evidence.
 **Status of this file**: plan of record.
 
 > **This document is the map, and it is binding.** Work that is not in this file is
@@ -3214,6 +3214,33 @@ Intelligence, Blockchain)**, all Grade 8. `auth.users` untouched, as ever.
 student-chat-transport 27, gikuyu-mwalimu-client 6, orchestrator-agent 11). **Owed post-deploy:** owner adds
 `ASI_CLOUD_KEY` to the Vercel project (that IS the env fix — GEMINI_API_KEY is no longer required for the 18
 tools) and a browser pass on `/teacher` (roster names) plus one Co-Pilot tool generating prose.
+
+---
+
+### Spoon 14 is done: the repo stops carrying its own archive (2026-10-02 ~23:0x EAT, docs-only)
+
+The owner asked what a dev cloning `Syncsenta.git` does not need. Answer: ~70 files of superseded prose.
+Removed in one batch — 62 tracked files: `docs/archive/` (39: Codespace-era status dumps, "MERGE_COMPLETE",
+session summaries), `_archive/` (10: retired May-2026 migrations and plans), `reports/` (5 point-in-time test
+reports, all dated 2026-08-27), and eight top-level one-offs (`RECENT_MIGRATIONS_AND_FIXES`,
+`SYNCSENTA_CONTRADICTION_REPORT`, `SYNCSENTA_GAP_HARDENING`, `PENDING_TASKS`, `TEST_PLAN_WSL`, `WORK_PROMPT`,
+`hyperon-maintainer-issue`, `SECURITY_AUDIT_REPORT`).
+
+**Correction, recorded the same breath:** my first pass claimed tier 1 had "zero live-doc references". That
+was wrong — I had only checked links *from* README, not *into* the archive. `README.md` (repo map + the
+`docs/archive` citation), `AGENTS.md` (the filing convention), `docs/README.md` (the index), `.vercelignore`
+and this file's own line 6 all referenced the deleted trees. All five keepers were edited to match the new
+reality, because `basix-readme.test.ts` enforces that every backticked path in the README exists in a clean
+checkout of HEAD — a stale citation is exactly the error class that guard exists to catch.
+
+Kept deliberately: `docs/TASKS.md` (AGENTS.md names it the anti-pattern register), all `BASIX-*` and
+`provider-capability-evidence` (live submission-night docs), the ten README-linked docs, `docs/setup/`
+(owner runbooks), `docs/basix-sample-audit/` (submitted evidence), and `.claude/skills/` (working style).
+`.kiro/` stays tonight — dead Kiro specs are noise, but nothing reads them and deleting them would re-open
+AGENTS.md's Key Files table on submission eve.
+
+New convention, written into `AGENTS.md`: point-in-time status reports are not committed; `ROADMAP.md`
+carries the position, git carries the history.
 
 ---
 
