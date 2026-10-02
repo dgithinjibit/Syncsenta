@@ -117,7 +117,7 @@ export function MaterialLessonGenerator() {
   const [material, setMaterial] = useState('')
   const [fileName, setFileName] = useState('')
   const [topic, setTopic] = useState('')
-  const [grade, setGrade] = useState('Grade 4')
+  const [grade, setGrade] = useState('Grade 8')
   const [subject, setSubject] = useState('')
   const [term, setTerm] = useState('Term 1')
   const [sessionTitle, setSessionTitle] = useState('')

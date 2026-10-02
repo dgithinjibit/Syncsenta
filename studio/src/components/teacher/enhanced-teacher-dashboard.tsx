@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Calendar, FileText, ClipboardList, BookOpen, Users, 
+  Calendar, FileText, ClipboardList, Users, 
   MessageSquare, Award, Brain, TrendingUp, AlertCircle, FileUp,
   BarChart3, Target, Lightbulb, GraduationCap, Sparkles
 } from 'lucide-react'
@@ -17,7 +17,6 @@ import { LessonPlanFromScheme } from './lesson-plan-from-scheme'
 import { AssessmentGenerator } from './assessment-generator'
 import { StudentMonitoring } from './student-monitoring'
 import { InterventionCenter } from './intervention-center'
-import { ResourceLibrary } from './resource-library'
 import { AnalyticsDashboard } from './analytics-dashboard'
 import { ProfessionalDevelopment } from './professional-development'
 import { AssessmentRecordsPanel } from './assessment-records-panel'
@@ -85,10 +84,6 @@ export function EnhancedTeacherDashboard() {
             <Target className="h-4 w-4" />
             <span className="text-xs text-center leading-tight">Interventions</span>
           </TabsTrigger>
-          <TabsTrigger value="resources" className="flex-col gap-1 min-h-16 h-auto py-2">
-            <BookOpen className="h-4 w-4" />
-            <span className="text-xs text-center leading-tight">Resources</span>
-          </TabsTrigger>
           <TabsTrigger value="professional-dev" className="flex-col gap-1 min-h-16 h-auto py-2">
             <Lightbulb className="h-4 w-4" />
             <span className="text-xs text-center leading-tight">Prof. Dev</span>
@@ -129,11 +124,6 @@ export function EnhancedTeacherDashboard() {
         {/* Interventions Tab */}
         <TabsContent value="interventions">
           <InterventionCenter />
-        </TabsContent>
-
-        {/* Resources Tab */}
-        <TabsContent value="resources">
-          <ResourceLibrary />
         </TabsContent>
 
         {/* Professional Development Tab */}

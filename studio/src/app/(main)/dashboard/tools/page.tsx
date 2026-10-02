@@ -110,7 +110,7 @@ const teacherTools: Array<{
         category: "Support",
         fields: [
             { id: "needs", label: "Learner's Specific Needs", type: "textarea", placeholder: "Describe the learner's challenges and strengths..." },
-            { id: "grade", label: "Grade Level", type: "text", placeholder: "e.g., Grade 4" }
+            { id: "grade", label: "Grade Level", type: "text", placeholder: "e.g., Grade 8" }
         ]
     },
     {

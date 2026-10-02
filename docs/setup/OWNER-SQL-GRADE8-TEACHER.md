@@ -44,6 +44,66 @@ teacher header should read *Mama Joy · Kibera Girls' Secondary*, with `/teacher
 ## What this deliberately does not do
 
 `teacher_grade_assignments` and `teacher_subject_assignments` do not exist in production (both are on the
-schema-coverage allowlist of 30 absent tables), so there is no assignment *table* to populate yet. The
-`classes`/`subjects` arrays on `profiles` are what the deployed UI actually reads; a real roster is
-post-submission work with its own migration and RLS pass.
+schema-coverage allowlist of 30 absent tables). The `classes`/`subjects` arrays on `profiles` are what the
+profile surfaces read. The sidebar, however, reads a table that **does** exist — see the next section,
+measured live on 2026-10-02 at 21:05 EAT.
+
+## The "Grade 4" in the teacher sidebar — same doc, second owner action
+
+`/api/teacher/assignments` falls back to `teacher_student_assignments` (the canonical table), and for
+`teacher01` that table answers today with:
+
+> `{ "grade": "Grade 4", "subjects": ["Mathematics", "English", "AGI", "Blockchain", "Financial Literacy"] }`
+
+That is the row set the sidebar on every `/teacher/*` page — including `/teacher/omega` — expands. It is
+data, not code: no push can change it. Run, in the Supabase SQL editor:
+
+```sql
+-- 0. Look first (Tier A expectation: one grade group, five subjects, all class_name matching Grade 4)
+select id, class_name, subject, status
+from public.teacher_student_assignments
+where teacher_id = (select id from public.profiles where email = 'teacher01@syncsenta.dev');
+
+-- 1. The typo'd subject becomes the one the Omega packs actually check.
+update public.teacher_student_assignments
+set subject = 'Artificial Intelligence'
+where teacher_id = (select id from public.profiles where email = 'teacher01@syncsenta.dev')
+  and subject = 'AGI';
+
+-- 2. The demo school does not pretend to cover the rest.
+delete from public.teacher_student_assignments
+where teacher_id = (select id from public.profiles where email = 'teacher01@syncsenta.dev')
+  and subject in ('Mathematics', 'English', 'Financial Literacy');
+
+-- 3. Everything that remains is Grade 8. ('Grade 8' is what the sidebar's own regex parses.)
+update public.teacher_student_assignments
+set class_name = 'Grade 8'
+where teacher_id = (select id from public.profiles where email = 'teacher01@syncsenta.dev');
+```
+
+Expected end state: one group, `Grade 8`, subjects `Artificial Intelligence` and `Blockchain` — which is
+also the direct answer to "is the AI + Blockchain pair right?": the repo's own Grade 7–9 registry
+(`studio/src/data/curriculum/index.ts:82-83`) lists **AI Literacy** and **Blockchain Literacy** for exactly
+this band, so the pair matches the product's spine. (A known naming split — registry "AI Literacy" vs pack
+"Artificial Intelligence" — is recorded in ROADMAP; the sidebar reads the DB strings verbatim, so the SQL
+above uses what the packs and README use.)
+
+## Vercel env, not SQL: why the 18 Co-Pilot tools 500 today
+
+Measured in the browser on 2026-10-02: `sentastudio.vercel.app/dashboard/tools` → Tongue Twisters →
+Generate → the server action POST returns **500**. Root cause, Tier A from code: every one of those flows
+runs through `studio/src/ai/genkit.ts`, which builds `googleAI({ apiKey: process.env.GEMINI_API_KEY })`.
+With no (or dead) `GEMINI_API_KEY` on the Vercel project, all 18 GenKit tools — the 12 generic ones and
+the six dialog generators — fail identically. This does **not** affect the Omega path: the lesson-plan
+handoff on `/teacher/omega` POSTs to `/api/generate/lesson-plan` (Ascendra-1 proxy with the prescribed
+fallback), which is verified working in production.
+
+Owner fix (no git push needed): Vercel project → Settings → Environment Variables → add `GEMINI_API_KEY`
+with a **fresh** key (the one that leaked into commit history must not be reused; rotation itself is a
+separate item in ROADMAP §7), then redeploy. After that, spot-check one generic tool and the Lesson Plan
+Generator dialog from `/dashboard/tools`.
+
+## Still post-submission
+
+Real rosters, the assignment tables' RLS pass, and moving the session ledger out of localStorage all stay
+deferred; this doc covers only what makes the demo's claims true tonight.

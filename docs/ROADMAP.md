@@ -3112,6 +3112,46 @@ guidance this session, which makes them honest entries in the AI Disclosure the 
 
 ---
 
+### Spoon 12c: the Grade-4 leftovers, the 18 dead Co-Pilot tools, and one honest subject pair (2026-10-02 20:5x–21:1x EAT)
+
+The owner looked at the deployed app and asked three questions; all three got measured answers.
+
+**"Grade 4 still on the dashboard" — it is data, not code.** `/api/teacher/assignments` falls back to
+`teacher_student_assignments`, and for `teacher01` that table returns a `Grade 4` group with subjects
+`Mathematics, English, AGI, Blockchain, Financial Literacy` — measured live (Tier A, browser network trace,
+21:05 EAT), and it is what the sidebar on every `/teacher/*` page expands. Spoon 12's paragraph above said
+"there is no assignment table to populate": half right — the two legacy `teacher_grade_assignments` /
+`teacher_subject_assignments` tables are absent, the canonical one is populated with the wrong story.
+Fix: second section added to `docs/setup/OWNER-SQL-GRADE8-TEACHER.md` (owner SQL; no push can change a
+prod row). Code-side, the visible fakes went: the `ResourceLibrary` mock tab (six fabricated cards with
+dead PDF links and three Grade-4 entries) is cut from `EnhancedTeacherDashboard` per the cut rule — it was
+never usable — `MaterialLessonGenerator`'s grade default and the IEP tool's placeholder move to Grade 8,
+and four unmounted, unreferenced components (`magic-school-ai`, `magic-school-teacher`,
+`teacher/lesson-plan-generator`, `resource-library`) are deleted; `grep` over `src` shows zero importers,
+and no test file referenced them, so the §9 suite baseline is untouched.
+
+**"Are the other tools just placeholders?" — mostly no, and the "yes" has one cause.** The Lesson Plan
+Generator's *handoff path* (the one `/teacher/omega` uses through `/api/generate/lesson-plan`) is verified
+live, including the honest `frontend-prescribed-fallback` line. The `/dashboard/tools` grid is different:
+measured in the browser, Tongue Twisters' Generate → server-action POST → **500**. Root cause from code:
+`src/ai/genkit.ts` builds `googleAI({ apiKey: process.env.GEMINI_API_KEY })`, and every one of the 18 tools
+— twelve `GenericToolDialog` flows and the six dialog generators — goes through that flow. With no live
+`GEMINI_API_KEY` on the Vercel project they all fail identically. That is an owner env add + redeploy
+(third section of the same owner doc), not a rewrite; the components exist, so per the standing rule they
+are coded work once the key is there.
+
+**"AI and Blockchain as the subjects she teaches?" — yes, and the repo already says so.** The Grade 7–9
+registry rows (`studio/src/data/curriculum/index.ts:82-83`) carry `AI Literacy` and `Blockchain Literacy`
+for exactly this band, which matches the two packs the demo actually checks. Known naming split recorded
+here, not fixed tonight: registry strings say "…Literacy", packs/README/draft say "Artificial
+Intelligence"; the owner SQL uses the pack spelling because the sidebar renders DB strings verbatim.
+
+Deployment note: this rides the same day's one-push budget as a second push, authorised by the owner at
+20:5x EAT ("push to github so vercel can deploy"). Post-deploy check owed: `/teacher/omega` sidebar after
+the SQL, and one Co-Pilot tool after the env add.
+
+---
+
 ## 12. How to update this file
 
 At the end of a work session, in the same commit as the work: move the checkboxes, change §1's
