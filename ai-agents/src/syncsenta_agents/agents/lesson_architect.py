@@ -199,17 +199,37 @@ class LessonArchitectAgent:
                 subject = subject.replace("-", " ").title()
             
             if action == "generate_scheme":
-                return await self.generate_scheme(
-                    grade=grade,
-                    subject=subject,
-                    term=context.get("term", "Term 1"),
-                    mode=context.get("mode", SchemeMode.STANDARD),
-                    teacher_id=context.get("teacher_id", "unknown"),
-                    language=context.get("language", "english"),
-                )
-            
+                if context.get("prescribed_cbc_fallback"):
+                    rows = self._prescribed_scheme_rows(
+                        subject,
+                        context.get("selected_strands") or [],
+                    )
+                    result = {
+                        "agent": "lesson_architect",
+                        "action": action,
+                        "response": f"Prepared a prescribed CBC scheme for {grade} {subject}.",
+                        "rows": rows,
+                    }
+                else:
+                    mode = context.get("mode", SchemeMode.STANDARD)
+                    if not isinstance(mode, SchemeMode):
+                        try:
+                            mode = SchemeMode(mode)
+                        except ValueError:
+                            mode = SchemeMode.STANDARD
+                    result = await self.generate_scheme(
+                        grade=grade,
+                        subject=subject,
+                        term=context.get("term", "Term 1"),
+                        mode=mode,
+                        teacher_id=context.get("teacher_id", "unknown"),
+                        language=context.get("language", "english"),
+                        selected_strands=context.get("selected_strands"),
+                        teacher_inputs=context.get("teacher_inputs"),
+                        indigenous_language=context.get("indigenous_language"),
+                    )
             elif action == "generate_lesson_plan":
-                return await self.generate_lesson_plan(
+                result = await self.generate_lesson_plan(
                     scheme_id=context.get("scheme_id"),
                     row=context.get("row"),
                     week=context.get("week", 1),
@@ -221,22 +241,112 @@ class LessonArchitectAgent:
                     additional_notes=context.get("additional_notes"),
                     language=context.get("language", "english"),
                 )
-            
+            elif action == "generate_worksheet":
+                result = await self.generate_worksheet(
+                    teacher_id=context.get("teacher_id", "unknown"),
+                    row=context.get("row", {}),
+                    grade=grade,
+                    subject=subject,
+                    term=context.get("term"),
+                    language=context.get("language", "english"),
+                    duration_minutes=context.get("duration_minutes", 30),
+                )
+            elif action == "generate_text_leveler":
+                result = await self.generate_text_leveler(
+                    teacher_id=context.get("teacher_id", "unknown"),
+                    grade=grade,
+                    subject=subject,
+                    language=context.get("language", "english"),
+                    input_text=context.get("input_text"),
+                    source_url=context.get("source_url"),
+                )
+            elif action == "unpack_outcome":
+                result = await self.unpack_outcome(
+                    teacher_id=context.get("teacher_id", "unknown"),
+                    outcome=context.get("outcome", request),
+                    grade=grade,
+                    subject=subject,
+                    language=context.get("language", "english"),
+                )
+            elif action == "generate_differentiation":
+                result = await self.generate_differentiation(
+                    teacher_id=context.get("teacher_id", "unknown"),
+                    lesson_plan=context.get("lesson_plan", {}),
+                    language=context.get("language", "english"),
+                    lesson_plan_id=context.get("lesson_plan_id"),
+                )
+            elif action == "generate_exam":
+                result = await self.generate_exam(
+                    teacher_id=context.get("teacher_id", "unknown"),
+                    grade=grade,
+                    subject=subject,
+                    term=context.get("term", "Term 1"),
+                    allocation=context.get("allocation", []),
+                    counts=context.get("counts"),
+                )
             elif action == "list_schemes":
-                return await self.list_schemes(
+                result = await self.list_schemes(
                     teacher_id=context.get("teacher_id", "unknown"),
                     grade=context.get("grade"),
                     subject=context.get("subject"),
                 )
-            
             else:
                 raise AgentError(f"Unsupported action: {action}")
-                
+
+            result.setdefault("response", f"Completed {action.replace('_', ' ')}.")
+            return result
+
         except AgentError:
             raise
         except Exception as exc:
             self.logger.error("Lesson architect task failed", error=str(exc))
             raise AgentError(f"Lesson architect failure: {exc}") from exc
+
+    @staticmethod
+    def _prescribed_scheme_rows(
+        subject: str,
+        selected_strands: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        selections = selected_strands or [{
+            "strand": f"{subject} foundations",
+            "subStrands": ["Core concepts"],
+        }]
+        rows: List[Dict[str, Any]] = []
+        lesson = 1
+        for selection in selections:
+            strand = str(selection.get("strand") or f"{subject} foundations")
+            for sub_strand in selection.get("subStrands") or ["Core concepts"]:
+                rows.append({
+                    "week": 1,
+                    "lesson": lesson,
+                    "strand": strand,
+                    "subStrand": str(sub_strand),
+                    "specificLearningOutcome": (
+                        "By the end of the lesson, the learner should be able to:\n"
+                        f"a) identify key ideas in {sub_strand};\n"
+                        f"b) demonstrate a guided {subject} activity;\n"
+                        "c) appreciate collaborative learning."
+                    ),
+                    "learningExperiences": (
+                        "Learner is guided to:\n"
+                        "a) recall prior knowledge;\n"
+                        "b) explore a teacher-modelled example;\n"
+                        "c) practise with a partner;\n"
+                        "d) share one reflection."
+                    ),
+                    "keyInquiryQuestion": (
+                        f"How can we apply {sub_strand} in everyday life?"
+                    ),
+                    "learningResources": (
+                        "Teacher guide, learner book, locally available materials"
+                    ),
+                    "assessmentMethods": (
+                        "Observation, oral questions, short exit task"
+                    ),
+                    "reflection": "",
+                })
+                lesson += 1
+        return rows
 
     @staticmethod
     def _infer_action(request: str) -> str:

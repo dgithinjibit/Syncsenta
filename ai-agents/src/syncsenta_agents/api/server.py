@@ -1,4 +1,4 @@
-"""FastAPI HTTP wrapper exposing the Assessment Agent to the student frontend.
+"""FastAPI service routing student and teacher agent tasks through Omega.
 
 Run:
     PYTHONPATH=src venv/bin/uvicorn syncsenta_agents.api.server:app --port 8001 --reload
@@ -7,7 +7,7 @@ Endpoints:
     GET  /healthz
     POST /agents/assessment/quiz   -> Quiz JSON
     POST /agents/assessment/grade  -> GradedSubmission JSON
-    POST /agents/chat              -> orchestrator (Teacher_Agent) response
+    POST /agents/chat              -> Omega Queen response
     /lesson-architect/*            -> teacher generation (see LESSON_ARCHITECT_MOUNT_ERROR)
 
 This is the app Render runs (`render.yaml` -> startCommand). `api/scheme_server.py`
@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 from ..agents.assessment import AssessmentAgent
 from ..core.exceptions import AgentError
-from ..core.models import AgentRequest, Quiz, QuizSubmission
+from ..core.models import AgentRequest
 from ..orchestrator.main import SyncSentaOrchestrator
 
 
@@ -50,7 +50,7 @@ class GradeRequest(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """Student message routed through the Teacher_Agent orchestrator."""
+    """Message routed by Omega; role is a routing hint, not authorization."""
     message: str
     user_id: str = "anonymous"
     session_id: Optional[str] = None
@@ -58,13 +58,14 @@ class ChatRequest(BaseModel):
     subject: Optional[str] = None
     language: str = "english"
     role: str = "student"
+    type: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
 # App + agent (singleton)
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="SyncSenta Assessment Agent API", version="0.1.0")
+app = FastAPI(title="SyncSenta Omega Agent API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -93,22 +94,20 @@ app.add_middleware(
 #
 # The import is guarded, not because a failure here is acceptable, but because
 # an unguarded one would take `/agents/chat` (the student tutor) down with it.
-# `lesson_architect_api` pulls in `db.supabase_client`, which imports the
-# `supabase` package at module scope; nothing else on this app's boot path does
-# (verified: only `db/supabase_client.py` and `api/training_export_api.py`
-# import it, and neither is reachable from `server.py` today). A broken wheel
-# would therefore crash the whole service instead of the teacher tool. The
-# guard converts that into a field on /healthz that says so — observable, not
-# swallowed. If `lesson_architect.mounted` is ever false in production, fix the
-# import; do not delete the guard.
+# `lesson_architect_api` imports the optional Supabase package at module scope.
+# Keep its failure isolated so learner chat remains available, and report it
+# through /healthz rather than hiding it.
 LESSON_ARCHITECT_MOUNT_ERROR: Optional[str] = None
 
 try:
-    from .lesson_architect_api import router as lesson_architect_router
+    from . import lesson_architect_api
 except Exception as exc:  # noqa: BLE001 — see the comment above
-    lesson_architect_router = None
+    lesson_architect_api = None
     LESSON_ARCHITECT_MOUNT_ERROR = f"{type(exc).__name__}: {exc}"
 
+lesson_architect_router = (
+    lesson_architect_api.router if lesson_architect_api is not None else None
+)
 if lesson_architect_router is not None:
     app.include_router(lesson_architect_router)
 
@@ -135,7 +134,7 @@ def get_agent() -> AssessmentAgent:
 
 
 async def get_orchestrator() -> SyncSentaOrchestrator:
-    """Return the multi-agent orchestrator (Teacher_Agent + 7 specialists).
+    """Return the Omega Queen orchestrator and its registered specialists.
 
     Normally initialized on FastAPI startup; falls back to lazy init for tests
     or direct ASGI mounting that skips the lifespan event.
@@ -144,20 +143,40 @@ async def get_orchestrator() -> SyncSentaOrchestrator:
     if _orchestrator is None:
         orch = SyncSentaOrchestrator()
         await orch.initialize()
+        orch.register_agent("assessment", get_agent())
+        if lesson_architect_api is not None:
+            orch.register_agent(
+                "lesson_architect",
+                lesson_architect_api.LessonArchitectAgent(
+                    supabase_client=lesson_architect_api.get_supabase_client()
+                ),
+            )
         _orchestrator = orch
     return _orchestrator
 
 
+async def run_omega_task(
+    request: AgentRequest,
+    *,
+    task_context: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Run a structured API task through Omega and return the worker data."""
+    orchestrator = await get_orchestrator()
+    response = await orchestrator.process_request(
+        request,
+        task_context=task_context,
+    )
+    if not response.success:
+        raise AgentError(response.error or response.response)
+    if not isinstance(response.structured_result, dict):
+        raise AgentError("Omega specialist returned no structured result")
+    return response.structured_result
+
+
 @app.on_event("startup")
 async def _warm_orchestrator() -> None:
-    # Pay the LangGraph + agent-registry boot cost once at server start so
-    # the first /agents/chat request doesn't take the hit.
-    try:
-        await get_orchestrator()
-    except Exception:
-        # Don't block server startup on orchestrator init — get_orchestrator
-        # will retry lazily on first request and surface the error there.
-        pass
+    """Initialize Omega at startup; service availability depends on its policy."""
+    await get_orchestrator()
 
 
 # ---------------------------------------------------------------------------
@@ -183,26 +202,37 @@ async def healthz() -> Dict[str, Any]:
 @app.post("/agents/assessment/quiz")
 async def generate_quiz(req: QuizRequest) -> Dict[str, Any]:
     try:
-        quiz = await get_agent().generate_quiz(
-            grade=req.grade,
-            subject=req.subject,
-            competency=req.competency,
-            num_questions=req.num_questions,
-            language=req.language,
-            question_types=req.question_types,
+        result = await run_omega_task(
+            AgentRequest(
+                message=f"Generate a quiz on {req.competency}",
+                user_id="anonymous",
+                grade=req.grade,
+                subject=req.subject,
+                role="teacher",
+                type="assessment",
+            ),
+            task_context={
+                "action": "generate_quiz",
+                "competency": req.competency,
+                "num_questions": req.num_questions,
+                "language": req.language,
+                "question_types": req.question_types,
+            },
         )
-        return quiz.model_dump(mode="json")
+        quiz = result.get("quiz")
+        if not isinstance(quiz, dict):
+            raise AgentError("Omega assessment specialist returned no quiz")
+        return quiz
     except AgentError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.post("/agents/chat")
 async def agent_chat(req: ChatRequest) -> Dict[str, Any]:
-    """Route a student message through Teacher_Agent → specialist agent.
+    """Route a message through Omega Queen → specialist agent.
 
-    Returns the synthesized response plus which agents participated, so the
-    Rust backend can broadcast both the message and the agent activity over
-    WebSocket to the teacher dashboard.
+    Returns the selected specialist response and its agent identity so the
+    Rust backend can broadcast the message and agent activity over WebSocket.
     """
     try:
         orch = await get_orchestrator()
@@ -213,6 +243,7 @@ async def agent_chat(req: ChatRequest) -> Dict[str, Any]:
             grade=req.grade,
             subject=req.subject,
             role=req.role,
+            type=req.type,
             context={"language": req.language},
         )
         resp = await orch.process_request(agent_req)
@@ -232,10 +263,23 @@ async def agent_chat(req: ChatRequest) -> Dict[str, Any]:
 @app.post("/agents/assessment/grade")
 async def grade_submission(req: GradeRequest) -> Dict[str, Any]:
     try:
-        quiz = Quiz(**req.quiz)
-        submission = QuizSubmission(**req.submission)
-        graded = await get_agent().grade_submission(quiz, submission)
-        return graded.model_dump(mode="json")
+        result = await run_omega_task(
+            AgentRequest(
+                message="Grade the submitted quiz",
+                user_id=req.submission.get("student_id") or "anonymous",
+                role="student",
+                type="assessment",
+            ),
+            task_context={
+                "action": "grade_submission",
+                "quiz": req.quiz,
+                "submission": req.submission,
+            },
+        )
+        graded = result.get("graded")
+        if not isinstance(graded, dict):
+            raise AgentError("Omega assessment specialist returned no grade")
+        return graded
     except AgentError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except (KeyError, ValueError, TypeError) as exc:

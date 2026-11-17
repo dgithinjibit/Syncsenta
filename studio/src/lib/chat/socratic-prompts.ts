@@ -5,8 +5,7 @@
  *   - 'socratic' — open Socratic tutoring grounded in Kenyan CBC.
  *   - 'compass'  — answers strictly grounded in teacher-supplied materials.
  *
- * Design rationale lives in studio/docs/SOCRATIC_MENTOR_SPEC.md. Keep that doc
- * and these strings in sync — model behaviour follows the prompt.
+ * Model behavior follows these prompt strings; cover changes with prompt tests.
  */
 
 import { buildLearningTrackPromptBlock } from '../learning-track-policy';

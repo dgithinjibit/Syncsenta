@@ -5,11 +5,9 @@ import { join } from 'node:path';
 /**
  * The derivation engine has to survive being bundled to a browser.
  *
- * The plan on `docs/ROADMAP.md` §11 is a teacher who drafts a scheme of work on a phone with no network and
- * reconciles it against the national curriculum in the page, offline. That only works if the module that
- * produces the cited transcript is pure: no `node:fs`, no `process.cwd()`, no environment variable, and no
- * implicit "read the pack from wherever the server happens to be". A server-only default would make the
- * reconciler a round trip, which is the exact thing the offline requirement forbids.
+ * The evaluator is shared by server and browser callers. Keep it independent
+ * of `node:fs`, `process.cwd()`, and environment variables; callers supply the
+ * pack text explicitly.
  *
  * Two kinds of check, deliberately:
  *   1. a textual one, because a single stray `import { readFileSync }` type-checks fine and then explodes in

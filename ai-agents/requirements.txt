@@ -13,7 +13,6 @@ langchain-groq>=0.1.0
 langchain>=0.1.0
 langchain-core>=0.1.0
 langchain-community>=0.0.29
-langgraph>=0.0.26
 
 # Async and networking
 aiohttp>=3.9.0

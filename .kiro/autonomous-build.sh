@@ -13,7 +13,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Configuration
-TASKS_FILE=".kiro/specs/syncsenta-education-os/tasks.md"
+TASKS_FILE="docs/ROADMAP.md"
 LEARNINGS_DIR=".kiro/chatdev-learnings"
 BUILD_LOG=".kiro/BUILD_SESSION.md"
 
@@ -106,10 +106,10 @@ main() {
     
     check_bonsai
     
-    # Start with Task 2.1
+    # Start with the current Phase 2 scope
     if [ -z "$TASK_ID" ]; then
-        TASK_ID="2.1"
-        TASK_NAME="implement-metta-core"
+        TASK_ID="teacher-analytics"
+        TASK_NAME="phase-2-teacher-analytics"
     fi
     
     echo -e "${BLUE}Starting Task $TASK_ID: $TASK_NAME${NC}"
@@ -117,16 +117,15 @@ main() {
     
     # Read task requirements
     echo -e "${BLUE}Reading task requirements...${NC}"
-    execute_command "grep -A 20 \"^- \[ \] $TASK_ID\" $TASKS_FILE"
+    execute_command "grep -A 45 '^## Work items' $TASKS_FILE"
     
     # Ask Bonsai to implement
     echo -e "${BLUE}Asking Bonsai to implement...${NC}"
     echo -e "${YELLOW}In Bonsai terminal, paste:${NC}"
     echo ""
-    echo "Read .kiro/specs/syncsenta-education-os/tasks.md"
-    echo "Implement Task $TASK_ID: $TASK_NAME"
-    echo "Use hyperon crate for MeTTa interpreter"
-    echo "Create complete Rust implementation in backend/syncsenta-backend/src/metta_core/"
+    echo "Read docs/BASIX-NORTH-STAR.md and docs/ROADMAP.md"
+    echo "Implement one Phase 2 teacher-analytics work item: $TASK_NAME"
+    echo "Work in the active Studio and AI Agents code paths only"
     echo ""
     
     # Wait for Bonsai to complete
@@ -154,7 +153,7 @@ main() {
 **Status**: In Progress
 
 ## Task Description
-[From tasks.md]
+[From docs/ROADMAP.md]
 
 ## Bonsai Implementation
 $output
@@ -171,7 +170,7 @@ EOF
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo "1. Review Bonsai's output"
-    echo "2. Run tests: cd backend && cargo test"
+    echo "2. Run the relevant Studio tests and checks from docs/DEVELOPMENT.md"
     echo "3. Commit changes when ready"
 }
 

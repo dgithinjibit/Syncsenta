@@ -2,9 +2,10 @@
 
 Working agreements that shape how coding agents (Claude Code, Kiro, Bonsai,
 Qoder) plan, write, review, and talk about changes in this repository. They
-target the failure modes already recorded in
-[`docs/TASKS.md`](../../docs/TASKS.md) — agent-written code that buries the
-answer, skips tests, or lands as one unverifiable blob.
+target the failure modes guarded against in
+[`AGENTS.md`](../../AGENTS.md) and
+[`docs/BASIX-NORTH-STAR.md`](../../docs/BASIX-NORTH-STAR.md): unsupported
+claims, skipped tests, and changes too large to verify.
 
 Each directory holds one upstream `SKILL.md`, unmodified. Attribution and MIT
 licenses are in the two `LICENSE-*` files here.

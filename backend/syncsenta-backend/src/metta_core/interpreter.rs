@@ -180,12 +180,17 @@ mod hyperon_backend {
         }
 
         pub fn run(&mut self, program: &str) -> Result<Vec<Vec<AtomString>>> {
+            let results = self.evaluate(program)?;
+            self.atom_count += results.iter().map(|atoms| atoms.len()).sum::<usize>();
+            Ok(results)
+        }
+
+        fn evaluate(&mut self, program: &str) -> Result<Vec<Vec<AtomString>>> {
             let parser = SExprParser::new(program);
             let results = self
                 .runtime
                 .run(parser)
                 .map_err(|e| anyhow::anyhow!("metta run: {e}"))?;
-            self.atom_count += results.iter().map(|r| r.len()).sum::<usize>();
             Ok(results
                 .into_iter()
                 .map(|atoms| atoms.into_iter().map(|a| AtomString(format!("{a}"))).collect())
@@ -195,13 +200,13 @@ mod hyperon_backend {
         pub fn add_atom(&mut self, atom: &str) -> Result<()> {
             // Adding an atom is just running a no-op-evaluated program where
             // the top-level atom becomes part of the space.
-            self.run(atom)?;
+            self.evaluate(atom)?;
             self.atom_count += 1;
             Ok(())
         }
 
         pub fn query(&mut self, expression: &str) -> Result<Vec<AtomString>> {
-            let results = self.run(expression)?;
+            let results = self.evaluate(expression)?;
             Ok(results.into_iter().flatten().collect())
         }
 
@@ -222,9 +227,9 @@ mod fallback_backend {
     //! - answers queries by linear unification against asserted facts /
     //!   rewrites
     //!
-    //! When the `metta` feature is enabled the real hyperon runtime replaces
-    //! this entirely. Until then this lets every higher layer be exercised
-    //! end-to-end in tests and in CI environments without native deps.
+    //! When the `metta` feature is enabled the real Hyperon runtime replaces
+    //! this entirely. This fallback is available only to builds that explicitly
+    //! disable default features and lack Hyperon's native dependencies.
 
     use super::AtomString;
     use anyhow::Result;
@@ -422,6 +427,24 @@ fn query_form(pattern: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "metta")]
+    #[tokio::test]
+    async fn hyperon_bare_pattern_query_returns_rule_result_without_asserting() {
+        let interp = MettaInterpreter::new().unwrap();
+        let space = interp.global_space();
+        space
+            .run("(= (omega-claw-scope-for grade6) introductory)")
+            .await
+            .unwrap();
+        let before = space.atom_count().await;
+
+        let hits = space.query("(omega-claw-scope-for grade6)").await.unwrap();
+
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].as_str(), "introductory");
+        assert_eq!(space.atom_count().await, before);
+    }
 
     #[tokio::test]
     async fn space_isolation() {

@@ -7,7 +7,7 @@ from pydantic import AliasChoices, BaseModel, Field
 
 from ..db.supabase_client import get_supabase_client
 from ..core.logging import get_logger
-from ..agents.lesson_architect import LessonArchitectAgent, SchemeMode
+from ..core.models import AgentRequest
 
 router = APIRouter(prefix="/lesson-architect", tags=["lesson-architect"])
 logger = get_logger("lesson_architect_api")
@@ -22,43 +22,28 @@ def _has_llm_credentials() -> bool:
     )
 
 
-def _default_scheme_rows(request: "GenerateSchemeRequest") -> List[Dict[str, Any]]:
-    """Deterministic presentation fallback when no LLM key is configured."""
-    selections = request.selected_strands or [{
-        "strand": f"{request.subject} foundations",
-        "subStrands": ["Core concepts"],
-    }]
-    rows: List[Dict[str, Any]] = []
-    lesson = 1
-    for selection in selections:
-        strand = str(selection.get("strand") or f"{request.subject} foundations")
-        sub_strands = selection.get("subStrands") or ["Core concepts"]
-        for sub_strand in sub_strands:
-            rows.append({
-                "week": 1,
-                "lesson": lesson,
-                "strand": strand,
-                "subStrand": str(sub_strand),
-                "specificLearningOutcome": (
-                    "By the end of the lesson, the learner should be able to:\n"
-                    f"a) identify key ideas in {sub_strand};\n"
-                    f"b) demonstrate a guided {request.subject} activity;\n"
-                    "c) appreciate collaborative learning."
-                ),
-                "learningExperiences": (
-                    "Learner is guided to:\n"
-                    "a) recall prior knowledge;\n"
-                    "b) explore a teacher-modelled example;\n"
-                    "c) practise with a partner;\n"
-                    "d) share one reflection."
-                ),
-                "keyInquiryQuestion": f"How can we apply {sub_strand} in everyday life?",
-                "learningResources": "Teacher guide, learner book, locally available materials",
-                "assessmentMethods": "Observation, oral questions, short exit task",
-                "reflection": "",
-            })
-            lesson += 1
-    return rows
+async def _run_omega_teacher_task(
+    *,
+    message: str,
+    teacher_id: str,
+    grade: Optional[str],
+    subject: Optional[str],
+    request_type: str,
+    task_context: Dict[str, Any],
+) -> Dict[str, Any]:
+    from .server import run_omega_task
+
+    return await run_omega_task(
+        AgentRequest(
+            message=message,
+            user_id=teacher_id,
+            grade=grade,
+            subject=subject,
+            role="teacher",
+            type=request_type,
+        ),
+        task_context=task_context,
+    )
 
 
 class GenerateSchemeRequest(BaseModel):
@@ -220,44 +205,43 @@ class GenerateLessonPlanRequest(BaseModel):
 async def generate_scheme(request: GenerateSchemeRequest) -> Dict[str, Any]:
     """Generate a scheme of work and return structured SchemeRow[] JSON.
 
-    Replaces the previous flow that routed scheme generation through the
-    generic ``/agents/chat`` endpoint and asked the LLM for markdown — that
-    is what produced the prose blob in ``savy.png``. This endpoint invokes
-    the ``LessonArchitectAgent`` directly, which already emits the 10-column
-    SchemeRow JSON with KSA-validated learning outcomes.
+    Omega selects the lesson-architect specialist, which returns the validated
+    SchemeRow JSON consumed by the studio.
     """
 
-    if not _has_llm_credentials():
-        rows = _default_scheme_rows(request)
-        return {
-            "success": True,
-            "scheme_id": "default_cbc_scheme",
-            "title": f"{request.grade} {request.subject} - {request.term} (Prescribed CBC)",
-            "grade": request.grade, "subject": request.subject, "term": request.term,
-            "mode": request.mode, "language": request.language,
-            "total_weeks": 1, "lessons_per_week": len(rows), "rows": rows,
-            "personalization_applied": bool(request.teacher_inputs),
-            "source": "prescribed-cbc-fallback",
-        }
-
     try:
-        try:
-            mode_enum = SchemeMode(request.mode)
-        except ValueError:
-            mode_enum = SchemeMode.STANDARD
-
-        agent = LessonArchitectAgent(supabase_client=get_supabase_client())
-        result = await agent.generate_scheme(
+        prescribed_fallback = not _has_llm_credentials()
+        result = await _run_omega_teacher_task(
+            message=f"Generate a {request.grade} {request.subject} scheme",
+            teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            term=request.term,
-            mode=mode_enum,
-            teacher_id=request.teacher_id,
-            language=request.language,
-            selected_strands=request.selected_strands,
-            teacher_inputs=request.teacher_inputs,
-            indigenous_language=request.indigenous_language,
+            request_type="scheme",
+            task_context={
+                "action": "generate_scheme",
+                "teacher_id": request.teacher_id,
+                "term": request.term,
+                "mode": request.mode,
+                "language": request.language,
+                "selected_strands": request.selected_strands,
+                "teacher_inputs": request.teacher_inputs,
+                "indigenous_language": request.indigenous_language,
+                "prescribed_cbc_fallback": prescribed_fallback,
+            },
         )
+
+        if prescribed_fallback:
+            rows = result.get("rows", [])
+            return {
+                "success": True,
+                "scheme_id": "default_cbc_scheme",
+                "title": f"{request.grade} {request.subject} - {request.term} (Prescribed CBC)",
+                "grade": request.grade, "subject": request.subject, "term": request.term,
+                "mode": request.mode, "language": request.language,
+                "total_weeks": 1, "lessons_per_week": len(rows), "rows": rows,
+                "personalization_applied": bool(request.teacher_inputs),
+                "source": "prescribed-cbc-fallback",
+            }
 
         scheme = result.get("scheme", {}) or {}
         rows = scheme.get("rows", []) or []
@@ -319,18 +303,23 @@ async def generate_lesson_plan(request: GenerateLessonPlanRequest) -> Dict[str, 
         if scheme_id in ("None", "", "null", "undefined"):
             scheme_id = None
         
-        agent = LessonArchitectAgent(supabase_client=get_supabase_client())
-        result = await agent.generate_lesson_plan(
-            week=request.week,
-            lesson=request.lesson,
+        result = await _run_omega_teacher_task(
+            message=f"Generate lesson {request.lesson} for week {request.week}",
             teacher_id=request.teacher_id,
-            scheme_id=scheme_id,
-            row=request.row,
             grade=request.grade,
             subject=request.subject,
-            term=request.term,
-            additional_notes=request.additional_notes,
-            language=request.language,
+            request_type="lesson-plan",
+            task_context={
+                "action": "generate_lesson_plan",
+                "teacher_id": request.teacher_id,
+                "week": request.week,
+                "lesson": request.lesson,
+                "scheme_id": scheme_id,
+                "row": request.row,
+                "term": request.term,
+                "additional_notes": request.additional_notes,
+                "language": request.language,
+            },
         )
 
         return {
@@ -365,15 +354,20 @@ async def generate_worksheet(request: GenerateWorksheetRequest) -> Dict[str, Any
     studio's worksheet renderer should branch by ``item.type``.
     """
     try:
-        agent = LessonArchitectAgent(supabase_client=get_supabase_client())
-        result = await agent.generate_worksheet(
+        result = await _run_omega_teacher_task(
+            message="Generate a worksheet for this lesson",
             teacher_id=request.teacher_id,
-            row=request.row,
             grade=request.grade,
             subject=request.subject,
-            term=request.term,
-            language=request.language,
-            duration_minutes=request.duration_minutes,
+            request_type="worksheet",
+            task_context={
+                "action": "generate_worksheet",
+                "teacher_id": request.teacher_id,
+                "row": request.row,
+                "term": request.term,
+                "language": request.language,
+                "duration_minutes": request.duration_minutes,
+            },
         )
 
         return {
@@ -405,14 +399,19 @@ async def generate_text_leveler(request: GenerateTextLevelerRequest) -> Dict[str
     question list and answer guidance.
     """
     try:
-        agent = LessonArchitectAgent(supabase_client=get_supabase_client())
-        result = await agent.generate_text_leveler(
+        result = await _run_omega_teacher_task(
+            message="Create a grade-appropriate reading passage",
             teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            language=request.language,
-            input_text=request.input_text,
-            source_url=request.source_url,
+            request_type="text-leveler",
+            task_context={
+                "action": "generate_text_leveler",
+                "teacher_id": request.teacher_id,
+                "language": request.language,
+                "input_text": request.input_text,
+                "source_url": request.source_url,
+            },
         )
 
         return {
@@ -444,13 +443,18 @@ async def unpack_outcome(request: UnpackOutcomeRequest) -> Dict[str, Any]:
     successCriteria[{criterion, observable}], coreCompetencies[], values[]}``.
     """
     try:
-        agent = LessonArchitectAgent(supabase_client=get_supabase_client())
-        result = await agent.unpack_outcome(
+        result = await _run_omega_teacher_task(
+            message=request.outcome,
             teacher_id=request.teacher_id,
-            outcome=request.outcome,
             grade=request.grade,
             subject=request.subject,
-            language=request.language,
+            request_type="unpack-outcome",
+            task_context={
+                "action": "unpack_outcome",
+                "teacher_id": request.teacher_id,
+                "outcome": request.outcome,
+                "language": request.language,
+            },
         )
 
         return {
@@ -489,12 +493,19 @@ async def generate_differentiation(
     them as parallel columns, not as separate plans.
     """
     try:
-        agent = LessonArchitectAgent(supabase_client=get_supabase_client())
-        result = await agent.generate_differentiation(
+        result = await _run_omega_teacher_task(
+            message="Differentiate this lesson plan",
             teacher_id=request.teacher_id,
-            lesson_plan=request.lesson_plan,
-            language=request.language,
-            lesson_plan_id=request.lesson_plan_id,
+            grade=request.lesson_plan.get("grade"),
+            subject=request.lesson_plan.get("subject"),
+            request_type="differentiation",
+            task_context={
+                "action": "generate_differentiation",
+                "teacher_id": request.teacher_id,
+                "lesson_plan": request.lesson_plan,
+                "language": request.language,
+                "lesson_plan_id": request.lesson_plan_id,
+            },
         )
 
         return {
@@ -527,14 +538,19 @@ async def generate_exam(request: GenerateExamRequest) -> Dict[str, Any]:
     ``{type: "mcq"|"short"|"long", ...}``. The studio renders by ``type``.
     """
     try:
-        agent = LessonArchitectAgent(supabase_client=get_supabase_client())
-        result = await agent.generate_exam(
+        result = await _run_omega_teacher_task(
+            message=f"Generate a {request.term} exam for {request.grade} {request.subject}",
             teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            term=request.term,
-            allocation=request.allocation,
-            counts=request.counts,
+            request_type="exam",
+            task_context={
+                "action": "generate_exam",
+                "teacher_id": request.teacher_id,
+                "term": request.term,
+                "allocation": request.allocation,
+                "counts": request.counts,
+            },
         )
 
         return {

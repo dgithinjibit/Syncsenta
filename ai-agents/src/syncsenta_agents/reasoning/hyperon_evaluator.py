@@ -56,6 +56,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..core.logging import get_logger
+from ..omega_routing import normalize_agent_route, resolve_agent_route
 
 logger = get_logger("hyperon_evaluator")
 
@@ -240,6 +241,31 @@ class HyperonPolicyEvaluator:
         atom = self.query(f"(safeguarding-route {signal})")
         return PolicyVerdict.from_atom(atom, evaluator_used="hyperon")
 
+    def evaluate_agent_route(
+        self, role: Optional[str], request_type: Optional[str]
+    ) -> Optional[str]:
+        """Resolve an agent route through the role-scoped MeTTa policy."""
+        try:
+            role_symbol, task_symbol, expected_agent = normalize_agent_route(
+                role, request_type
+            )
+        except ValueError:
+            return None
+
+        route = self.query(f"(omega-agent-route {role_symbol} {task_symbol})")
+        if route != expected_agent:
+            logger.error(
+                "MeTTa Omega route did not match the checked-in routing contract",
+                extra={
+                    "role": role_symbol,
+                    "task": task_symbol,
+                    "expected_agent": expected_agent,
+                    "actual_route": route,
+                },
+            )
+            return None
+        return route.replace("-", "_")
+
     def evaluate_cbc_evidence(self, completeness: str) -> PolicyVerdict:
         """Evaluate ``(cbc-evidence-route <completeness>)``."""
         try:
@@ -346,6 +372,15 @@ class FallbackPolicyEvaluator:
     def evaluate_safeguarding(self, signal: str) -> PolicyVerdict:
         atom = self._SAFEGUARDING.get(signal, f"(Review unknown-safeguarding:{signal})")
         return PolicyVerdict.from_atom(atom, self.LABEL)
+
+    def evaluate_agent_route(
+        self, role: Optional[str], request_type: Optional[str]
+    ) -> Optional[str]:
+        """Resolve an agent route using the same contract as the MeTTa policy."""
+        try:
+            return resolve_agent_route(role, request_type)
+        except ValueError:
+            return None
 
     # ------------------------------------------------------------------
     # CBC evidence routes  (policy file lines 77-80)

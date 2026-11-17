@@ -5,10 +5,8 @@
  * The pedagogy registry (./pedagogy.ts) records two positions it deliberately
  * does *not* adopt — Waldorf's screen limits and Montessori/Reggio's rejection
  * of extrinsic reward — and resolves both the same way: the answer depends on
- * the learner's developmental plane. That makes this mapping load-bearing. As
- * prose in `docs/research/` it decides nothing; every surface would pick its own
- * cut-off and the registry's boundary lines would be unfalsifiable. So the
- * cut-off is one pure, tested function here and every surface reads it.
+ * the learner's developmental plane. That makes this mapping load-bearing.
+ * Keeping it in one pure, tested function gives every surface the same cut-off.
  *
  * The planes are Montessori's (see the four planes of development, cited in the
  * registry). Grade 12 is the oldest learner SyncSenta serves, so Plane IV

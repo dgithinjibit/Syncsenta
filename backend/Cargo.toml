@@ -7,6 +7,9 @@ members = [
     "syncsenta-blockchain",
 ]
 
+[workspace.package]
+license = "Apache-2.0"
+
 [workspace.dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -81,10 +84,6 @@ rust_xlsxwriter = "0.68"
 # Testing
 proptest = "1"
 
-# MeTTa symbolic AI runtime (Task 2.1)
-# Hyperon is the Rust implementation of the MeTTa language. It is not yet
-# published to crates.io, so we pin to the upstream repo. The dependency is
-# optional and gated behind the `metta` feature so that environments without
-# the native build toolchain can still `cargo check` the workspace using the
-# in-process symbolic fallback engine.
-hyperon = { git = "https://github.com/trueagi-io/hyperon-experimental", branch = "main", default-features = false }
+# MeTTa symbolic AI runtime. Keep aligned with the Hyperon version used by the
+# standalone bridge; default backend builds use this engine.
+hyperon = { git = "https://github.com/trueagi-io/hyperon-experimental.git", tag = "v0.2.10", default-features = false }
