@@ -1,5 +1,5 @@
 {
-  "description": "Golden class-term for `syncsenta-evidence-v1`. Five rows of one class in one term, deliberately out of id order, with every nullable shape the contract has to agree on: an explicit null, a rubric whose keys are integer-like (ECMAScript iterates those in numeric order, which must not reach the bytes), a rubric holding a nested array, and non-ASCII text. `root` and `leaf_hashes` are the recorded values this repo's implementation produced once, then pinned; the Python mirror in docs/research/ASI-DAPP-PATH.md Phase 1 consumes this same file.",
+  "description": "Golden class-term for `syncsenta-evidence-v1`. Five rows of one class in one term, deliberately out of id order, with every nullable shape the contract has to agree on: an explicit null, a rubric whose keys are integer-like (ECMAScript iterates those in numeric order, which must not reach the bytes), a rubric holding a nested array, and non-ASCII text. `root` and `leaf_hashes` are the recorded values this repo's implementation produced once, then pinned.",
   "canonicalization_version": "syncsenta-evidence-v1",
   "records": [
     {

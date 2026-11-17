@@ -1,9 +1,14 @@
-# Developer Tools
+# Developer tools
 
-This directory contains scripts and examples used to develop, inspect, test, generate, or operate SyncSenta. These files are not imported by the learner or teacher web application.
+This directory contains optional repository maintenance, validation, and
+training helpers. These scripts are not part of the deployed Studio or AI
+Agents runtime.
 
-- `scripts/`: repository-level checks, the MeTTa CLI, curriculum/design generators, staging helpers, and data utilities.
-- `ai-agents/scripts/`: model deployment, database setup, training-data preparation, curriculum transpilation, and parity checks for the Python agent service.
-- `ai-agents/examples/`: standalone development demos for the Python agent service.
+Start with [`scripts/README.md`](scripts/README.md) to identify a helper and
+check its prerequisites before running it. In particular, ChatDev helpers
+require an external `ChatDev/` checkout and are not needed for normal
+development.
 
-Production application code stays in `studio/`, `ai-agents/src/`, `backend/`, and the Rust service crates. Tests remain beside their owning package so the existing test runners continue to discover them. The root `scripts/` and former `ai-agents/scripts/` paths are compatibility symlinks during this reorganization.
+For application setup and supported checks, use
+[`../docs/DEVELOPMENT.md`](../docs/DEVELOPMENT.md). For issue triage, use
+[`../docs/DEBUGGING_PLAYBOOK.md`](../docs/DEBUGGING_PLAYBOOK.md).

@@ -1,87 +1,70 @@
-# SyncSenta Deployment Runbook
+# Deployment Runbook
 
-**Scope:** Studio on Vercel, AI Agents on Render, and Supabase-backed application services.
+This runbook records the repository-side deployment boundaries and verification
+steps. It does not assert that a deployment is currently healthy. Confirm the
+target URL, commit, configuration, and environment in the hosting provider
+before making a production claim.
 
-## Deployment order
+## Deployment targets
 
-Deploy database migrations first, then the AI Agents service, and finally Studio. Do not publish a frontend change that depends on a backend route until the backend readiness check is healthy.
+| Surface | Repository configuration | Notes |
+|---|---|---|
+| Studio | Root [`vercel.json`](../vercel.json) | Installs and builds from `studio/` |
+| AI Agents | [`ai-agents/render.yaml`](../ai-agents/render.yaml) | Describes the expected FastAPI entry point and `/healthz` probe; the live service may be manually configured |
+| Database | [`supabase/`](../supabase/) migrations | Confirm the target database and applied migration state before any change |
 
-## Pre-deployment checks
+## Before deployment
 
-From the repository root:
+1. Review `git status` and stage only the intended changes.
+2. Run the relevant local gates. For Studio, the standard checks are:
 
-```bash
-cd studio
-npm ci
-npm run lint
-npm run typecheck
-npm test -- --run
-NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co \
-NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key \
-SUPABASE_SERVICE_ROLE_KEY=placeholder-service-role-key \
-GROQ_API_KEY=placeholder-groq-key \
-npm run build
+   ```bash
+   cd studio
+   npm ci
+   npx tsc --noEmit
+   npm test
+   npm run build
+   ```
 
-cd ../ai-agents
-PYTHONPATH=src python -m compileall -q src tests
-PYTHONPATH=src pytest -q
-```
+3. For AI Agents changes, run the service tests:
 
-Use real deployment environment variables only in the hosting provider. Never put service-role keys, provider keys, or database credentials in Git.
+   ```bash
+   cd ai-agents
+   PYTHONPATH=src poetry run pytest -q
+   ```
 
-## Render readiness
+4. Review changed routes, environment variables, migrations, and service
+   contracts. Keep secrets and real learner data out of logs and test requests.
+5. Apply database changes to a non-production project first. A migration file
+   in Git is not evidence that it is applied to production.
 
-The Render service is defined in `render.yaml`:
+## After deployment
 
-```text
-rootDir: ai-agents
-startCommand: PYTHONPATH=src uvicorn syncsenta_agents.api.server:app --host 0.0.0.0 --port $PORT
-healthCheckPath: /healthz
-```
-
-Verify:
-
-```bash
-curl -fsS https://ascendra-1.onrender.com/healthz
-```
-
-Expected response shape:
-
-```json
-{"status":"ok","offline_demo":false}
-```
-
-A timeout is not equivalent to a healthy cold start. Inspect the Render deployment logs and service state before changing application code or retrying production requests.
-
-## Vercel verification
-
-After deployment, verify the public shell and representative protected behavior:
+Use the actual URLs and commit shown by the provider. Check the public Studio
+surface and the affected route, then check the AI Agents health endpoint if the
+workflow uses that service:
 
 ```bash
-base=https://sentastudio.vercel.app
-curl -fsS "$base/api/health"
-curl -fsS "$base/manifest.json"
-curl -fsS "$base/sw.js"
-curl -fsS "$base/offline"
-curl -sS -o /tmp/protected -w '%{http_code}\n' \
-  -X POST -H 'content-type: application/json' \
-  --data '{}' "$base/api/student/wellbeing"
+curl -sS -i "$AI_AGENTS_URL/healthz"
 ```
 
-The protected request should return `401` without an authenticated session. Do not use real learner data for smoke tests.
+Inspect `status`, `lesson_architect.mounted`, and `lesson_architect.error`.
+Then test the specific `/agents/*` or `/lesson-architect/*` route involved.
+`/healthz` does not prove that an LLM provider, database operation, or generated
+response works.
 
-## Rollback
+For Studio, verify the changed route in the deployed environment and, when the
+user experience is involved, in a browser. Report these as separate results:
+local tests, build, deployment status, HTTP check, and browser verification.
 
-Rollback by reverting the specific verified commit and pushing the revert. Do not reset shared history. After rollback, repeat the Vercel route and health checks above and confirm the working tree is clean.
+## Rollback and incidents
 
-## Incident notes
+Prefer a focused revert commit over rewriting shared history. Before rolling
+back a database change, inspect its effects and use the approved migration or
+recovery procedure; do not improvise destructive SQL.
 
-Record deployment time, commit SHA, provider deployment URL, failing route, response status, and whether the failure is application code, provider configuration, credential availability, or a cold-start/resource issue. Do not record secrets or personal data.
-
-## Current known external dependency
-
-The AI service readiness endpoint must be rechecked after every Render deployment. If it times out while Vercel remains healthy, treat Studio's public shell and the AI-backed workflows as separate deployment states; do not claim the full platform is healthy until `/healthz` responds.
-
----
-
-Last reviewed: September 2026.
+For an incident, capture the commit, deployment, route/method, status, timestamp
+and timezone, duration, and redacted logs. Do not include credentials, cookies,
+tokens, or identifiable learner data. Use the
+[Developer Debugging Playbook](DEBUGGING_PLAYBOOK.md) to structure the report
+and separate provider/configuration failures from application failures.

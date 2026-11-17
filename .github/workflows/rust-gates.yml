@@ -4,12 +4,8 @@ name: Rust gates
 # anywhere. The development laptop cannot link them (`cc` is a zig-built musl
 # clang with no `gcc`, and `ring` — pulled in by `jsonwebtoken`, `rustls`,
 # `reqwest`, `ethers` and `sqlx` — refuses the `x86_64-unknown-linux-gnu` target
-# triple), so `cargo test` exits 101 before a single test runs. The consequence
-# was measured on 2026-09-29: the Omega Claw query path asserted every query as a
-# fact instead of matching it, so `scope_for("Grade 6")` answered `blocked` and
-# every activity was refused for every learner — and the two tests that pin that
-# behaviour could never have passed. See
-# docs/architecture/decision-one-rule-voice.md.
+# triple), so `cargo test` exits 101 before a single test runs. This workflow
+# covers retired Rust paths only; it is not a gate for active Studio work.
 #
 # WHY A DATABASE JOB: 64 of the crate's queries are compile-time-checked
 # `sqlx::query!` macros and there is no committed `.sqlx/` offline data, so the
@@ -22,8 +18,7 @@ name: Rust gates
 #
 # NOT COVERED HERE: the `metta` cargo feature (the real hyperon runtime). It needs
 # cmake and native git and is exactly the toolchain the fallback engine exists to
-# avoid, so it is not compiled here. Item O-6 in docs/SCOPE-SECURITY-AND-OMEGA.md
-# stays open until a host runs it.
+# avoid, so it is not compiled here.
 
 on:
   pull_request:

@@ -14,9 +14,7 @@
  *    marketing copy, and the registry would then be a list of claims rather
  *    than a list of decisions.
  * 2. Every principle has to be something a teacher, tutor prompt or interface
- *    can actually act on. See `docs/research/` for the reading behind each
- *    entry and `docs/research/learning-approaches-montessori-waldorf-reggio.md`
- *    for the three frictions that produced the two `excludedPositions` below.
+ *    can actually act on. Keep each entry's named source and boundary explicit.
  */
 
 export interface PedagogyAdaptation {

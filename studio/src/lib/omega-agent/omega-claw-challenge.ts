@@ -20,11 +20,9 @@
  * path's own rows back without pulling in the competencies the tutor writes, and it cannot collide
  * with a curriculum code: those are of the form `M8-ALG.1`, never a lowercase word plus a colon.
  *
- * Deliberately not done here, and recorded in docs/ROADMAP.md rather than papered over: the 50-point
- * award follows `calculateMasteryLevel()`, which needs 20 answered questions at 90%+ to call a
+ * The 50-point award follows `calculateMasteryLevel()`, which needs 20 answered questions at 90%+ to call a
  * competency mastered. A path of three nodes answered once each sits at 3, so the wiring is live and
- * the transition has never fired for a challenge node. The fix for that is O-3 — the nodes come from
- * the rule pack, so the path gets longer — not a second, lower award rule.
+ * the transition has never fired for a challenge node.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';

@@ -2,8 +2,8 @@
  * Safe data retrieval — the redaction half.
  *
  * The problem this exists to solve is not "how do we read production", it is "how do we read production
- * and still hand the result to somebody". Every verification gap in `docs/ROADMAP.md` §5 is a gap of the
- * form *nobody has looked at the live rows*, and the reason nobody has looked is that looking means
+ * and still hand the result to somebody". A verification gap can mean *nobody has looked at the live rows*,
+ * and the reason nobody has looked is that looking means
  * pulling a table of children's names, phone numbers and guardrail events onto a screen — after which the
  * only honest storage location is a place that must never be committed. A retrieval surface that returns
  * rows verbatim turns a debugging session into a breach with extra steps.

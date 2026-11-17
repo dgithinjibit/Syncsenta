@@ -1,56 +1,38 @@
-# SyncSenta AI Agents - LangChain + CrewAI + Stellar
+# AI Agents
 
-Production-ready AI agent system for Kenya's CBC curriculum using LangChain orchestration, CrewAI workers, and Stellar blockchain verification.
+This directory contains the Python FastAPI service used by selected agent,
+assessment, and teacher-generation workflows. It is separate from the Studio
+web application in `studio/`.
 
-## Architecture
+## Runtime
 
-- **Agent 7 (Orchestrator)**: LangGraph workflow orchestration
-- **Agents 1-6 (Workers)**: CrewAI specialized educational agents
-- **Edge Inference**: Ollama on Raspberry Pi nodes
-- **Blockchain**: Stellar for immutable grade verification
-- **Offline-First**: PouchDB + CouchDB sync
+- Entrypoint: `syncsenta_agents.api.server:app`
+- Render configuration: [`render.yaml`](render.yaml)
+- Health check: `GET /healthz`
+- Student agent and assessment routes are mounted under `/agents/`.
+- Teacher generation routes are mounted by the lesson-architect router when
+  its dependencies are available; `/healthz` reports whether it mounted.
 
-## Quick Start
+The Render manifest documents the deployed service configuration. The live
+Render service was created manually, so changes to `render.yaml` do not deploy
+until its dashboard settings and deployment are updated.
+
+## Local development
+
+With Python 3.11 or later and Poetry installed:
 
 ```bash
-# Install dependencies
-poetry install
-
-# Run tests
-poetry run pytest
-
-# Start development server
-poetry run python -m syncsenta_agents.main
+poetry install --with dev
+PYTHONPATH=src poetry run uvicorn syncsenta_agents.api.server:app --reload --port 8001
 ```
 
-## Project Structure
+Run the service tests from this directory:
 
-```
-src/syncsenta_agents/
-├── orchestrator/          # LangGraph orchestration (Agent 7)
-├── agents/               # CrewAI worker agents (Agents 1-6)
-├── inference/            # Ollama edge inference
-├── blockchain/           # Stellar integration
-├── sync/                # Offline-first data sync
-├── multimodal/          # Voice and OCR processing
-├── core/                # Shared utilities and models
-└── tests/               # Comprehensive test suite
+```bash
+PYTHONPATH=src poetry run pytest
 ```
 
-## Development
-
-- **Python 3.11+** required
-- **Poetry** for dependency management
-- **pytest + hypothesis** for testing
-- **Black + isort** for code formatting
-
-## Production Deployment
-
-- **Raspberry Pi 4** (8GB RAM minimum)
-- **Ollama server** for local LLM inference
-- **Stellar network** for blockchain verification
-- **CouchDB** for data synchronization
-
-## Cultural Authenticity
-
-All agents incorporate Kenyan cultural context, CBC curriculum alignment, and support for English-Swahili code-switching to ensure authentic educational experiences for Kenyan students.
+Configure provider credentials and optional Supabase settings in the local
+environment. Never commit secrets. See [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
+for service boundaries and [`../docs/DEBUGGING_PLAYBOOK.md`](../docs/DEBUGGING_PLAYBOOK.md)
+for production checks.
