@@ -15,6 +15,6 @@ checkouts.
   `chatdev-orchestrator.sh` — optional legacy helpers that require an external
   `ChatDev/` checkout. They are not part of the active Studio development path.
 
-Other scripts target archived Rust experiments, one-off dataset work, or
-service-specific checks. They are not general setup commands. Confirm the
-target, required environment, and side effects before using them.
+Other scripts target Rust modules, one-off dataset work, or service-specific
+checks. They are not general setup commands. Confirm the target, required
+environment, and side effects before using them.

@@ -1,9 +1,9 @@
 # Development
 
-The active development path is Studio plus the Python AI Agents service. Read
-[Architecture](ARCHITECTURE.md) for request boundaries and the
-[Developer Debugging Playbook](DEBUGGING_PLAYBOOK.md) for symptom-based
-diagnostics and the Jira-ready report template.
+The active development paths are Studio, the Python AI Agents service, and the
+Rust workspaces. Read [Architecture](ARCHITECTURE.md) for request boundaries
+and the [Developer Debugging Playbook](DEBUGGING_PLAYBOOK.md) for
+symptom-based diagnostics and the Jira-ready report template.
 
 ## Prerequisites
 
@@ -13,6 +13,8 @@ diagnostics and the Jira-ready report template.
   [`ai-agents/runtime.txt`](../ai-agents/runtime.txt)
 - npm and Poetry
 - Local test credentials for any external services the workflow exercises
+- Rust stable, Cargo, a C/C++ toolchain, CMake, and Git for the Rust workspaces;
+  backend tests also require PostgreSQL with the backend migrations applied
 
 The Studio GitHub workflow currently pins Node 20. When local and CI results
 differ, compare the actual runtime and first failing log before changing
@@ -57,6 +59,32 @@ Studio app can use that service by setting
 `NEXT_PUBLIC_AI_AGENTS_URL=http://localhost:8001` in its local environment.
 Student chat in Studio is a separate path and does not require the FastAPI
 service.
+
+## Rust workspaces
+
+The root workspace contains `rust-core/` and `rust-service/`. The backend is a
+separate workspace under `backend/`; its default features use Hyperon MeTTa.
+`--no-default-features` selects the limited in-process fallback and is not the
+normal runtime.
+
+Run root workspace tests from the repository root:
+
+```bash
+cargo test --workspace
+```
+
+The backend uses compile-time SQLx queries, so `DATABASE_URL` must point to a
+PostgreSQL database with `backend/syncsenta-backend/migrations/` applied before
+building or testing:
+
+```bash
+cd backend
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/syncsenta \
+  cargo test -p syncsenta-backend
+```
+
+The [Rust CI workflow](../.github/workflows/rust-gates.yml) shows the full
+database-backed sequence used by CI.
 
 ## Verify changes
 

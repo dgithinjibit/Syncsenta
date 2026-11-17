@@ -8,9 +8,13 @@ Read [the North Star](docs/BASIX-NORTH-STAR.md), then the
 - `studio/` is the Next.js 14 web application and the primary product surface.
 - `ai-agents/` is the Python FastAPI service used by selected agent and teacher
   workflows.
+- `backend/` is the Rust/Axum backend. Its default build uses Hyperon MeTTa for
+  the Omega Claw rule runtime; Studio forwards to it only when
+  `SYNCSENTA_BACKEND_URL` is configured.
+- `rust-core/` and `rust-service/` are members of the root Rust workspace.
 - Supabase provides authentication, PostgreSQL, and row-level security.
-- `archive/` contains retired or experimental code; do not treat it as an active
-  runtime unless a task explicitly targets it.
+- `archive/` contains the remaining retired or experimental code. Active Rust
+  code is kept at its normal workspace paths, not under `archive/`.
 
 For Phase 2, the plan of record is teacher analytics and dashboards in
 [`docs/ROADMAP.md`](docs/ROADMAP.md). Do not use archived plans or assume a
@@ -30,6 +34,8 @@ exists.
   approval.
 - For behavior changes, add a focused regression test first, then implement the
   minimum fix. Prefer tests beside the existing feature tests.
+- Keep Hyperon enabled in normal backend builds. Use
+  `--no-default-features` only for an explicitly requested fallback build.
 - Keep unrelated worktree changes intact. Do not commit unless asked.
 
 ## Verification
@@ -47,6 +53,12 @@ npm run build
 For Python service changes, run `PYTHONPATH=src poetry run pytest -q` from
 `ai-agents/`. Report exactly which checks ran; a passing local check does not
 prove deployment or browser behavior.
+
+For root Rust workspace changes, run `cargo test --workspace` from the
+repository root. For backend changes, run `cargo test -p syncsenta-backend`
+from `backend/` with `DATABASE_URL` pointing to a PostgreSQL database that has
+the backend migrations applied. The backend's default feature set compiles and
+tests the Hyperon runtime.
 
 ## Documentation
 

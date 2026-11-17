@@ -1,8 +1,9 @@
 # Developer Debugging Playbook
 
 Use this guide to turn a bug report into a reproducible, testable engineering
-issue. It covers the active Studio + AI Agents + Supabase runtime. Code under
-`archive/` is historical unless a task explicitly targets it.
+issue. It covers the active Studio, AI Agents, Supabase, and Rust source
+workspaces. Code still under `archive/` is historical unless a task explicitly
+targets it.
 
 ## Read before investigating
 
@@ -16,9 +17,9 @@ issue. It covers the active Studio + AI Agents + Supabase runtime. Code under
 Some older documents still describe Windows-only commands, retired components,
 or paths now under `archive/`. Before running a command or following a path,
 confirm it exists in the current checkout and check the service configuration
-that actually launches it. In particular, `studio/` and `ai-agents/` are the
-active application runtimes; archived Rust and standalone-app directories are
-not the production request path.
+that actually launches it. The Rust backend source is active but is not
+currently deployed; Studio forwards to it only when
+`SYNCSENTA_BACKEND_URL` is configured.
 
 ## Jira-ready bug report
 
@@ -32,7 +33,7 @@ Summary:
 
 Issue type: Bug | Regression | Incident | Test/CI failure
 Priority: Blocker | High | Medium | Low
-Component: Studio | AI Agents | Supabase/Auth/RLS | LLM/provider | Deployment/CI | Other
+Component: Studio | Rust/MeTTa | AI Agents | Supabase/Auth/RLS | LLM/provider | Deployment/CI | Other
 Environment: local | CI | preview | production
 Affected commit/branch:
 First observed (include timezone):
@@ -92,8 +93,8 @@ repository's security process; do not paste the material into Jira or chat.
    timezone, status/error, runtime, commit/build, and frequency. Preserve safe
    logs before retrying; redact tokens and learner data.
 2. **Classify the boundary.** Decide whether the failing hop is browser → Studio,
-   Studio → AI Agents, Studio → Supabase/Redis, AI Agents → model/database, or
-   deployment/CI. A healthy service check only proves that health endpoint.
+   Studio → Rust/AI Agents, Studio → Supabase/Redis, AI Agents → model/database,
+   or deployment/CI. A healthy service check only proves that health endpoint.
 3. **Reproduce with the smallest case.** Start with the narrowest existing test
    or request. Keep the environment and inputs fixed; change one variable at a
    time.
@@ -116,9 +117,11 @@ repository's security process; do not paste the material into Jira or chat.
 |---|---|---|
 | Web app, pages, `/api/*` | `studio/` (Next.js; Vercel) | Browser network/console, route handler logs, Studio tests |
 | Agent, assessment, teacher-generation APIs | `ai-agents/src/syncsenta_agents/api/server.py` (FastAPI; Render) | `GET /healthz`, then the specific route |
+| Omega Claw MeTTa rules | `backend/syncsenta-backend/` (Rust/Axum; Hyperon enabled by default) | Backend tests with migrated PostgreSQL; check whether `SYNCSENTA_BACKEND_URL` is configured |
+| Adaptive Rust policy | `rust-core/` and `rust-service/` (root Cargo workspace) | Root workspace tests and the specific service configuration |
 | Auth, database, access policies | Supabase | Check session, table/schema, and RLS separately |
 | Rate limits and short-lived session state | Upstash Redis, when configured | Check env-var presence and route logs |
-| Retired experiments | `archive/` | Not part of the production path unless a task explicitly says otherwise |
+| Retired experiments | `archive/` | Not part of the production path |
 
 Studio chat calls its `/api/chat` route and provider chain; it is not the same
 path as teacher-generation proxies to the FastAPI service. The Render process
@@ -160,6 +163,27 @@ npm run build
 
 Run one Vitest file with `npx vitest run path/to/test.test.ts`. Do not treat a
 passing typecheck or unit suite as a production deployment or browser check.
+
+### Rust
+
+The backend uses a separate Cargo workspace and enables Hyperon MeTTa by
+default. Its SQLx macros require a migrated PostgreSQL database:
+
+```bash
+cd backend
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/syncsenta \
+  cargo test -p syncsenta-backend
+```
+
+Run root workspace tests separately:
+
+```bash
+cargo test --workspace
+```
+
+CI applies the backend migrations before running package tests. If the local
+toolchain or database is unavailable, report that exact blocker rather than
+treating skipped tests as a pass.
 
 ### AI Agents
 

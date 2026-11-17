@@ -22,14 +22,19 @@ The system is designed around a few core principles:
 
 ## Product scope
 
-The current active runtime is centered on:
+The active code and service boundaries are:
 
 - `studio/` — the Next.js application for the learner and teacher experience
 - `ai-agents/` — the Python service for agentic and orchestration flows
+- `backend/` — the Rust/Axum service and Hyperon-backed MeTTa Omega Claw engine
+- `rust-core/` and `rust-service/` — the root Rust workspace
 - `supabase/` — the database and auth layer
 - `docs/` — the operating documentation and roadmap
 
-Legacy or dormant experiments are archived under `archive/` so the live product stays focused on what is currently in use.
+The Rust backend is active source code but is not currently deployed. Studio
+uses the local TypeScript Omega Claw rule mirror unless
+`SYNCSENTA_BACKEND_URL` is explicitly configured. The remaining legacy or
+dormant experiments are kept under `archive/`.
 
 ## Live access
 
@@ -63,10 +68,13 @@ The active product is intentionally modular and keeps the runtime boundaries cle
 
 - `studio/` handles the user-facing web app and the client-side logic
 - `ai-agents/` handles agent orchestration and service-level integration
+- `backend/` contains the Rust/Axum API and Hyperon MeTTa runtime for Omega Claw
+- `rust-core/` and `rust-service/` are a separate root Cargo workspace
 - `supabase/` stores app data, auth, and access policies
 - `docs/` holds operational and engineering guidance
 
-This separation keeps the active product clear and makes it easier to quarantine dead experiments without disturbing the live system.
+The Rust service source is active, but its deployment and Studio forwarding
+remain opt-in. The remaining experimental code is separated under `archive/`.
 
 ## Repository layout
 
@@ -77,6 +85,9 @@ This separation keeps the active product clear and makes it easier to quarantine
 ├── docs/
 ├── studio/
 ├── ai-agents/
+├── backend/
+├── rust-core/
+├── rust-service/
 ├── supabase/
 ├── developer_tools/
 ├── archive/
