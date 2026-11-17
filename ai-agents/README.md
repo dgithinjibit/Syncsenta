@@ -17,6 +17,18 @@ The Render manifest documents the deployed service configuration. The live
 Render service was created manually, so changes to `render.yaml` do not deploy
 until its dashboard settings and deployment are updated.
 
+## Omega orchestration
+
+The deployed app routes chat, quiz generation/grading, and teacher content
+generation through `SyncSentaOrchestrator` → Omega Queen → a registered
+specialist. The MeTTa policy and Python fallback share the role/task routing
+contract in `src/syncsenta_agents/omega_routing.py`; add a policy route and a
+focused dispatch test when introducing a new specialist task. Structured
+specialist results are retained internally so the existing quiz and teacher
+API response shapes remain unchanged. If Omega cannot initialize, app startup
+fails; worker exceptions return an Omega-owned error instead of routing around
+the master. Scheme save/list endpoints remain data operations, not agent tasks.
+
 ## Local development
 
 With Python 3.11 or later and Poetry installed:
@@ -30,6 +42,12 @@ Run the service tests from this directory:
 
 ```bash
 PYTHONPATH=src poetry run pytest
+```
+
+Run the focused Omega orchestration tests:
+
+```bash
+PYTHONPATH=src poetry run pytest -q tests/test_omega_api.py tests/test_omega_queen.py tests/test_omega_routing.py tests/test_orchestrator.py tests/test_assessment_agent.py
 ```
 
 Configure provider credentials and optional Supabase settings in the local

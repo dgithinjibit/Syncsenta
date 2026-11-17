@@ -1,7 +1,7 @@
 """Which LLM provider the edge/cloud clients should talk to.
 
 Leaf module on purpose: it imports nothing but `typing`, so the rule can be
-exercised without aiohttp, LangGraph or CrewAI installed.
+exercised without aiohttp or CrewAI installed.
 
 Why this exists
 ---------------
@@ -59,11 +59,11 @@ def resolve_llm_provider(env: Mapping[str, str]) -> str:
 class PlainTextLLM:
     """Adapt a chat model to the prompt-string interface the orchestrator uses.
 
-    `LangGraphOrchestrator` calls `self.analysis_llm.invoke(prompt)` and then
-    `.strip()` on the result, which is what `langchain_community.llms.Ollama`
-    returns. `ChatGroq` is a *chat* model and answers with an `AIMessage`, so
-    handing it over directly would raise `AttributeError` on the first request
-    and look like a model failure rather than a wiring one.
+    Agent integrations need a plain string from `.invoke()`, which is what
+    `langchain_community.llms.Ollama` returns. `ChatGroq` is a *chat* model and
+    answers with an `AIMessage`, so handing it over directly would raise
+    `AttributeError` on the first request and look like a model failure rather
+    than a wiring one.
     """
 
     def __init__(self, model: Any) -> None:

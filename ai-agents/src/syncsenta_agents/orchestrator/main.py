@@ -1,49 +1,29 @@
-"""Main orchestrator implementation with LangGraph workflow and failure recovery."""
+"""Main Omega orchestrator implementation with failure recovery."""
 
 from typing import Dict, Any, Optional
 from datetime import datetime
 
 from ..core.models import AgentRequest, AgentResponse
 from ..core.logging import AgentLogger
-from ..agents.assessment import AssessmentAgent
-from ..agents.tutoring import TutoringAgent
-from .workflow import LangGraphOrchestrator
 from .failure_recovery import FailureRecoveryManager
+from .omega_queen import OmegaQueenOrchestrator
 
 
 class SyncSentaOrchestrator:
-    """Production-ready orchestrator for SyncSenta AI Agents.
-    
-    Integrates LangGraph workflow orchestration with comprehensive
-    failure recovery, circuit breakers, and graceful degradation.
-    """
+    """Production-ready Omega orchestrator with failure recovery."""
     
     def __init__(self):
-        """Initialize the orchestrator with workflow and failure recovery."""
+        """Initialize the Omega Queen and failure recovery."""
         self.logger = AgentLogger("orchestrator")
-        self.workflow_orchestrator: Optional[LangGraphOrchestrator] = None
+        self.omega_queen: Optional[OmegaQueenOrchestrator] = None
         self.failure_recovery = FailureRecoveryManager()
         self._initialized = False
     
     async def initialize(self) -> None:
-        """Initialize the orchestrator and workflow."""
+        """Initialize the orchestrator and Omega Queen."""
         try:
             self.logger.info("Initializing SyncSenta Orchestrator")
-            
-            # Initialize LangGraph workflow
-            self.workflow_orchestrator = LangGraphOrchestrator()
-
-            # Register implemented worker agents. Other agents (Socratic, CBC,
-            # Lesson, Intelligence, Career) fall through to placeholder
-            # responses in the workflow until their migration completes.
-            self.workflow_orchestrator.register_agent(
-                "assessment", AssessmentAgent()
-            )
-            # Tutoring_Agent — registered under "socratic_tutor" so the
-            # existing workflow routing slot picks it up for student questions.
-            self.workflow_orchestrator.register_agent(
-                "socratic_tutor", TutoringAgent()
-            )
+            self.omega_queen = OmegaQueenOrchestrator()
 
             self._initialized = True
             self.logger.info("Orchestrator initialized successfully")
@@ -52,7 +32,12 @@ class SyncSentaOrchestrator:
             self.logger.error("Orchestrator initialization failed", error=str(e))
             raise
     
-    async def process_request(self, request: AgentRequest) -> AgentResponse:
+    async def process_request(
+        self,
+        request: AgentRequest,
+        *,
+        task_context: Optional[Dict[str, Any]] = None,
+    ) -> AgentResponse:
         """Process an agent request with full failure protection.
         
         Args:
@@ -61,7 +46,7 @@ class SyncSentaOrchestrator:
         Returns:
             AgentResponse with result or error information
         """
-        if not self._initialized or not self.workflow_orchestrator:
+        if not self._initialized or not self.omega_queen:
             self.logger.error("Orchestrator not initialized")
             return AgentResponse(
                 success=False,
@@ -84,11 +69,12 @@ class SyncSentaOrchestrator:
             
             # Execute with failure protection
             result = await self.failure_recovery.execute_with_protection(
-                "workflow_orchestrator",
-                self.workflow_orchestrator.process_request,
+                "omega_queen",
+                self.omega_queen.process_request,
                 request,
+                task_context=task_context,
                 use_retry=True,
-                use_fallback=True
+                use_fallback=False
             )
             
             if result["success"]:
@@ -96,7 +82,9 @@ class SyncSentaOrchestrator:
                 
                 # Add protection metadata
                 if isinstance(response, AgentResponse):
-                    response.fallback_used = result.get("protection_used", {}).get("fallback", False)
+                    response.fallback_used = response.fallback_used or bool(
+                        result.get("protection_used", {}).get("fallback", False)
+                    )
                     return response
                 else:
                     # Unexpected result format
@@ -105,15 +93,15 @@ class SyncSentaOrchestrator:
                         start_time
                     )
             else:
-                # Failure with fallback
+                error = result.get("error", "Request processing failed")
                 return AgentResponse(
                     success=False,
-                    response=result.get("result", "Request processing failed"),
-                    primary_agent=result.get("agent_used", "error_handler"),
-                    agents_used=[result.get("agent_used", "error_handler")],
+                    response=f"Omega could not process request: {error}",
+                    primary_agent="omega_queen",
+                    agents_used=["omega_queen"],
                     response_time_ms=int((datetime.now().timestamp() - start_time) * 1000),
-                    error=result.get("error"),
-                    fallback_used=True
+                    error=error,
+                    fallback_used=False
                 )
                 
         except Exception as e:
@@ -128,26 +116,26 @@ class SyncSentaOrchestrator:
         """Create an error response."""
         return AgentResponse(
             success=False,
-            response=f"Failed to process request: {error_message}",
-            primary_agent="orchestrator",
-            agents_used=["orchestrator"],
+            response=f"Omega could not process request: {error_message}",
+            primary_agent="omega_queen",
+            agents_used=["omega_queen"],
             response_time_ms=int((datetime.now().timestamp() - start_time) * 1000),
             error=error_message,
-            fallback_used=True
+            fallback_used=False
         )
     
     def register_agent(self, agent_name: str, agent: Any) -> None:
-        """Register an agent with the workflow orchestrator.
+        """Register an agent with the Omega Queen.
         
         Args:
             agent_name: Name of the agent to register
             agent: The agent instance
         """
-        if self.workflow_orchestrator:
-            self.workflow_orchestrator.register_agent(agent_name, agent)
+        if self.omega_queen:
+            self.omega_queen.register_agent(agent_name, agent)
             self.logger.info(f"Registered agent: {agent_name}")
         else:
-            self.logger.error("Cannot register agent: orchestrator not initialized")
+            self.logger.error("Cannot register agent: Omega Queen not initialized")
     
     def get_system_health(self) -> Dict[str, Any]:
         """Get comprehensive system health status.

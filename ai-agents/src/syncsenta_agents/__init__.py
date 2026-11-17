@@ -2,7 +2,7 @@
 SyncSenta AI Agents - Production-ready educational AI system for Kenya's CBC curriculum.
 
 This package provides a complete AI agent ecosystem using:
-- LangGraph orchestration for Agent 7 (The Maestro)
+- MeTTa-governed Omega Queen orchestration
 - CrewAI framework for Agents 1-6 (Specialized Workers)
 - Ollama edge inference on Raspberry Pi nodes
 - Stellar blockchain for immutable grade verification
@@ -13,7 +13,7 @@ __version__ = "0.1.0"
 __author__ = "SyncSenta Team"
 __email__ = "team@syncsenta.ke"
 
-# The eager re-exports that used to live here pulled in LangGraph, CrewAI,
+# The eager re-exports that used to live here pulled in CrewAI,
 # structlog and the Stellar SDK as a side effect of *any* import from this
 # package — including leaf modules such as ``syncsenta_agents.decisions`` and
 # every unit test. That made the lightweight parts of the service unusable

@@ -206,7 +206,7 @@ async def test_grading_handles_blank_short_answer_without_llm_call():
 
 
 @pytest.mark.asyncio
-async def test_execute_ta<REDACTED_SECRET>(stub_agent):
+async def test_execute_task(stub_agent):
     agent, _ = stub_agent
 
     gen = await agent.execute_task(
@@ -226,24 +226,16 @@ async def test_execute_ta<REDACTED_SECRET>(stub_agent):
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_routes_to_assessment_agent_end_to_end(monkeypatch):
-    """Verify SyncSentaOrchestrator wires AssessmentAgent into the LangGraph workflow."""
+async def test_orchestrator_routes_to_assessment_agent_end_to_end():
+    """Verify Omega routes assessment work to the registered assessment agent."""
     from syncsenta_agents.orchestrator.main import SyncSentaOrchestrator
-    from syncsenta_agents.orchestrator import workflow as workflow_mod
     from syncsenta_agents.core.models import AgentRequest
-
-    # Stub Ollama analysis LLM in workflow.py so __init__ doesn't reach the network.
-    class FakeAnalysisLLM:
-        def invoke(self, prompt: str) -> str:
-            return "ASSESSMENT"
-
-    monkeypatch.setattr(workflow_mod, "Ollama", lambda **kw: FakeAnalysisLLM())
 
     orch = SyncSentaOrchestrator()
     await orch.initialize()
 
     # Replace registered agent's LLM with a stub so no network is touched.
-    assessment_agent = orch.workflow_orchestrator.agent_registry["assessment"]
+    assessment_agent = orch.omega_queen.agent_registry["assessment"]
     assessment_agent._llm = StubLLM(
         generator=GENERATOR_PAYLOAD, grader=GRADER_PAYLOAD, coach=COACH_PAYLOAD
     )
@@ -254,6 +246,7 @@ async def test_orchestrator_routes_to_assessment_agent_end_to_end(monkeypatch):
         grade="g4",
         subject="Mathematics",
         role="teacher",
+        type="assessment",
         context={
             "action": "generate_quiz",
             "competency": "fractions",
@@ -266,3 +259,5 @@ async def test_orchestrator_routes_to_assessment_agent_end_to_end(monkeypatch):
     assert response.success is True
     assert "assessment" in response.agents_used or response.primary_agent == "assessment"
     assert response.response  # synthesized text exists
+    assert response.structured_result["action"] == "generate_quiz"
+    assert response.structured_result["quiz"]["questions"]

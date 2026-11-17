@@ -1,7 +1,7 @@
 """Orchestrator module for SyncSenta AI Agents."""
 
 from .main import SyncSentaOrchestrator
-from .workflow import LangGraphOrchestrator, RoutingDecision, AgentState
+from .omega_queen import OmegaQueenOrchestrator
 from .failure_recovery import (
     CircuitBreaker,
     CircuitState,
@@ -13,9 +13,7 @@ from .failure_recovery import (
 
 __all__ = [
     "SyncSentaOrchestrator",
-    "LangGraphOrchestrator",
-    "RoutingDecision",
-    "AgentState",
+    "OmegaQueenOrchestrator",
     "CircuitBreaker",
     "CircuitState",
     "RetryStrategy",
