@@ -5,7 +5,7 @@
 This document defines the requirements for treating an active SyncSenta
 workflow as production-complete. It applies especially to the Phase 2 teacher
 analytics scope in [ROADMAP.md](ROADMAP.md), and to the supporting learner,
-authentication, database, and deployment surfaces.
+authentication, database, deployment, and Omega/Hyperon surfaces.
 
 “Complete” means all applicable requirements below are implemented, tested,
 deployed only through an owner-approved process, and browser-verified where
@@ -469,7 +469,119 @@ The deployment owner shall verify:
 8. No placeholder or demo identity in production responses.
 9. Logs redact credentials and learner data.
 
-## 13. Acceptance criteria
+## 13. Omega and Hyperon production requirements
+
+“100% Omega” means every applicable requirement in this section is implemented
+and verified for the agreed SyncSenta scope; it is not a percentage of lines of
+code. This specification does not claim compatibility with the complete
+upstream OmegaHive project. That requires access to its implementation,
+approved requirements, and conformance tests.
+
+### Authority and boundaries
+
+- Rust/Axum is the canonical Omega service, and Hyperon MeTTa is its policy
+  runtime.
+- The MeTTa rule pack is the source of truth for Omega policy decisions. Rust
+  may validate and normalize inputs, invoke the runtime, and map typed results
+  to API responses; it must not duplicate policy decisions in `if`/`else`
+  thresholds or a second rules implementation.
+- Studio remains the application UI and may proxy authenticated requests to
+  Rust. It must not make a competing Omega policy decision.
+- Model-provider integrations may remain, but Omega-owned routing and model
+  orchestration must go through Rust. Provider clients are not alternative
+  Omega agents.
+- FastAPI, TypeScript, and other services must not provide fallback Omega
+  policy or orchestration paths. Persistence may remain with its existing
+  owner where documented, provided identity, authorization, and data ownership
+  are explicit and enforced.
+
+### Teacher-facing boundary
+
+- Teacher analytics remain an authenticated Studio-to-Supabase/RLS workflow.
+  Hyperon shall not replace roster authorization, telemetry storage, or metric
+  aggregation, and dashboard metrics shall not be described as Hyperon-derived
+  unless the metric actually comes from a Hyperon decision.
+- Teacher views may display an Omega decision already produced by Rust/Hyperon.
+  Such a value is a recorded decision, not a live learner state; show its
+  recorded time and do not infer a new policy decision in Studio or FastAPI.
+- Before a teacher-facing Omega decision is called explainable or current, its
+  response and stored snapshot must include the ruleset version, decision
+  timestamp, and rule/evidence information from the Rust service. Missing or
+  stale snapshots must remain visibly missing or stale, not become a default
+  scaffolding level.
+- Teacher feedback about Omega policy may be stored as a pending review item.
+  It must not be sent to a competing agent to generate an applicable policy
+  patch, nor modify the active MeTTa pack without a reviewed, versioned release.
+- Teacher access to a learner's Omega decision must use the same verified
+  identity and assigned-roster boundary as the learner's dashboard data.
+
+### MeTTa policy and runtime
+
+- Express in-scope Omega decisions—including tutoring/scaffolding level, next
+  action, hint selection, progression, and activity eligibility—as executable
+  MeTTa rules.
+- Return a typed result with the decision and sufficient rule/evidence
+  information to explain why it was selected.
+- Define behavior for missing, contradictory, malformed, and out-of-range
+  inputs. Invalid inputs must produce explicit errors or a conservative
+  deny/hold result, never a success-shaped guess.
+- Version the rule pack and keep its inputs, outputs, and policy changes
+  reviewable.
+- Keep Hyperon enabled in normal builds. Respect its thread-safety constraints:
+  if the runtime is not `Send` or `Sync`, confine it to an owning worker/thread
+  and communicate through a bounded, typed channel. Do not use `unsafe` to
+  force it into shared Axum state.
+
+### API, security, and providers
+
+- Expose a versioned, validated API with explicit authentication,
+  authorization, error codes, timeouts, request limits, and readiness checks.
+- Verify caller identity and permissions at the service boundary. Never trust a
+  client-supplied user ID, role, school, or learner ID as proof of access.
+- Preserve Supabase RLS and caller-scoped data access; do not use service-role
+  access to bypass a learner-facing authorization failure.
+- Keep provider credentials server-side. Apply bounded timeouts, cancellation,
+  rate limits, and explicit provider error handling.
+- Preserve the established chat contract, safety controls, and streaming
+  behavior where used. Do not fabricate tutoring responses or present provider
+  failure as a successful Omega decision.
+
+### Omega verification
+
+- Unit tests exercise MeTTa rules for normal cases, thresholds, boundaries,
+  conflicting facts, and invalid inputs.
+- Tests establish that MeTTa—not parallel Rust, TypeScript, or Python
+  decisions—determines each policy outcome.
+- Rust integration tests cover API validation, authentication, authorization,
+  runtime failures, and provider failures. Contract tests cover Studio-to-Rust
+  errors and streaming where applicable.
+- Tests use synthetic identities and data; no real learner data or secrets.
+- The backend compiles and its tests pass with the default Hyperon feature set.
+  Run backend tests against a disposable migrated PostgreSQL database when
+  SQLx requires it.
+- The deployed authenticated learner flow and a denied-access case are
+  verified in a browser or an equivalent approved integration environment.
+
+### Omega completion checklist
+
+- [ ] Every in-scope Omega policy decision is executed by Hyperon MeTTa rules.
+- [ ] Rust/Axum is the sole Omega policy and orchestration authority.
+- [ ] No active TypeScript or Python Omega fallback, mirror, or competing
+      orchestrator remains.
+- [ ] Teacher analytics remain source-attributed Supabase/RLS data; any displayed
+      Omega decision is a timestamped, versioned Rust/MeTTa result with evidence.
+- [ ] Teacher Omega feedback cannot generate or apply a policy patch outside the
+      reviewed MeTTa rule-release process.
+- [ ] Missing, stale, and failed teacher-side Omega decision reads are distinct
+      from a valid stored decision.
+- [ ] The Hyperon runtime has a safe, tested ownership and concurrency model.
+- [ ] Authentication, authorization, RLS, and data ownership are verified at
+      each service boundary.
+- [ ] Provider calls, errors, timeouts, and streaming have explicit contracts.
+- [ ] Required unit, integration, contract, build, and end-to-end checks pass.
+- [ ] The deployed service and authenticated/denied user flows are verified.
+
+## 14. Acceptance criteria
 
 Phase 2 shall be considered production-complete only when all of the following
 are true:
@@ -497,7 +609,7 @@ are true:
 - [ ] Documentation records implemented, tested, deployed, and browser-verified
       evidence separately.
 
-## 14. Claim and evidence policy
+## 15. Claim and evidence policy
 
 Use only evidence-supported claims:
 

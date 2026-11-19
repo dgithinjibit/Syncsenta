@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   buildPhase2Overview,
   derivePhase2StudentStatus,
@@ -23,6 +25,27 @@ describe('derivePhase2StudentStatus', () => {
 
   it('returns idle when no profile is available', () => {
     expect(derivePhase2StudentStatus(null)).toBe('idle');
+  });
+});
+
+describe('teacher dashboard data provenance', () => {
+  const component = readFileSync(
+    join(process.cwd(), 'src/components/teacher/phase2-teacher-dashboard.tsx'),
+    'utf8',
+  );
+  const page = readFileSync(
+    join(process.cwd(), 'src/app/teacher/metta-analytics/page.tsx'),
+    'utf8',
+  );
+
+  it('does not present Supabase-derived analytics as MeTTa output', () => {
+    expect(component).not.toContain('MeTTa Dashboard');
+    expect(page).not.toContain('MeTTa Analytics');
+  });
+
+  it('does not describe stored telemetry or scaffolding snapshots as live', () => {
+    expect(component).not.toContain('Real-time adaptive learning analytics');
+    expect(component).not.toContain('Need step-by-step help now');
   });
 });
 

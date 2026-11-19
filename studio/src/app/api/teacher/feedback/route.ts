@@ -1,15 +1,10 @@
 /**
  * POST /api/teacher/feedback
  *
- * Teacher submits feedback on:
- * 1. Generated schemes of work (lesson order, activities, pacing)
- * 2. Student scaffolding decisions (Omega thresholds)
+ * Teacher submits feedback on generated schemes or Omega policy outcomes.
  *
- * Flow:
- * - Validate + store in Supabase
- * - Record in MeTTa session boundary
- * - POST to FastAPI for analysis
- * - Return proposed patch to teacher
+ * Scheme feedback may be analyzed by FastAPI. Omega feedback is stored for
+ * human review and cannot propose or apply a live MeTTa policy patch.
  */
 
 import { NextRequest } from 'next/server';
@@ -127,6 +122,19 @@ export async function POST(req: NextRequest) {
   }
 
   const feedbackId = feedbackRecord?.id;
+
+  if (body.type === 'omega_threshold') {
+    return Response.json(
+      {
+        success: true,
+        feedbackId,
+        status: 'pending_review',
+        policyUpdated: false,
+        message: 'Omega feedback was saved for review. No active policy was changed.',
+      },
+      { status: 202 },
+    );
+  }
 
   // ── Send to FastAPI for analysis ────────────────────────────────
   let analysisUrl: string;

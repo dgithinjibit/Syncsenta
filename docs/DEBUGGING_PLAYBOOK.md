@@ -7,12 +7,13 @@ targets it.
 
 ## Read before investigating
 
-1. [`BASIX-NORTH-STAR.md`](BASIX-NORTH-STAR.md) — product claims and evidence rules.
-2. [`README.md`](README.md) — active documentation map and service boundaries.
-3. [`ARCHITECTURE.md`](ARCHITECTURE.md) — request flows and component responsibilities.
-4. [`ROADMAP.md`](ROADMAP.md) — current priorities and verified project status.
-5. [Test-driven development skill](../.claude/skills/test-driven-development/SKILL.md) —
+1. [`README.md`](README.md) — active documentation map and service boundaries.
+2. [`ARCHITECTURE.md`](ARCHITECTURE.md) — request flows and component responsibilities.
+3. [`ROADMAP.md`](ROADMAP.md) — current priorities and verified project status.
+4. [Test-driven development skill](../.claude/skills/test-driven-development/SKILL.md) —
    the red/green workflow.
+5. For Omega changes, read the
+   [production completion specification](specs.md).
 
 Some older documents still describe Windows-only commands, retired components,
 or paths now under `archive/`. Before running a command or following a path,

@@ -1,28 +1,39 @@
 /**
  * GET /api/teacher/students-scaffolding?studentIds=id1,id2,...
  *
- * Bulk-reads Redis LearningSession for each studentId and returns their
- * last Omega scaffolding level. Teachers use this to populate the Overview
- * student list with live scaffolding badges without a per-student round-trip.
+ * Bulk-reads Redis LearningSession for each assigned student and returns the
+ * last recorded Omega scaffolding decision snapshot. Session keys use auth
+ * user IDs, so student-row IDs are resolved through students.user_id.
  *
- * Response: Record<studentId, 'Independent' | 'Guided' | 'Intensive' | null>
+ * Response: Record<studentId, ScaffoldingSnapshot | null>
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
-import { getLearningSession } from '@/lib/session/session-persistence';
+import {
+  getLearningSessionReadResult,
+  type OmegaScaffoldingDecisionSnapshot,
+  type OmegaScaffoldingLevel,
+} from '@/lib/session/session-persistence';
 
 export const dynamic = 'force-dynamic';
 
-export type ScaffoldingMap = Record<
-  string,
-  'Independent' | 'Guided' | 'Intensive' | null
->;
+export interface ScaffoldingSnapshot {
+  level: OmegaScaffoldingLevel;
+  capturedAt: string | null;
+  decidedAt?: string;
+  nextAction?: string;
+  hint?: string;
+  rulesetVersion?: string;
+  evidence?: string[];
+}
 
-interface AssignmentQuery {
-  select(columns: string): AssignmentQuery;
-  eq(column: string, value: unknown): AssignmentQuery;
-  in(column: string, values: unknown[]): AssignmentQuery;
+export type ScaffoldingMap = Record<string, ScaffoldingSnapshot | null>;
+
+interface ScaffoldingQuery {
+  select(columns: string): ScaffoldingQuery;
+  eq(column: string, value: unknown): ScaffoldingQuery;
+  in(column: string, values: unknown[]): ScaffoldingQuery;
   limit(count: number): Promise<{
     data: unknown[] | null;
     error: { message: string } | null;
@@ -30,7 +41,33 @@ interface AssignmentQuery {
 }
 
 interface AssignmentDb {
-  from(table: string): AssignmentQuery;
+  from(table: string): ScaffoldingQuery;
+}
+
+function isScaffoldingLevel(value: unknown): value is OmegaScaffoldingLevel {
+  return value === 'Independent' || value === 'Guided' || value === 'Intensive';
+}
+
+function isDecisionSnapshot(
+  value: unknown,
+): value is OmegaScaffoldingDecisionSnapshot {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const snapshot = value as Record<string, unknown>;
+  return (
+    isScaffoldingLevel(snapshot.level) &&
+    typeof snapshot.capturedAt === 'string' &&
+    !Number.isNaN(Date.parse(snapshot.capturedAt)) &&
+    (snapshot.decidedAt === undefined ||
+      (typeof snapshot.decidedAt === 'string' &&
+        !Number.isNaN(Date.parse(snapshot.decidedAt)))) &&
+    typeof snapshot.nextAction === 'string' &&
+    typeof snapshot.hint === 'string' &&
+    (snapshot.rulesetVersion === undefined ||
+      typeof snapshot.rulesetVersion === 'string') &&
+    (snapshot.evidence === undefined ||
+      (Array.isArray(snapshot.evidence) &&
+        snapshot.evidence.every((item) => typeof item === 'string')))
+  );
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -98,24 +135,85 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  const db = supabase as unknown as AssignmentDb;
+  const { data: studentRows, error: studentsError } = await db
+    .from('students')
+    .select('id, user_id')
+    .in('id', studentIds)
+    .limit(50);
+  if (studentsError) {
+    return NextResponse.json(
+      { error: 'Failed to resolve student accounts' },
+      { status: 500 },
+    );
+  }
+  const students = (studentRows ?? []) as Array<{
+    id: string;
+    user_id: string | null;
+  }>;
+  const userIdsByStudentId = new Map(
+    students
+      .filter(
+        (student): student is { id: string; user_id: string } =>
+          typeof student.user_id === 'string',
+      )
+      .map((student) => [student.id, student.user_id] as const),
+  );
+
   // ── Bulk-read Redis (in parallel) ─────────────────────────────────────────
-  const entries = await Promise.all(
+  const reads = await Promise.all(
     studentIds.map(async (id) => {
-      try {
-        const session = await getLearningSession(id);
-        const level =
-          (session?.preferences?.scaffoldingLevel as
-            | 'Independent'
-            | 'Guided'
-            | 'Intensive'
-            | undefined) ?? null;
-        return [id, level] as const;
-      } catch {
-        return [id, null] as const;
+      const userId = userIdsByStudentId.get(id);
+      if (!userId) return { id, status: 'missing' as const };
+
+      const read = await getLearningSessionReadResult(userId);
+      if (read.status !== 'found') {
+        return { id, status: read.status };
       }
+
+      const session = read.session;
+      const decision = session?.preferences?.scaffoldingDecision;
+      if (isDecisionSnapshot(decision)) {
+        return {
+          id,
+          status: 'found' as const,
+          snapshot: {
+            level: decision.level,
+            capturedAt: decision.capturedAt,
+            ...(decision.decidedAt ? { decidedAt: decision.decidedAt } : {}),
+            nextAction: decision.nextAction,
+            hint: decision.hint,
+            ...(decision.rulesetVersion
+              ? { rulesetVersion: decision.rulesetVersion }
+              : {}),
+            ...(decision.evidence ? { evidence: decision.evidence } : {}),
+          },
+        };
+      }
+
+      const legacyLevel = session?.preferences?.scaffoldingLevel;
+      return {
+        id,
+        status: isScaffoldingLevel(legacyLevel) ? 'found' as const : 'missing' as const,
+        snapshot: isScaffoldingLevel(legacyLevel)
+          ? { level: legacyLevel, capturedAt: null }
+          : null,
+      };
     }),
   );
 
-  const result: ScaffoldingMap = Object.fromEntries(entries);
+  if (reads.some((read) => read.status === 'unavailable')) {
+    return NextResponse.json(
+      { error: 'Teacher decision snapshots are temporarily unavailable' },
+      { status: 503 },
+    );
+  }
+
+  const result: ScaffoldingMap = Object.fromEntries(
+    reads.map((read) => [
+      read.id,
+      read.status === 'found' ? read.snapshot : null,
+    ]),
+  );
   return NextResponse.json(result);
 }

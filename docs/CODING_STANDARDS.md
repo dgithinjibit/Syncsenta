@@ -50,4 +50,5 @@ Keep changes focused and follow existing patterns in the touched module.
   data in tests or logs.
 
 See [Development](DEVELOPMENT.md) for exact commands and
-[the North Star](BASIX-NORTH-STAR.md) for claim and scope rules.
+[the production completion specification](specs.md) for Omega-specific
+completion and evidence requirements.

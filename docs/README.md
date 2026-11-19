@@ -6,22 +6,21 @@ use Git history when historical context is required.
 
 ## Start here
 
-1. [North Star](BASIX-NORTH-STAR.md) — evidence, scope, and implementation
-   guardrails.
-2. [Phase 2 Roadmap](ROADMAP.md) — teacher analytics scope, work items, and
+1. [Phase 2 Roadmap](ROADMAP.md) — teacher analytics scope, work items, and
    acceptance criteria.
-3. [Development](DEVELOPMENT.md) — local environment and verification commands.
-4. [Architecture](ARCHITECTURE.md) — active runtime and data boundaries.
-5. [Coding Standards](CODING_STANDARDS.md) — conventions for Studio and
+2. [Development](DEVELOPMENT.md) — local environment and verification commands.
+3. [Architecture](ARCHITECTURE.md) — active runtime and data boundaries.
+4. [Coding Standards](CODING_STANDARDS.md) — conventions for Studio and
    teacher analytics.
-6. [Developer Debugging Playbook](DEBUGGING_PLAYBOOK.md) — Jira-ready bug
+5. [Developer Debugging Playbook](DEBUGGING_PLAYBOOK.md) — Jira-ready bug
    reports, triage, and safe diagnostics.
-7. [Deployment Runbook](DEPLOYMENT_RUNBOOK.md) — deployment boundaries and
+6. [Deployment Runbook](DEPLOYMENT_RUNBOOK.md) — deployment boundaries and
    post-deploy verification.
-8. [Student Content Readiness](CONTENT_READINESS.md) — current learner routes
+7. [Student Content Readiness](CONTENT_READINESS.md) — current learner routes
    and activity readiness.
-9. [Production Completion Specifications](specs.md) — acceptance and senior
-   production requirements for active product surfaces.
+8. [Production Completion Specification](specs.md) — acceptance and senior
+   production requirements for active product surfaces, including Omega and
+   Hyperon.
 
 ## Documentation rules
 

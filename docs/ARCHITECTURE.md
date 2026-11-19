@@ -501,9 +501,11 @@ that a metric is backed by live data.
 - Student chat enters through Studio's
   [`/api/chat` route](../studio/src/app/api/chat/route.ts) and its configured
   provider chain. It is not automatically a request to the AI Agents service.
-- Omega Claw rule endpoints use Studio's TypeScript mirror when
-  `SYNCSENTA_BACKEND_URL` is absent, and forward to the Rust/Hyperon service
-  when it is explicitly configured. The Rust service is not currently deployed.
+- Omega Claw rule endpoints fail closed when `SYNCSENTA_BACKEND_URL` is absent
+  and forward to the Rust/Hyperon service when configured. There is no
+  TypeScript policy fallback; the Rust service is not currently deployed.
+  See the [production completion specification](specs.md) for the target
+  architecture and acceptance criteria.
 - Selected agent and teacher-generation flows pass from Studio API handlers to
   the FastAPI application at
   [`ai-agents/src/syncsenta_agents/api/server.py`](../ai-agents/src/syncsenta_agents/api/server.py).

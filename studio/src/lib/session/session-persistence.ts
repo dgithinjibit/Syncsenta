@@ -26,6 +26,18 @@ function getRedisClient(): Redis | null {
 }
 
 // Session data structure
+export type OmegaScaffoldingLevel = 'Independent' | 'Guided' | 'Intensive';
+
+export interface OmegaScaffoldingDecisionSnapshot {
+  level: OmegaScaffoldingLevel;
+  capturedAt: string;
+  decidedAt?: string;
+  nextAction: string;
+  hint: string;
+  rulesetVersion?: string;
+  evidence?: string[];
+}
+
 export interface LearningSession {
   userId: string;
   deviceId: string;
@@ -63,7 +75,8 @@ export interface LearningSession {
     difficultyLevel: number; // 1-5
     learningStyle: 'visual' | 'auditory' | 'kinesthetic' | 'mixed';
     /** Last Omega scaffolding decision written by /api/chat (fire-and-forget). */
-    scaffoldingLevel?: 'Independent' | 'Guided' | 'Intensive';
+    scaffoldingLevel?: OmegaScaffoldingLevel;
+    scaffoldingDecision?: OmegaScaffoldingDecisionSnapshot;
   };
   metadata: {
     lastSync: string;
@@ -80,33 +93,45 @@ const SYNC_DEBOUNCE_MS = 2000; // Debounce frequent updates
 const sessionCache = new Map<string, { data: LearningSession; lastFetch: number }>();
 const CACHE_TTL_MS = 30000; // 30 seconds
 
-/**
- * Get learning session for a user across all devices
- */
-export async function getLearningSession(userId: string): Promise<LearningSession | null> {
+export type LearningSessionReadResult =
+  | { status: 'found'; session: LearningSession }
+  | { status: 'missing' }
+  | { status: 'unavailable'; reason: 'not_configured' | 'read_failed' };
+
+export async function getLearningSessionReadResult(
+  userId: string,
+): Promise<LearningSessionReadResult> {
   const client = getRedisClient();
-  if (!client) return null;
+  if (!client) return { status: 'unavailable', reason: 'not_configured' };
   
   // Check cache first
   const cached = sessionCache.get(userId);
   if (cached && Date.now() - cached.lastFetch < CACHE_TTL_MS) {
-    return cached.data;
+    return { status: 'found', session: cached.data };
   }
   
   try {
     const key = `learning_session:${userId}`;
     const data = await client.get(key);
     
-    if (!data) return null;
+    if (!data) return { status: 'missing' };
     
     const session = data as LearningSession;
     sessionCache.set(userId, { data: session, lastFetch: Date.now() });
     
-    return session;
+    return { status: 'found', session };
   } catch (error) {
     console.error('Failed to get learning session:', error);
-    return null;
+    return { status: 'unavailable', reason: 'read_failed' };
   }
+}
+
+/**
+ * Get learning session for a user across all devices.
+ */
+export async function getLearningSession(userId: string): Promise<LearningSession | null> {
+  const result = await getLearningSessionReadResult(userId);
+  return result.status === 'found' ? result.session : null;
 }
 
 /**

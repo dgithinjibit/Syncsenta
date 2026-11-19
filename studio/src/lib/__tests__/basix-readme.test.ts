@@ -9,7 +9,7 @@ import { join } from 'node:path';
  *
  * Track 5's deliverable list asks for a short README: problem, solution, technology, and it scores
  * documentation and build process at 20%. Prose written once and never re-checked is how this repository
- * acquired the Tier C sentences `docs/BASIX-NORTH-STAR.md` §4 lists — a performance table with no artefact
+ * acquired unsupported Tier C sentences — a performance table with no artefact
  * behind it, two docs pointing at a file one directory up. The README cannot be guarded by review, because
  * review is exactly the process that let those through. It can be guarded by a test that runs the terminal
  * and reads the page.
@@ -263,7 +263,7 @@ describe('the headline command is proven against a clean checkout, not against t
   );
 });
 
-describe('the sentences the north star bans stay banned', () => {
+describe('unsupported product claims stay excluded', () => {
   it('never claims the project is built on the upstream Omega', () => {
     expect(README).not.toMatch(/built on Omega/i);
   });

@@ -1,7 +1,8 @@
 # SyncSenta agent instructions
 
-Read [the North Star](docs/BASIX-NORTH-STAR.md), then the
-[Phase 2 roadmap](docs/ROADMAP.md), before changing product behavior.
+Read [Architecture](docs/ARCHITECTURE.md), then the
+[Phase 2 roadmap](docs/ROADMAP.md), before changing product behavior. For
+Omega/Hyperon work, also follow [the completion specification](docs/specs.md).
 
 ## Active product
 

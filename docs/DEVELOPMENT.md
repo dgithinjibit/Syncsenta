@@ -118,6 +118,13 @@ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/syncsenta \
 The [Rust CI workflow](../.github/workflows/rust-gates.yml) shows the full
 database-backed sequence used by CI.
 
+Studio's Omega policy proxy and the Rust backend must share
+`SYNCSENTA_OMEGA_PROXY_JWT_SECRET` (at least 32 bytes). Studio validates the
+Supabase caller, then signs a short-lived student assertion for the separately
+authenticated Omega route. Raw Supabase access tokens are not accepted by that
+Rust route. Configure `SYNCSENTA_BACKEND_URL` in Studio as the backend origin
+without `/api/v1`; missing proxy-secret configuration fails closed with 503.
+
 ## Verify changes
 
 Run the narrowest relevant test first. Before a Studio change is complete, run

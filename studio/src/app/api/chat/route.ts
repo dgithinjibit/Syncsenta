@@ -9,7 +9,7 @@
  * - Live hints_used + consecutive_wrong tracking fed to the Omega engine
  * - questions_asked / questions_answered / correct_answers incremented
  *   post-stream so mastery data is real for the next decision cycle
- * - Redis scaffolding level write (fire-and-forget) for teacher visibility
+ * - Redis decision snapshot write (fire-and-forget) for teacher visibility
  * - Usage logging
  *
  * Omega wiring changes (Sept 2, 2026):
@@ -47,6 +47,7 @@ import {
   type LearnerLearningContext,
 } from '@/lib/chat/socratic-prompts';
 import { fetchHyperonTutoringDecision } from '@/lib/omega-claw-api';
+import { createOmegaProxyAuthorization } from '@/lib/omega-proxy-auth';
 import { classifyAnswerQuality } from '@/lib/omega-agent/answer-quality';
 import {
   detectBlockedOmegaClawContent,
@@ -64,7 +65,11 @@ import {
   generalCompetencyForSubjectLabel,
 } from '@/lib/chat/subject-session';
 import { getLearningSession, updateLearningSession } from '@/lib/session/session-persistence';
-import type { LearningSession } from '@/lib/session/session-persistence';
+import type {
+  LearningSession,
+  OmegaScaffoldingDecisionSnapshot,
+  OmegaScaffoldingLevel,
+} from '@/lib/session/session-persistence';
 import { checkChatRateLimit } from '@/lib/session/rate-limit-upstash';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
@@ -145,13 +150,14 @@ function ageBandFromDateOfBirth(dob: string | null | undefined): string | undefi
 }
 
 /**
- * Deep-patches only `preferences.scaffoldingLevel` without clobbering the
- * rest of the LearningSession (achievements, competencyProgress, etc.).
- * Replaces the old `preferences: { ... } as any` cast.
+ * Deep-patches the Omega decision fields without clobbering the rest of the
+ * LearningSession (achievements, competencyProgress, etc.).
  */
 async function updateScaffoldingLevel(
   userId: string,
-  level: 'Independent' | 'Guided' | 'Intensive',
+  decision: Omit<OmegaScaffoldingDecisionSnapshot, 'level'> & {
+    scaffolding: OmegaScaffoldingLevel;
+  },
   language: 'english' | 'kiswahili' | 'mixed',
 ): Promise<void> {
   // Fetch current session so we can merge, not overwrite.
@@ -161,7 +167,16 @@ async function updateScaffoldingLevel(
     language:        prev?.language        ?? language,
     difficultyLevel: prev?.difficultyLevel ?? 3,
     learningStyle:   prev?.learningStyle   ?? 'mixed',
-    scaffoldingLevel: level,
+    scaffoldingLevel: decision.scaffolding,
+    scaffoldingDecision: {
+      level: decision.scaffolding,
+      capturedAt: decision.capturedAt,
+      ...(decision.decidedAt ? { decidedAt: decision.decidedAt } : {}),
+      nextAction: decision.nextAction,
+      hint: decision.hint,
+      ...(decision.rulesetVersion ? { rulesetVersion: decision.rulesetVersion } : {}),
+      ...(decision.evidence ? { evidence: decision.evidence } : {}),
+    },
   };
   await updateLearningSession(userId, { preferences: merged });
 }
@@ -199,7 +214,6 @@ export async function POST(req: NextRequest) {
 
   const { data: { user: authenticatedUser }, error: authError } =
     await supabase.auth.getUser();
-  const { data: { session } } = await supabase.auth.getSession();
 
   const allowDevChat =
     process.env.NODE_ENV !== 'production' &&
@@ -221,7 +235,7 @@ export async function POST(req: NextRequest) {
   const profile = authenticatedUser
     ? (await supabase
         .from('profiles')
-        .select('subscription_tier, grade, full_name, date_of_birth, language_preference, timezone')
+        .select('subscription_tier, grade, full_name, date_of_birth, language_preference, timezone, role')
         .eq('id', authenticatedUser.id)
         .single()).data
     : {
@@ -231,6 +245,7 @@ export async function POST(req: NextRequest) {
         date_of_birth: null,
         language_preference: 'mixed' as const,
         timezone: PLATFORM_TIME_ZONE,
+        role: 'student' as const,
       };
 
   if (!profile) {
@@ -452,6 +467,20 @@ export async function POST(req: NextRequest) {
       consecutive_wrong:  contextRow?.consecutive_wrong  ?? null,
     });
 
+    if (!authenticatedUser) {
+      return Response.json({ error: 'Sign in to use Omega tutoring decisions' }, { status: 401 });
+    }
+    const omegaAuthorization = createOmegaProxyAuthorization(
+      authenticatedUser.id,
+      profile.role,
+    );
+    if (!omegaAuthorization.ok) {
+      return Response.json(
+        { error: omegaAuthorization.error },
+        { status: omegaAuthorization.status },
+      );
+    }
+
     const hyperonDecision = await fetchHyperonTutoringDecision(
       {
         questions_answered: learningState.attempts,
@@ -463,20 +492,28 @@ export async function POST(req: NextRequest) {
         hints_used: learningState.hintsUsed,
         consecutive_wrong: contextRow?.consecutive_wrong ?? 0,
       },
-      session?.access_token,
+      omegaAuthorization.authorization,
     );
     if (hyperonDecision.status !== 200) {
       return Response.json(hyperonDecision.body, { status: hyperonDecision.status });
     }
-    const decision = hyperonDecision.body as unknown as {
-      scaffolding: 'Independent' | 'Guided' | 'Intensive';
-      nextAction: string;
-      hint: string;
-    };
+    const parsedDecision = z.object({
+      scaffolding: z.enum(['Independent', 'Guided', 'Intensive']),
+      nextAction: z.string(),
+      hint: z.string(),
+      decidedAt: z.string().refine((value) => !Number.isNaN(Date.parse(value))).optional(),
+      rulesetVersion: z.string().optional(),
+      evidence: z.array(z.string()).optional(),
+    }).safeParse(hyperonDecision.body);
+    if (!parsedDecision.success) {
+      console.error('[/api/chat] Invalid Hyperon tutoring decision response:', parsedDecision.error);
+      return Response.json({ error: 'Invalid Omega tutoring decision' }, { status: 502 });
+    }
+    const decision = { ...parsedDecision.data, capturedAt: new Date().toISOString() };
 
-    // Fire-and-forget Redis scaffolding level write for teacher visibility.
+    // Fire-and-forget Redis decision snapshot write for teacher visibility.
     if (authenticatedUser) {
-      updateScaffoldingLevel(authenticatedUser.id, decision.scaffolding, body.language)
+      updateScaffoldingLevel(authenticatedUser.id, decision, body.language)
         .catch((err) => console.error('[/api/chat] Redis scaffolding write failed:', err));
     }
 

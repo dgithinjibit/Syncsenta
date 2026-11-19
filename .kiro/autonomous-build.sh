@@ -123,7 +123,7 @@ main() {
     echo -e "${BLUE}Asking Bonsai to implement...${NC}"
     echo -e "${YELLOW}In Bonsai terminal, paste:${NC}"
     echo ""
-    echo "Read docs/BASIX-NORTH-STAR.md and docs/ROADMAP.md"
+    echo "Read docs/ARCHITECTURE.md and docs/ROADMAP.md"
     echo "Implement one Phase 2 teacher-analytics work item: $TASK_NAME"
     echo "Work in the active Studio and AI Agents code paths only"
     echo ""
