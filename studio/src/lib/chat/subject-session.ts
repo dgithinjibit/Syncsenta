@@ -10,9 +10,14 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { TutoringDecision } from '../omega-agent/metta-core';
 import type { LearnerLearningContext } from './socratic-prompts';
 import { buildLearningTrackPromptBlock } from '../learning-track-policy';
+
+export interface TutoringDecision {
+  scaffolding: 'Independent' | 'Guided' | 'Intensive';
+  nextAction: string;
+  hint: string;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Registry

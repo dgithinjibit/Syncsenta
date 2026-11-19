@@ -53,6 +53,9 @@ to its handler and data source before extending it.
 
 ## Acceptance criteria
 
+Use [`specs.md`](specs.md) as the Phase 2 production-completion specification.
+The product-specific checklist below is retained as the roadmap summary.
+
 - A signed-in teacher sees only data permitted by the current authorization
   policies.
 - Every displayed value can be traced to a defined source and metric.

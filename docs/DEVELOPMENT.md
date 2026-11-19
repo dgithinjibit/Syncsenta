@@ -60,6 +60,36 @@ Studio app can use that service by setting
 Student chat in Studio is a separate path and does not require the FastAPI
 service.
 
+## Training dataset preparation
+
+From the repository root, generate the reproducible synthetic examples and
+prepare the combined dataset:
+
+```bash
+python3 developer_tools/ai-agents/scripts/generate_training_dataset.py
+python3 developer_tools/ai-agents/scripts/prepare_for_training.py
+```
+
+Run the focused preparation checks with:
+
+```bash
+python3 -m unittest discover \
+  -s developer_tools/ai-agents/scripts -p 'test_prepare_for_training.py' -v
+```
+
+The fine-tuning inputs are `ai-agents/data/training/splits/{train,val,test}.jsonl`.
+The preparation step also writes complete and split-specific CSV files; CSV
+preserves metadata and system/user/assistant messages for inspection and
+analysis. Duplicate conversations are kept together in a single split.
+Parquet export is not currently implemented.
+The generated examples are highly repetitive; grouping prevents leakage but
+does not make the dataset instructionally diverse or validate answer quality.
+
+These commands prepare data only. The optional
+[`start_training.sh`](../developer_tools/scripts/start_training.sh) refers to
+AMD setup and model-training scripts that are not checked in, so it fails
+clearly until that training implementation is supplied.
+
 ## Rust workspaces
 
 The root workspace contains `rust-core/` and `rust-service/`. The backend is a

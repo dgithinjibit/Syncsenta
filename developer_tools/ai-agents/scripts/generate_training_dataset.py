@@ -15,6 +15,8 @@ import random
 from typing import List, Dict, Any
 from pathlib import Path
 
+TRAINING_DATA_DIR = Path(__file__).resolve().parents[3] / "ai-agents" / "data" / "training"
+
 
 # Cultural contexts by region
 CULTURAL_CONTEXTS = {
@@ -89,10 +91,13 @@ def generate_system_prompt() -> str:
     )
 
 
-def generate_fraction_dialogue(grade: str, region: str) -> Dict[str, Any]:
+def generate_fraction_dialogue(
+    grade: str, region: str, rng: random.Random | None = None
+) -> Dict[str, Any]:
     """Generate a dialogue about fractions."""
+    rng = rng or random.Random()
     cultural_items = CULTURAL_CONTEXTS.get(region, CULTURAL_CONTEXTS["universal"])
-    food_item = random.choice(["chapati", "orange", "mango", "watermelon"])
+    food_item = rng.choice(["chapati", "orange", "mango", "watermelon"])
     
     questions = [
         f"What is a fraction?",
@@ -101,7 +106,7 @@ def generate_fraction_dialogue(grade: str, region: str) -> Dict[str, Any]:
         f"What does 1/2 mean?",
     ]
     
-    question = random.choice(questions)
+    question = rng.choice(questions)
     
     # Generate culturally relevant response
     if "add" in question.lower():
@@ -135,14 +140,17 @@ def generate_fraction_dialogue(grade: str, region: str) -> Dict[str, Any]:
     }
 
 
-def generate_money_dialogue(grade: str, region: str) -> Dict[str, Any]:
+def generate_money_dialogue(
+    grade: str, region: str, rng: random.Random | None = None
+) -> Dict[str, Any]:
     """Generate a dialogue about money and calculations."""
+    rng = rng or random.Random()
     amounts = [50, 100, 150, 200, 500, 1000]
     items = ["mandazi", "unga", "sukuma wiki", "maize", "fare"]
     
-    amount1 = random.choice(amounts)
-    amount2 = random.choice([a for a in amounts if a != amount1])
-    item = random.choice(items)
+    amount1 = rng.choice(amounts)
+    amount2 = rng.choice([a for a in amounts if a != amount1])
+    item = rng.choice(items)
     
     questions = [
         f"If {item} costs {amount1} shillings, how much for 3?",
@@ -150,7 +158,7 @@ def generate_money_dialogue(grade: str, region: str) -> Dict[str, Any]:
         f"How do I calculate change from {amount1} shillings?",
     ]
     
-    question = random.choice(questions)
+    question = rng.choice(questions)
     
     if "3" in question:
         answer = amount1 * 3
@@ -188,8 +196,11 @@ def generate_money_dialogue(grade: str, region: str) -> Dict[str, Any]:
     }
 
 
-def generate_measurement_dialogue(grade: str, region: str) -> Dict[str, Any]:
+def generate_measurement_dialogue(
+    grade: str, region: str, rng: random.Random | None = None
+) -> Dict[str, Any]:
     """Generate a dialogue about measurement."""
+    rng = rng or random.Random()
     contexts = {
         "rural": "shamba",
         "Nairobi": "room",
@@ -205,7 +216,7 @@ def generate_measurement_dialogue(grade: str, region: str) -> Dict[str, Any]:
         f"How do I convert meters to centimeters?",
     ]
     
-    question = random.choice(questions)
+    question = rng.choice(questions)
     
     if "area" in question.lower() and "perimeter" not in question.lower():
         response = (
@@ -245,9 +256,10 @@ def generate_measurement_dialogue(grade: str, region: str) -> Dict[str, Any]:
     }
 
 
-def generate_dataset(num_samples: int = 1000) -> List[Dict[str, Any]]:
+def generate_dataset(num_samples: int = 1000, seed: int = 42) -> List[Dict[str, Any]]:
     """Generate a complete training dataset."""
     dataset = []
+    rng = random.Random(seed)
     grades = ["Grade 4", "Grade 5", "Grade 6"]
     regions = ["Nairobi", "Mombasa", "rural", "universal"]
     
@@ -258,17 +270,17 @@ def generate_dataset(num_samples: int = 1000) -> List[Dict[str, Any]]:
     ]
     
     for _ in range(num_samples):
-        grade = random.choice(grades)
-        region = random.choice(regions)
-        generator = random.choice(generators)
+        grade = rng.choice(grades)
+        region = rng.choice(regions)
+        generator = rng.choice(generators)
         
-        dialogue = generator(grade, region)
+        dialogue = generator(grade, region, rng)
         dataset.append(dialogue)
     
     return dataset
 
 
-def save_dataset(dataset: List[Dict[str, Any]], output_path: str):
+def save_dataset(dataset: List[Dict[str, Any]], output_path: str | Path):
     """Save dataset in JSONL format."""
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -290,7 +302,7 @@ def main():
     dataset = generate_dataset(num_samples=1000)
     
     # Save to file
-    output_path = "ai-agents/data/training/kenya-llm-bench-v2-generated.jsonl"
+    output_path = TRAINING_DATA_DIR / "kenya-llm-bench-v2-generated.jsonl"
     save_dataset(dataset, output_path)
     
     # Print statistics

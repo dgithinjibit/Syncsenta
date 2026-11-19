@@ -20,6 +20,8 @@ use Git history when historical context is required.
    post-deploy verification.
 8. [Student Content Readiness](CONTENT_READINESS.md) — current learner routes
    and activity readiness.
+9. [Production Completion Specifications](specs.md) — acceptance and senior
+   production requirements for active product surfaces.
 
 ## Documentation rules
 

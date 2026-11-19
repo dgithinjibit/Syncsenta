@@ -17,6 +17,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
 
 // ────────────────────────────────────────────────────────────────
 // Schema
@@ -128,8 +129,10 @@ export async function POST(req: NextRequest) {
   const feedbackId = feedbackRecord?.id;
 
   // ── Send to FastAPI for analysis ────────────────────────────────
-  const aiAgentsUrl = process.env.NEXT_PUBLIC_AI_AGENTS_URL;
-  if (!aiAgentsUrl) {
+  let analysisUrl: string;
+  try {
+    analysisUrl = buildApiUrl('/teacher/feedback-analysis');
+  } catch {
     console.warn('[/api/teacher/feedback] AI_AGENTS_URL not configured, skipping analysis');
     return Response.json(
       {
@@ -143,9 +146,9 @@ export async function POST(req: NextRequest) {
 
   let analysisResult: Record<string, unknown> = {};
   try {
-    const analysisResponse = await fetch(`${aiAgentsUrl}/teacher/feedback-analysis`, {
+    const analysisResponse = await fetch(analysisUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAiAgentsServiceHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         feedbackId,
         teacherId: user.id,

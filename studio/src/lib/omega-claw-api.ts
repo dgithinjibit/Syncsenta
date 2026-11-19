@@ -1,13 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  OMEGA_CLAW_ACTION_COPY,
-  OMEGA_CLAW_HINT_COPY,
-  clampOmegaClawHintLevel,
-  omegaClawCanUnlockTransfer,
-  omegaClawHintFor,
-  omegaClawNextActionForOutcome,
-  OmegaClawUnknownOutcome,
-} from '@/lib/omega-agent/omega-claw-rules';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import {
@@ -43,6 +34,61 @@ export function omegaClawBackendConfigured(): boolean {
   return backendBaseUrl().length > 0;
 }
 
+export async function evaluateHyperonTutoring(
+  request: NextRequest,
+): Promise<NextResponse> {
+  if (!omegaClawBackendConfigured()) {
+    return NextResponse.json(
+      {
+        error: 'Omega Claw Hyperon backend is not configured',
+        detail: 'Set SYNCSENTA_BACKEND_URL to the deployed Rust/Hyperon service.',
+      },
+      { status: 503 },
+    );
+  }
+
+  const raw = await request.text();
+  const result = await forward(request, 'tutoring', raw);
+  return NextResponse.json(result.body, { status: result.status });
+}
+
+export async function fetchHyperonTutoringDecision(
+  body: Record<string, unknown>,
+  accessToken?: string,
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  if (!omegaClawBackendConfigured()) {
+    return {
+      status: 503,
+      body: {
+        error: 'Omega Claw Hyperon backend is not configured',
+        detail: 'Set SYNCSENTA_BACKEND_URL to the deployed Rust/Hyperon service.',
+      },
+    };
+  }
+
+  try {
+    const response = await fetch(`${backendBaseUrl()}/omega-claw/tutoring`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({ error: 'Invalid backend response' }));
+    return { status: response.status, body: payload as Record<string, unknown> };
+  } catch {
+    return {
+      status: 502,
+      body: {
+        error: 'Omega Claw backend is unreachable',
+        backend: backendBaseUrl(),
+      },
+    };
+  }
+}
+
 type OmegaClawResult = { status: number; body: Record<string, unknown> };
 
 /**
@@ -51,15 +97,6 @@ type OmegaClawResult = { status: number; body: Record<string, unknown> };
  * app has to answer for itself, so an anonymous caller gets the same 401 every
  * other student endpoint returns rather than a free read of the rule engine.
  */
-async function unauthorized(): Promise<OmegaClawResult | null> {
-  if (omegaClawBackendConfigured()) return null;
-
-  const supabase = await createSupabaseRouteHandlerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) return null;
-  return { status: 401, body: { error: 'Unauthorized', detail: 'Please sign in to continue' } };
-}
-
 async function forward(
   request: NextRequest,
   path: string,
@@ -111,63 +148,36 @@ function parseRawJson(raw: string): Record<string, unknown> | null {
  * `{ outcome: 'correct' | 'incorrect' | 'explained' | 'mastered', correct, explained }`
  */
 export async function handleProgression(request: NextRequest): Promise<NextResponse> {
-  const denied = await unauthorized();
-  if (denied) return NextResponse.json(denied.body, { status: denied.status });
+  if (!omegaClawBackendConfigured()) {
+    return NextResponse.json(
+      {
+        error: 'Omega Claw Hyperon backend is not configured',
+        detail: 'Set SYNCSENTA_BACKEND_URL to the deployed Rust/Hyperon service.',
+      },
+      { status: 503 },
+    );
+  }
 
   const raw = await request.text();
-
-  if (omegaClawBackendConfigured()) {
-    const result = await forward(request, 'progression', raw);
-    return NextResponse.json(result.body, { status: result.status });
-  }
-
-  const body = parseRawJson(raw);
-  if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-
-  const outcome = body.outcome;
-  if (typeof outcome !== 'string' || outcome.trim() === '') {
-    return NextResponse.json({ error: 'outcome must be a non-empty string' }, { status: 400 });
-  }
-
-  try {
-    const nextAction = omegaClawNextActionForOutcome(outcome);
-    return NextResponse.json({
-      outcome: outcome.trim().toLowerCase().replace(/[\s_]+/g, '-'),
-      nextAction,
-      nextActionMessage: OMEGA_CLAW_ACTION_COPY[nextAction],
-      unlocksTransfer: omegaClawCanUnlockTransfer(body.correct === true, body.explained === true),
-    });
-  } catch (error) {
-    if (error instanceof OmegaClawUnknownOutcome) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    throw error;
-  }
+  const result = await forward(request, 'progression', raw);
+  return NextResponse.json(result.body, { status: result.status });
 }
 
 /** `POST /api/omega-claw/hint` — `{ hint_level: 1..4 }`, clamped like the Rust handler. */
 export async function handleHint(request: NextRequest): Promise<NextResponse> {
-  const denied = await unauthorized();
-  if (denied) return NextResponse.json(denied.body, { status: denied.status });
+  if (!omegaClawBackendConfigured()) {
+    return NextResponse.json(
+      {
+        error: 'Omega Claw Hyperon backend is not configured',
+        detail: 'Set SYNCSENTA_BACKEND_URL to the deployed Rust/Hyperon service.',
+      },
+      { status: 503 },
+    );
+  }
 
   const raw = await request.text();
-
-  if (omegaClawBackendConfigured()) {
-    const result = await forward(request, 'hint', raw);
-    return NextResponse.json(result.body, { status: result.status });
-  }
-
-  const body = parseRawJson(raw);
-  if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-
-  const requested = Number(body.hint_level ?? body.hintLevel);
-  if (!Number.isFinite(requested)) {
-    return NextResponse.json({ error: 'hint_level must be a number' }, { status: 400 });
-  }
-
-  const hintLevel = clampOmegaClawHintLevel(requested);
-  const hint = omegaClawHintFor(hintLevel);
-  return NextResponse.json({ hintLevel, hint, hintMessage: OMEGA_CLAW_HINT_COPY[hint] });
+  const result = await forward(request, 'hint', raw);
+  return NextResponse.json(result.body, { status: result.status });
 }
 
 /**

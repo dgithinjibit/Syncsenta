@@ -46,14 +46,13 @@ import {
   buildCompassSystemPrompt,
   type LearnerLearningContext,
 } from '@/lib/chat/socratic-prompts';
-import { evaluateTutoringDecision, MeTTaEducationKnowledgeGraph, MeTTaSession } from '@/lib/omega-agent/metta-core';
+import { fetchHyperonTutoringDecision } from '@/lib/omega-claw-api';
 import { classifyAnswerQuality } from '@/lib/omega-agent/answer-quality';
 import {
   detectBlockedOmegaClawContent,
   omegaClawLearnerRefusal,
 } from '@/lib/omega-agent/omega-claw-safety';
 import { refusalEventStream } from '@/lib/chat/refusal-stream';
-import { buildOmegaEnrichment, enrichSystemPrompt } from '@/lib/omega-agent/server-enrichment';
 import {
   buildScaffoldingEventPayload,
   payloadToDbRow,
@@ -200,6 +199,7 @@ export async function POST(req: NextRequest) {
 
   const { data: { user: authenticatedUser }, error: authError } =
     await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
 
   const allowDevChat =
     process.env.NODE_ENV !== 'production' &&
@@ -312,27 +312,6 @@ export async function POST(req: NextRequest) {
       }
     : generalCompetencyForSubjectLabel(body.subject);
 
-  // Every student turn now passes through the MeTTa session boundary before
-  // Omega selects the tutoring policy.  The graph is intentionally scoped to
-  // this request; durable session facts remain owned by the persistence API.
-  // This keeps subject handling uniform for Mathematics, Languages, Sciences,
-  // Social Studies, Creative Arts, and every future CBC subject.
-  let mettaTurnStatus = 'recorded';
-  try {
-    const mettaSession = new MeTTaSession(
-      user.id,
-      new MeTTaEducationKnowledgeGraph(),
-      verifiedGrade,
-    );
-    await mettaSession.processInteraction({
-      type: 'student_turn',
-      subject: body.subject,
-      grade: verifiedGrade,
-    });
-  } catch (error) {
-    mettaTurnStatus = 'unavailable';
-    console.error('[/api/chat] MeTTa student-turn evaluation failed:', error);
-  }
 
   if (body.mode === 'compass' && !body.teacherContext) {
     return Response.json({ error: 'Compass mode requires teacherContext' }, { status: 400 });
@@ -473,7 +452,27 @@ export async function POST(req: NextRequest) {
       consecutive_wrong:  contextRow?.consecutive_wrong  ?? null,
     });
 
-    const decision = evaluateTutoringDecision(learningState, learningTrack);
+    const hyperonDecision = await fetchHyperonTutoringDecision(
+      {
+        questions_answered: learningState.attempts,
+        correct_answers: learningState.correctAttempts,
+        mastery_percent: masteryPercent(
+          learningState.attempts,
+          learningState.correctAttempts,
+        ),
+        hints_used: learningState.hintsUsed,
+        consecutive_wrong: contextRow?.consecutive_wrong ?? 0,
+      },
+      session?.access_token,
+    );
+    if (hyperonDecision.status !== 200) {
+      return Response.json(hyperonDecision.body, { status: hyperonDecision.status });
+    }
+    const decision = hyperonDecision.body as unknown as {
+      scaffolding: 'Independent' | 'Guided' | 'Intensive';
+      nextAction: string;
+      hint: string;
+    };
 
     // Fire-and-forget Redis scaffolding level write for teacher visibility.
     if (authenticatedUser) {
@@ -486,23 +485,7 @@ export async function POST(req: NextRequest) {
         ? (profile.language_preference as 'english' | 'kiswahili' | 'mixed')
         : body.language;
 
-    // ── Omega server enrichment (#3) ─────────────────────────────────────────
-    // Derives cultural examples + teacher alerts server-side using the same
-    // signals the Omega engine has. No extra I/O — pure function.
-    const currentMasteryPct = masteryPercent(
-      contextRow?.questions_answered ?? 0,
-      contextRow?.correct_answers    ?? 0,
-    );
-    const omegaEnrichment = buildOmegaEnrichment({
-      decision,
-      subject:         body.subject,
-      consecutiveWrong: contextRow?.consecutive_wrong ?? 0,
-      masteryPct:      currentMasteryPct,
-      competencyName:  contextRow?.competency_name ?? competency.competencyName,
-      studentName:     body.studentName || profile.full_name || undefined,
-    });
-
-    // Base prompt + cultural examples injected when Intensive.
+    // Base prompt uses the authoritative Hyperon decision.
     const basePrompt = buildDynamicSystemPrompt({
       decision,
       subject: body.subject,
@@ -511,17 +494,11 @@ export async function POST(req: NextRequest) {
       studentName: body.studentName || profile.full_name || undefined,
       learnerContext,
     });
-    systemPrompt = enrichSystemPrompt(basePrompt, omegaEnrichment, decision.scaffolding);
-
-    // Attach enrichment to request scope so the post-stream block can use it.
+    systemPrompt = basePrompt;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).__omegaEnrichment = omegaEnrichment;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).__omegaDecision   = decision;
+    (req as any).__omegaDecision = decision;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (req as any).__learningState   = learningState;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).__currentMasteryPct = currentMasteryPct;
   }
 
   // The pedagogy registry and the learner's stage posture are appended to every
@@ -531,7 +508,6 @@ export async function POST(req: NextRequest) {
   // limits, Montessori/Reggio's rejection of points) observable in a reply.
   systemPrompt += `\n\n${formatPedagogyConstraintBlock()}`;
   systemPrompt += `\n\n${formatPlanePostureLine(verifiedGrade)}`;
-  systemPrompt += `\nMeTTa student-turn boundary: ${mettaTurnStatus}. Omega policy decision remains authoritative.`;
 
   // ── Build message array ─────────────────────────────────────────────────────
   const trimmedHistory = body.history.slice(-MAX_HISTORY_TURNS * 2);
@@ -675,8 +651,6 @@ export async function POST(req: NextRequest) {
             const omegaDecision   = (req as any).__omegaDecision;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const learningState   = (req as any).__learningState;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const omegaEnrichment = (req as any).__omegaEnrichment;
 
             // Multi-signal answer classification (#1 + #2)
             const classification = classifyAnswerQuality(
@@ -757,24 +731,6 @@ export async function POST(req: NextRequest) {
                 });
             }
 
-            // ── Teacher alert: SSE metadata event before close (#3) ──────────
-            // Sent BEFORE controller.close() so the client receives it.
-            // Clients should handle { type: 'omega_teacher_alert' } separately
-            // from delta chunks and forward to the teacher dashboard.
-            if (omegaEnrichment?.teacherAlert) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type:    'omega_teacher_alert',
-                    alert:   omegaEnrichment.teacherAlert,
-                    urgency: omegaEnrichment.alertUrgency,
-                    nextActivityType: omegaEnrichment.nextActivityType,
-                    competencyCode:   competency.competencyCode,
-                    learningTrack,
-                  })}\n\n`,
-                ),
-              );
-            }
           } catch (e) { console.error('[/api/chat] Failed to update learning progress:', e); }
         }
 

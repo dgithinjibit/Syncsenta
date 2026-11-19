@@ -25,6 +25,7 @@ pub fn router(rules: Arc<OmegaClawRules>) -> Router {
         .route("/activity/check", post(activity_check_handler))
         .route("/progression", post(progression_handler))
         .route("/hint", post(hint_handler))
+        .route("/tutoring", post(tutoring_handler))
         .with_state(OmegaClawState { rules })
 }
 
@@ -205,6 +206,56 @@ async fn hint_handler(
         ),
         Err(error) => (
             StatusCode::BAD_REQUEST,
+            Json(json!({ "error": error.to_string() })),
+        ),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct TutoringRequest {
+    questions_answered: u32,
+    correct_answers: u32,
+    mastery_percent: f64,
+    hints_used: u32,
+    consecutive_wrong: u32,
+}
+
+async fn tutoring_handler(
+    State(state): State<OmegaClawState>,
+    Extension(AuthUser(claims)): Extension<AuthUser>,
+    Json(body): Json<TutoringRequest>,
+) -> (StatusCode, Json<Value>) {
+    if !is_allowed_role(&claims.role) {
+        return forbidden();
+    }
+    if let Err(error) = state.rules.load().await {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": error.to_string() })),
+        );
+    }
+
+    match state
+        .rules
+        .tutoring_decision(
+            body.questions_answered,
+            body.correct_answers,
+            body.mastery_percent,
+            body.hints_used,
+            body.consecutive_wrong,
+        )
+        .await
+    {
+        Ok((scaffolding, next_action, hint)) => (
+            StatusCode::OK,
+            Json(json!({
+                "scaffolding": scaffolding,
+                "nextAction": next_action,
+                "hint": hint,
+            })),
+        ),
+        Err(error) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({ "error": error.to_string() })),
         ),
     }

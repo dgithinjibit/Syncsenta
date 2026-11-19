@@ -27,15 +27,9 @@ __email__ = "team@syncsenta.ke"
 # orchestrator at startup, so they still fail fast in production.
 _LAZY_EXPORTS = {
     "AgentConfig": ".core.config",
-    "SyncSentaOrchestrator": ".orchestrator.main",
-    "AgentRegistry": ".agents.registry",
 }
 
-__all__ = [
-    "AgentConfig",
-    "SyncSentaOrchestrator",
-    "AgentRegistry",
-]
+__all__ = ["AgentConfig"]
 
 
 def __getattr__(name: str):

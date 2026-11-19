@@ -42,6 +42,14 @@
 (= (omega-claw-can-unlock-transfer true true) yes)
 (= (omega-claw-can-unlock-transfer $correct $explained) no)
 
+;; Student tutoring policy.
+(= (omega-tutoring-scaffolding intensive) Intensive)
+(= (omega-tutoring-scaffolding guided) Guided)
+(= (omega-tutoring-scaffolding independent) Independent)
+(= (omega-tutoring-next-action conceptual) show-conceptual-example)
+(= (omega-tutoring-next-action guiding) ask-guiding-question)
+(= (omega-tutoring-next-action challenge) present-next-challenge)
+
 ;; Safety boundaries for student work.
 (omega-claw-blocked-topic crypto-trading)
 (omega-claw-blocked-topic investment-advice)

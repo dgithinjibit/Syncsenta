@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 import { getLearningSession } from '@/lib/session/session-persistence';
 
 export const dynamic = 'force-dynamic';
@@ -19,8 +19,22 @@ export type ScaffoldingMap = Record<
   'Independent' | 'Guided' | 'Intensive' | null
 >;
 
+interface AssignmentQuery {
+  select(columns: string): AssignmentQuery;
+  eq(column: string, value: unknown): AssignmentQuery;
+  in(column: string, values: unknown[]): AssignmentQuery;
+  limit(count: number): Promise<{
+    data: unknown[] | null;
+    error: { message: string } | null;
+  }>;
+}
+
+interface AssignmentDb {
+  from(table: string): AssignmentQuery;
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const supabase = getSupabaseServerClient();
+  const supabase = await createSupabaseRouteHandlerClient();
 
   // ── Auth ────────────────────────────────────────────────────────────────
   const {
@@ -53,6 +67,35 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (studentIds.length === 0) {
     return NextResponse.json({} as ScaffoldingMap);
+  }
+
+  if (requesterProfile?.role === 'teacher') {
+    const db = supabase as unknown as AssignmentDb;
+    const { data: assignments, error: assignmentsError } = await db
+      .from('teacher_student_assignments')
+      .select('student_id')
+      .eq('teacher_id', user.id)
+      .eq('status', 'active')
+      .in('student_id', studentIds)
+      .limit(50);
+    if (assignmentsError) {
+      return NextResponse.json(
+        { error: 'Failed to verify assigned students' },
+        { status: 500 },
+      );
+    }
+    const assignedIds = new Set(
+      ((assignments ?? []) as Array<{ student_id: string }>).map(
+        (row) => row.student_id,
+      ),
+    );
+    const authorizedIds = studentIds.filter((id) => assignedIds.has(id));
+    if (authorizedIds.length !== studentIds.length) {
+      return NextResponse.json(
+        { error: 'Student is outside the caller roster' },
+        { status: 403 },
+      );
+    }
   }
 
   // ── Bulk-read Redis (in parallel) ─────────────────────────────────────────

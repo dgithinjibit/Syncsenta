@@ -177,6 +177,69 @@ impl OmegaClawRules {
             .iter()
             .any(|atom| atom_symbol(atom.as_str()) == "yes"))
     }
+
+    pub async fn tutoring_decision(
+        &self,
+        questions: u32,
+        correct: u32,
+        mastery: f64,
+        hints: u32,
+        consecutive_wrong: u32,
+    ) -> Result<(String, String, String)> {
+        let accuracy = if questions == 0 {
+            0.0
+        } else {
+            correct as f64 / questions as f64
+        };
+
+        let scaffolding = if consecutive_wrong >= 3
+            || hints >= 8
+            || (mastery < 40.0 && consecutive_wrong >= 2)
+            || accuracy < 0.3
+        {
+            "intensive"
+        } else if mastery < 80.0
+            || accuracy < 0.7
+            || hints >= 3
+            || consecutive_wrong >= 1
+        {
+            "guided"
+        } else {
+            "independent"
+        };
+
+        let next_action = if scaffolding == "intensive" {
+            "conceptual"
+        } else if scaffolding == "guided" {
+            "guiding"
+        } else {
+            "challenge"
+        };
+
+        let scaffold_atoms = self
+            .space
+            .query(&format!(
+                "(omega-tutoring-scaffolding {scaffolding})"
+            ))
+            .await?;
+        let action_atoms = self
+            .space
+            .query(&format!(
+                "(omega-tutoring-next-action {next_action})"
+            ))
+            .await?;
+
+        let scaffold = first_symbol(scaffold_atoms)?;
+        let next_action = first_symbol(action_atoms)?;
+
+        let hint = match scaffold.to_lowercase().as_str() {
+            "intensive" => "notice",
+            "guided" => "isolate-step",
+            _ => "worked-example",
+        };
+
+        Ok((scaffold, next_action, hint.to_string()))
+    }
 }
 
 fn first_symbol(atoms: Vec<super::interpreter::AtomString>) -> Result<String> {

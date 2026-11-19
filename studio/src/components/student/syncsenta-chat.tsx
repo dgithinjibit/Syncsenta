@@ -99,7 +99,6 @@ export function SyncSentaChat({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -108,80 +107,8 @@ export function SyncSentaChat({
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    // Connect to Python FastAPI backend WebSocket
-    const apiUrl = process.env.NEXT_PUBLIC_AI_AGENTS_URL || 'https://ascendra-1.onrender.com';
-    const wsProtocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
-    const wsHost = apiUrl.replace(/^https?:\/\//, '');
-    const wsUrl = `${wsProtocol}://${wsHost}/dashboard/ws/student/${studentId}`;
-
-    const connectWebSocket = () => {
-      try {
-        const ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-          console.log('[SyncSentaChat] WebSocket connected');
-          setWsConnected(true);
-          
-          // Send initial heartbeat
-          ws.send(JSON.stringify({
-            type: 'heartbeat',
-            student_id: studentId,
-            student_name: studentName,
-            subject,
-            grade
-          }));
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            
-            // Handle teacher interventions
-            if (data.type === 'teacher_intervention') {
-              setMessages((prev) => [...prev, {
-                id: `teacher_${Date.now()}`,
-                sender: 'teacher',
-                text: data.data.content,
-                timestamp: data.timestamp,
-              }]);
-
-              toast({
-                title: data.data.teacher_name || 'Your Teacher',
-                description: data.data.content,
-                duration: 5000,
-              });
-            }
-          } catch (err) {
-            console.error('[SyncSentaChat] Failed to parse WebSocket message:', err);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error('[SyncSentaChat] WebSocket error:', error);
-          setWsConnected(false);
-        };
-
-        ws.onclose = () => {
-          console.log('[SyncSentaChat] WebSocket closed, reconnecting...');
-          setWsConnected(false);
-          setTimeout(connectWebSocket, 3000);
-        };
-
-        wsRef.current = ws;
-      } catch (err) {
-        console.error('[SyncSentaChat] Failed to connect WebSocket:', err);
-        setTimeout(connectWebSocket, 3000);
-      }
-    };
-
-    connectWebSocket();
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [studentId, studentName, subject, grade, toast]);
+    setWsConnected(false);
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Load chat history on mount
@@ -257,9 +184,8 @@ export function SyncSentaChat({
     setIsLoading(true);
 
     try {
-      // Call Python FastAPI backend
-      const apiUrl = process.env.NEXT_PUBLIC_AI_AGENTS_URL || 'https://ascendra-1.onrender.com';
-      const response = await fetch(`${apiUrl}/agents/chat`, {
+      // Call the authenticated Studio proxy; it owns the server-side AI key.
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
