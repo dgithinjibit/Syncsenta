@@ -11,7 +11,6 @@ const RULES: &str = include_str!("../../data/omega_claw_rules.metta");
 /// for authentication, persistence, and teacher approval.
 pub struct OmegaClawRules {
     space: MettaSpace,
-    /// The pack is asserted once, no matter how many times `load` is called.
     loaded: tokio::sync::OnceCell<Result<(), String>>,
 }
 
@@ -49,7 +48,13 @@ impl OmegaClawRules {
     pub async fn load(&self) -> Result<()> {
         let outcome = self
             .loaded
-            .get_or_init(|| async { self.space.run(RULES).await.map(|_| ()).map_err(|e| e.to_string()) })
+            .get_or_init(|| async {
+                self.space
+                    .run(RULES)
+                    .await
+                    .map(|_| ())
+                    .map_err(|e| e.to_string())
+            })
             .await;
         match outcome {
             Ok(()) => Ok(()),

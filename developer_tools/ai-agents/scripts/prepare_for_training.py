@@ -130,8 +130,14 @@ def save_jsonl(data: List[Dict[str, Any]], file_path: str | Path):
 
 def generate_statistics(data: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Generate dataset statistics."""
+    unique_conversations = {
+        json.dumps(sample["messages"], sort_keys=True, ensure_ascii=False)
+        for sample in data
+    }
     stats = {
         "total_samples": len(data),
+        "unique_conversations": len(unique_conversations),
+        "duplicate_rows": len(data) - len(unique_conversations),
         "by_grade": Counter(),
         "by_region": Counter(),
         "by_subject": Counter(),
@@ -271,6 +277,10 @@ def main():
     # Print statistics
     print("\n📊 Dataset Statistics:")
     print(f"\n   Total Samples: {stats['total_samples']}")
+    print(
+        f"   Unique Conversations: {stats['unique_conversations']} "
+        f"({stats['duplicate_rows']} exact duplicate rows)"
+    )
     
     print("\n   By Grade:")
     for grade, count in sorted(stats['by_grade'].items()):

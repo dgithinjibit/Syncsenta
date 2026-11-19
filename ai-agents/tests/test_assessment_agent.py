@@ -225,39 +225,6 @@ async def test_execute_task(stub_agent):
     assert gen["cbc_citations"]
 
 
-@pytest.mark.asyncio
-async def test_orchestrator_routes_to_assessment_agent_end_to_end():
-    """Verify Omega routes assessment work to the registered assessment agent."""
-    from syncsenta_agents.orchestrator.main import SyncSentaOrchestrator
-    from syncsenta_agents.core.models import AgentRequest
-
-    orch = SyncSentaOrchestrator()
-    await orch.initialize()
-
-    # Replace registered agent's LLM with a stub so no network is touched.
-    assessment_agent = orch.omega_queen.agent_registry["assessment"]
-    assessment_agent._llm = StubLLM(
-        generator=GENERATOR_PAYLOAD, grader=GRADER_PAYLOAD, coach=COACH_PAYLOAD
-    )
-
-    request = AgentRequest(
-        message="generate a fractions quiz",
-        user_id="teacher_1",
-        grade="g4",
-        subject="Mathematics",
-        role="teacher",
-        type="assessment",
-        context={
-            "action": "generate_quiz",
-            "competency": "fractions",
-            "num_questions": 3,
-        },
-    )
-
-    response = await orch.process_request(request)
-
-    assert response.success is True
-    assert "assessment" in response.agents_used or response.primary_agent == "assessment"
     assert response.response  # synthesized text exists
     assert response.structured_result["action"] == "generate_quiz"
     assert response.structured_result["quiz"]["questions"]

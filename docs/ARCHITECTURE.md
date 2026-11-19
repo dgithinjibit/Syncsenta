@@ -151,14 +151,9 @@ not yet provide one clearly authoritative Hyperon-backed Omega runtime.
 - Studio's student chat route currently invokes its own model-provider chain:
   [`/api/chat`](../studio/src/app/api/chat/route.ts).
 - The FastAPI entry point is
-  [`server.py`](../ai-agents/src/syncsenta_agents/api/server.py). Its
-  [`OmegaQueenOrchestrator`](../ai-agents/src/syncsenta_agents/orchestrator/omega_queen.py)
-  routes work through a policy evaluator and a Python agent registry.
-- The Python
-  [`HyperonPolicyEvaluator`](../ai-agents/src/syncsenta_agents/reasoning/hyperon_evaluator.py)
-  tries to initialize Hyperon but falls back to a pure-Python policy
-  implementation if Hyperon or its policy file is unavailable. Thus source code
-  using this evaluator does not alone prove Hyperon is running.
+  [`server.py`](../ai-agents/src/syncsenta_agents/api/server.py). It is a
+  compatibility adapter for provider-backed assessment and generation routes;
+  it does not own Omega routing or policy.
 - The separate Rust backend has Hyperon enabled by default in
   [`Cargo.toml`](../backend/syncsenta-backend/Cargo.toml). Its
   [`MettaInterpreter`](../backend/syncsenta-backend/src/metta_core/interpreter.rs)
@@ -168,13 +163,9 @@ not yet provide one clearly authoritative Hyperon-backed Omega runtime.
   yet the complete OmegaHive runtime. The API routes currently instantiate
   `MettaInterpreter` and `OmegaClawRules` directly rather than booting the
   assembled [`MettaCore`](../backend/syncsenta-backend/src/metta_core/mod.rs).
-  The backend is not currently configured for deployment, and Studio uses its
-  TypeScript mirror unless the backend URL is set.
-- Studio's
-  [`metta-core.ts`](../studio/src/lib/omega-agent/metta-core.ts) implements a
-  TypeScript MeTTa-shaped model and is used by the chat handler. It is not the
-  Hyperon runtime. The chat path currently uses it for a student-turn boundary
-  while its tutoring decision is made by TypeScript policy code.
+  The backend is not currently configured for deployment. Studio forwards Omega
+  tutoring and Omega Claw decisions to this Rust/Hyperon backend only; no
+  TypeScript or Python policy mirror is authoritative.
 - The root
   [`rust-core` agent runtime](../rust-core/src/agent_runtime.rs) defines a
   Rust-owned orchestration seam, but its evaluator is injected; the crate does
@@ -222,7 +213,7 @@ source-level review after access is granted.
 | OmegaHive concept | SyncSenta evidence today | Rust/Hyperon target |
 |---|---|---|
 | Hive API and control plane | Axum routes exist, but the backend exposes a limited set of protected routes and an explicitly in-memory, unauthenticated MVP surface; see [`routes.rs`](../backend/syncsenta-backend/src/routes.rs) and [`mvp.rs`](../backend/syncsenta-backend/src/handlers/mvp.rs) | Make the existing Axum backend the canonical service boundary; define the supported public API and authenticated control-plane routes |
-| Omega agent routing and specialists | Python [`OmegaQueenOrchestrator`](../ai-agents/src/syncsenta_agents/orchestrator/omega_queen.py) selects Python agents using a policy evaluator that can fall back from Hyperon | Move routing, specialist ownership, and policy decisions into Rust; keep FastAPI forwarding only |
+| Omega agent routing and specialists | Removed Python Omega orchestrator; Rust/Hyperon is the policy authority | Studio validates and forwards requests; Rust owns scope, progression, hints, and tutoring policy |
 | Native minds and lifecycle | The public OmegaHive design describes supervised PeTTa mind processes; no equivalent production-ready Rust lifecycle has been established in this repository | Map required lifecycle and process-isolation semantics, then implement only the agreed subset in Rust |
 | Hyperon / AtomSpace reasoning | Rust `MettaInterpreter` provides real Hyperon spaces; Rust rule packs and the TypeScript chat policy are narrower than a general OmegaHive mind runtime | Hyperon is the authoritative reasoning engine; define typed Rust adapters for domain facts, queries, decisions, and failures |
 | Shared commons and persistence | `MettaSpace` is in-memory; `KnowledgeBase` can optionally take a PostgreSQL pool, while IPFS defaults to `NullIpfs`; API wiring and persistence guarantees are not yet established | Design durable, authorized state explicitly. Do not equate an AtomSpace with persisted or RLS-protected application records |
@@ -536,8 +527,10 @@ creates train/validation/test splits.
   system/user/assistant messages for inspection and analysis.
 - Identical conversation message sequences are grouped into one split to avoid
   train/evaluation leakage.
-- The generated set remains highly repetitive; grouping does not deduplicate
-  samples or verify educational answer quality.
+- The seeded generator varies numeric examples and grade/region context, but
+  generated records remain synthetic and are not independently reviewed
+  against CBC curriculum or by educators. Arithmetic tests do not establish
+  pedagogical quality.
 - Parquet export and a runnable model-training implementation are not present.
   The AMD launcher reports this missing implementation rather than claiming
   training succeeded.

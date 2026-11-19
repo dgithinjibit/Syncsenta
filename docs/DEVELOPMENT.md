@@ -82,8 +82,10 @@ The preparation step also writes complete and split-specific CSV files; CSV
 preserves metadata and system/user/assistant messages for inspection and
 analysis. Duplicate conversations are kept together in a single split.
 Parquet export is not currently implemented.
-The generated examples are highly repetitive; grouping prevents leakage but
-does not make the dataset instructionally diverse or validate answer quality.
+The seeded generator now varies the numeric examples and grade/region context;
+its generated records are still synthetic and have not been independently
+reviewed against CBC curriculum or by educators. Automated arithmetic checks
+do not establish pedagogical quality.
 
 These commands prepare data only. The optional
 [`start_training.sh`](../developer_tools/scripts/start_training.sh) refers to

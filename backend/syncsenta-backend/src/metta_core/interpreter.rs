@@ -164,7 +164,8 @@ impl Default for MettaInterpreter {
 mod hyperon_backend {
     use super::AtomString;
     use anyhow::Result;
-    use hyperon::metta::runner::{Metta, SExprParser};
+    use hyperon::metta::runner::Metta;
+    use hyperon::metta::text::SExprParser;
 
     pub struct Backend {
         runtime: Metta,

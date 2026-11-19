@@ -1,21 +1,23 @@
 {
   "total_samples": 1020,
+  "unique_conversations": 1011,
+  "duplicate_rows": 9,
   "by_grade": {
-    "Grade 4": 318,
-    "Grade 5": 342,
-    "Grade 6": 360
+    "Grade 4": 351,
+    "Grade 5": 314,
+    "Grade 6": 355
   },
   "by_region": {
-    "universal": 272,
-    "Nairobi": 266,
-    "rural": 221,
-    "Mombasa": 261
+    "universal": 277,
+    "Nairobi": 255,
+    "rural": 237,
+    "Mombasa": 251
   },
   "by_subject": {
     "Mathematics": 1020
   },
   "by_competency": {
-    "MATH.G4.FRACTIONS": 99,
+    "MATH.G4.FRACTIONS": 105,
     "MATH.G5.AREA": 1,
     "MATH.G5.DECIMALS": 1,
     "MATH.G4.MULTIPLICATION": 1,
@@ -34,33 +36,36 @@
     "MATH.G5.PERIMETER_AREA": 1,
     "MATH.G5.DECIMALS_FRACTIONS": 1,
     "MATH.G5.LINES": 1,
-    "MATH.G6.FRACTIONS": 123,
-    "MATH.G4.MEASUREMENT": 107,
-    "MATH.G6.MEASUREMENT": 127,
-    "MATH.G5.FRACTIONS": 111,
-    "MATH.G4.MONEY": 110,
-    "MATH.G5.MEASUREMENT": 104,
-    "MATH.G6.MONEY": 105,
-    "MATH.G5.MONEY": 116
+    "MATH.G6.FRACTIONS": 115,
+    "MATH.G6.MEASUREMENT": 134,
+    "MATH.G5.FRACTIONS": 97,
+    "MATH.G4.MONEY": 114,
+    "MATH.G5.MEASUREMENT": 99,
+    "MATH.G5.MONEY": 107,
+    "MATH.G6.MONEY": 101,
+    "MATH.G4.MEASUREMENT": 130
   },
   "by_cultural_context": {
-    "food_sharing": 333,
+    "food_sharing": 2,
     "matatu_transport": 1,
     "agriculture": 3,
     "mobile_money": 1,
     "market_economics": 1,
-    "market_shopping": 333,
-    "measurement_conversion": 1,
+    "market_shopping": 2,
+    "measurement_conversion": 131,
     "everyday_objects": 1,
     "data_visualization": 1,
-    "land_measurement": 77,
+    "land_measurement": 1,
     "containers": 1,
     "number_theory": 1,
     "statistics": 1,
     "money_discounts": 1,
     "money_time": 1,
     "geometry": 1,
-    "measurement": 262
+    "fraction_reasoning": 315,
+    "market_calculation": 322,
+    "measurement_perimeter": 127,
+    "measurement_area": 106
   },
   "by_intervention_type": {
     "scaffolding": 1,
