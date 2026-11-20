@@ -20,6 +20,17 @@ SyncSenta is an education platform for Kenya's CBC curriculum. Keep the existing
 - Use Zustand for global client state and TanStack Query for server state where those patterns apply.
 - Run `npx tsc --noEmit`, `npm test`, and `npm run build` for frontend changes when the environment supports them.
 - Do not enable `typescript.ignoreBuildErrors`.
+- Keep components, API handlers, and data access in their existing `studio/src/` layers.
+- Derive the current user's identity and role from the authenticated server session. Never trust a client-supplied identity as authorization.
+- Use explicit exported contracts and narrow database selects.
+- Represent loading, empty, and error states separately.
+- Keep teacher-to-student access enforced server-side and by Supabase RLS.
+- Distinguish an empty result from unavailable, denied, or failed data; do not replace errors with zeroes or fabricated learner data.
+- Keep refresh and drill-down actions within the same authorization boundary as the owning view.
+- Avoid unnecessary requests, broad selects, and unbounded result sets.
+- Add focused regression tests for behavior changes and confirm they fail for the reported reason.
+- Prefer tests of observable behavior and UI state over tests of internal call order.
+- Keep test fixtures synthetic; never put credentials or identifiable learner data in tests or logs.
 
 ### Tests
 

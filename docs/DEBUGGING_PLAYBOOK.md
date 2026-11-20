@@ -13,7 +13,7 @@ targets it.
 4. [Test-driven development skill](../.claude/skills/test-driven-development/SKILL.md) —
    the red/green workflow.
 5. For Omega changes, read the
-   [production completion specification](specs.md).
+   [production acceptance specification](PRODUCTION_ACCEPTANCE.md).
 
 Some older documents still describe Windows-only commands, retired components,
 or paths now under `archive/`. Before running a command or following a path,

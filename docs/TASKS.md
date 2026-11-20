@@ -52,4 +52,4 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 - [README.md](../README.md) is the repository overview; [docs/README.md](README.md) indexes maintained documentation.
 - [ROADMAP.md](ROADMAP.md) records current project position and evidence. It is not a second task list.
 - Keep detailed technical references only when they remain useful to current implementation or future maintenance. Dated snapshots, completed one-off plans, and superseded architecture proposals should be removed after checking and updating inbound references.
-- There is no `specs.md` at the repository root or under `docs/`. Do not create another task list to replace this one.
+- [PRODUCTION_ACCEPTANCE.md](PRODUCTION_ACCEPTANCE.md) is the named production acceptance specification. Do not create another task list to replace this one.

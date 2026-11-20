@@ -1,4 +1,4 @@
-# Senior Production Completion Specification
+# Production Acceptance Specification
 
 ## Purpose
 
