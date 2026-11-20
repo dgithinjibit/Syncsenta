@@ -35,7 +35,7 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 
 ## Active tasks
 
-- [ ] Restore and test the content-only Python `/agents/chat` adapter for teacher assessment generation. Rust/Hyperon remains the target authority for structured tutoring policy. Studio `/api/generate/assessment` now verifies the request session and teacher profile, and overwrites client-supplied identity fields; the Python route is still absent and the proxy still falls back to a labelled template on upstream failure. Preserve the `{success, response}` contract without treating `role` or forwarded identity as authorization. The focused Python baseline had 6 failures: `/agents/chat` is unregistered, and five tests expect missing `get_orchestrator()` functions. Do not prune modules or dependencies until this route contract is green and callers are audited.
+- [ ] Reconcile the five legacy `tests/test_omega_api.py` expectations with the content-only adapter boundary. They still expect missing `get_orchestrator()` dispatchers for quiz, grading, and teacher-generation operations; audit whether those are supported contracts before restoring orchestration or pruning modules.
 - [ ] Rebuild the Codespace with the lean Ubuntu devcontainer image and record the container build result.
 - [ ] Run the focused Studio regression tests for head navigation, student transport, role routing, grade normalization, CSP, and safe scheme printing when Node.js and the project dependencies are available. Record the exact command and result.
 - [ ] Browser-verify student, teacher, and head workspace access on the deployed build using authorized test accounts. Record deployment and browser evidence separately.
@@ -43,6 +43,7 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 
 ## Completed in the current work
 
+- [x] Restored Python `POST /agents/chat` as a content-only teacher assessment adapter using the existing multi-provider client. Studio verifies teacher identity and returns explicit 503/502 errors rather than fabricated assessments. Focused Python tests passed (13); focused Studio route tests passed (7). No deployment or browser verification.
 - [x] Added the `/head` layout with `AppSidebar`, `AppHeader`, `SidebarProvider`, and `SidebarInset`.
 - [x] Added a regression test asserting the head workspace mounts its navigation shell.
 - [x] Reviewed the reported CSP, print-sink, student-routing, and grade-normalization causes against the current source; fixes and corresponding tests already exist.

@@ -111,6 +111,31 @@ describe('POST /api/generate/assessment', () => {
     expect(deps.fetch).not.toHaveBeenCalled();
   });
 
+  it('reports missing AI service configuration instead of returning a template as generated content', async () => {
+    deps.apiUrlError = new Error('Backend API is not configured.');
+
+    const response = await POST(request({ message: 'Create a quiz' }));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: 'Assessment generation is not configured for this deployment.',
+    });
+    expect(deps.fetch).not.toHaveBeenCalled();
+  });
+
+  it('reports upstream generation failures instead of returning a template as generated content', async () => {
+    deps.fetch.mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'provider unavailable' }), { status: 502 }),
+    );
+
+    const response = await POST(request({ message: 'Create a quiz' }));
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: 'Assessment content generation failed.',
+    });
+  });
+
   it('forwards the authenticated teacher identity instead of client-supplied identity', async () => {
     const response = await POST(request({
       message: 'Create a quiz',

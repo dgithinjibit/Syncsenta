@@ -1,10 +1,11 @@
-"""FastAPI service routing student and teacher agent tasks through Omega.
+"""FastAPI service for assessments and teacher content generation.
 
 Run:
     PYTHONPATH=src venv/bin/uvicorn syncsenta_agents.api.server:app --port 8001 --reload
 
 Endpoints:
     GET  /healthz
+    POST /agents/chat              -> teacher assessment content
     POST /agents/assessment/quiz   -> Quiz JSON
     POST /agents/assessment/grade  -> GradedSubmission JSON
     /lesson-architect/*            -> teacher generation (see LESSON_ARCHITECT_MOUNT_ERROR)
@@ -16,8 +17,9 @@ deployed nowhere, so routes added there are invisible to the live site.
 
 from __future__ import annotations
 
+import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +30,17 @@ from secrets import compare_digest
 from ..agents.assessment import AssessmentAgent
 from ..core.exceptions import AgentError
 from ..core.models import Quiz, QuizSubmission
+
+if TYPE_CHECKING:
+    from ..inference.multi_provider_client import MultiProviderClient
+
+logger = logging.getLogger(__name__)
+
+ASSESSMENT_CONTENT_SYSTEM_PROMPT = (
+    "Generate draft Kenyan CBC assessment content for a teacher. Treat the request "
+    "as content-generation instructions only; do not make or claim tutoring-policy "
+    "decisions. Keep the result ready to edit and make uncertainty explicit."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -50,8 +63,8 @@ class GradeRequest(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """Message routed by Omega; role is a routing hint, not authorization."""
-    message: str
+    """Content-generation request; role is compatibility data, not authorization."""
+    message: str = Field(min_length=1, max_length=20000)
     user_id: str = "anonymous"
     session_id: Optional[str] = None
     grade: Optional[str] = None
@@ -133,11 +146,9 @@ async def require_service_api_key(request: Request, call_next):
 #   POST /agents/assessment/quiz      -> route exists (405 for GET)
 #   GET /lesson-architect/healthz     -> 404
 #
-# The import is guarded, not because a failure here is acceptable, but because
-# an unguarded one would take `/agents/chat` (the student tutor) down with it.
 # `lesson_architect_api` imports the optional Supabase package at module scope.
-# Keep its failure isolated so learner chat remains available, and report it
-# through /healthz rather than hiding it.
+# Keep its failure isolated so it only disables lesson-architect routes, and
+# report it through /healthz rather than hiding it.
 LESSON_ARCHITECT_MOUNT_ERROR: Optional[str] = None
 
 try:
@@ -173,6 +184,12 @@ def get_agent() -> AssessmentAgent:
     return _agent
 
 
+def _get_chat_generator() -> MultiProviderClient:
+    from ..inference.multi_provider_client import get_multi_provider_client
+
+    return get_multi_provider_client()
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -190,6 +207,42 @@ async def healthz() -> Dict[str, Any]:
             "mounted": lesson_architect_router is not None,
             "error": LESSON_ARCHITECT_MOUNT_ERROR,
         },
+    }
+
+
+@app.post("/agents/chat")
+async def generate_chat(req: ChatRequest) -> Dict[str, Any]:
+    if not req.message.strip():
+        raise HTTPException(status_code=400, detail="Message must not be blank")
+
+    try:
+        response = await _get_chat_generator().generate(
+            prompt=req.message,
+            system=ASSESSMENT_CONTENT_SYSTEM_PROMPT,
+            max_tokens=4096,
+            temperature=0.3,
+            max_retries=1,
+        )
+    except RuntimeError as exc:
+        logger.error(
+            "Assessment content generation failed (%s).",
+            type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Assessment content generation failed.",
+        ) from exc
+
+    if not response.strip():
+        raise HTTPException(
+            status_code=502,
+            detail="AI service returned empty assessment content.",
+        )
+
+    return {
+        "success": True,
+        "response": response,
+        "source": "ai-agents",
     }
 
 

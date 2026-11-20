@@ -26,10 +26,10 @@ and this file for boundaries and canonical file locations.
   migrations is not by itself proof of the live schema or browser-visible behavior.
 - Rust/Hyperon was selected on 2026-11-20 as the target sole authority for structured tutoring policy.
   This is an owner decision, not deployment or cut-over evidence: Studio's `/api/chat` calls the Rust
-  tutoring API, while TypeScript policy code remains in the tree and other request paths. The teacher
-  assessment route now verifies a request session and teacher role before proxying to the absent Python
-  `/agents/chat` route. Upstream failures still produce a labelled prescribed-template response. Rust
-  has no free-form chat API.
+  tutoring API, while TypeScript policy code remains in the tree and other request paths. Studio's
+  teacher assessment route verifies a request session and teacher role before proxying to the
+  content-only Python `/agents/chat` adapter. Configuration and provider failures are returned as
+  errors rather than generated-looking templates. Rust has no free-form chat API.
 - The AI Agents route and orchestration contract is under reconciliation. See
   [`ai-agents/README.md`](../ai-agents/README.md) for tested source status and
   [`TASKS.md`](TASKS.md) for the next bounded decision and implementation slice.
@@ -82,7 +82,8 @@ and this file for boundaries and canonical file locations.
 | Surface | Handler | Source state |
 |---|---|---|
 | `POST /api/chat` | `studio/src/app/api/chat/route.ts` | Same-origin active Studio route |
-| `POST /api/generate/assessment` | `studio/src/app/api/generate/assessment/route.ts` | Verifies the request session and teacher profile; proxies to missing Python route and falls back to labelled template on upstream failure |
+| `POST /api/generate/assessment` | `studio/src/app/api/generate/assessment/route.ts` | Verifies the request session and teacher profile; proxies to Python content generation and returns explicit configuration/provider errors |
+| `POST /agents/chat` | `ai-agents/src/syncsenta_agents/api/server.py` | Content-only teacher assessment adapter; service API key required; no policy routing |
 | `POST /api/generate/scheme` | `studio/src/app/api/generate/scheme/route.ts` | Calls Python when configured; has labelled prescribed-template fallback |
 | `POST /api/generate/lesson-plan` | `studio/src/app/api/generate/lesson-plan/route.ts` | Studio route with Python proxy behavior |
 | `POST /api/generate/exam` | `studio/src/app/api/generate/exam/route.ts` | Studio route; does not invent a curriculum allocation |
@@ -153,9 +154,9 @@ Before an implementation task:
 
 - Rust/Hyperon is the selected target authority for structured tutoring decisions. Preserve the existing
   Studio-signed identity boundary when calling Rust; the Python service's API key and forwarded user
-  header are not a substitute. Either restore `/agents/chat` as a content-generation adapter or migrate
-  the active teacher assessment caller to a documented replacement; do not remove that integration
-  without migrating its caller.
+  header are not a substitute. The Python `/agents/chat` endpoint is only a teacher assessment
+  content-generation adapter; do not treat its `role` or `user_id` fields as authorization or add
+  structured tutoring-policy decisions there.
 - Authenticated database access must preserve Supabase RLS. Require a bounded active task and verified migration evidence before changing schema ownership or migration behavior.
 - Security-sensitive or deployment-specific work should update the corresponding accepted decision and the current task entry with evidence.
 

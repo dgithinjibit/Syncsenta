@@ -223,7 +223,7 @@ class MultiProviderClient:
             Generated text
             
         Raises:
-            Exception: If all providers fail
+            RuntimeError: If all providers fail
         """
         last_error = None
         
@@ -280,7 +280,7 @@ class MultiProviderClient:
                         )
         
         # All providers failed
-        raise Exception(
+        raise RuntimeError(
             f"All LLM providers failed. Last error: {last_error}. "
             "Please check your API keys and try again later."
         )

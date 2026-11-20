@@ -9,8 +9,8 @@ web application in `studio/`.
 - Entrypoint: `syncsenta_agents.api.server:app`
 - Render configuration: [`render.yaml`](render.yaml)
 - Health check: `GET /healthz`
+- Teacher assessment content: `POST /agents/chat`
 - Assessment routes are mounted under `/agents/assessment/`.
-- `/agents/chat` is not currently registered.
 - Teacher generation routes are mounted by the lesson-architect router when
   its dependencies are available; `/healthz` reports whether it mounted.
 
@@ -20,29 +20,30 @@ until its dashboard settings and deployment are updated.
 
 ## Current routing status
 
-The source and its tests are not yet aligned on the intended Omega request
-path. `api/server.py` registers `/healthz` and direct assessment handlers.
-`api/lesson_architect_api.py` mounts the teacher-generation routes. Existing
-tests and the teacher assessment proxy expect `/agents/chat`, but FastAPI does
-not register it.
+`POST /agents/chat` is a content-only adapter for the teacher assessment
+generator. It uses the existing multi-provider client and returns
+`{success, response, source}`. Blank messages and provider failures return
+explicit errors; the endpoint does not make structured tutoring-policy
+decisions. The service API-key middleware protects the route. Request `role`
+and `user_id` fields are not authorization credentials.
 
-Existing tests expect assessment and teacher handlers to dispatch through
-`get_orchestrator()` and preserve structured specialist results. Those
-orchestration functions are not present in the current package. The route test
-therefore fails for `/agents/chat`, and the orchestration tests fail because
-the expected dispatcher is missing. This is a source/test finding, not a
-statement about the live Render deployment.
+Studio's assessment generator calls `/api/generate/assessment`, which verifies
+the request-bound session and teacher profile, then replaces client-supplied
+identity fields before proxying. Missing service configuration returns 503;
+provider/upstream failures return 502 rather than a fabricated assessment.
+The forwarded user header is derived from the session, but is not itself an
+authentication credential.
 
-The active learner-chat path is Studio's same-origin `/api/chat`, not this
-service's `/agents/chat`: it requests a structured tutoring decision from the
-Rust API and streams the generated response through Studio's provider path.
-Separately, the teacher assessment generator calls Studio's
-`/api/generate/assessment`, which proxies to this service's `/agents/chat`.
-That FastAPI route is missing, so the proxy currently maps its 404 to an
-explicitly labelled prescribed-template response. The Studio handler now
-checks the request-bound session and teacher profile, and replaces the
-client-supplied `user_id` and `role` before proxying. The forwarded user header
-is derived from that session; it is not itself an authentication credential.
+The active learner-chat path remains Studio's same-origin `/api/chat`: it
+requests a structured tutoring decision from the Rust API and streams the
+generated response through Studio's provider path. Do not route learner
+tutoring policy through `/agents/chat`.
+
+Five tests in `tests/test_omega_api.py` still expect `get_orchestrator()` and
+structured dispatchers that are absent from this package. This is a source/test
+contract mismatch, not a statement about the live Render deployment. Resolve
+whether those legacy quiz, grading, and teacher-generation contracts are still
+required before restoring orchestration or pruning modules.
 
 The Rust API has no free-form chat endpoint; its tutoring endpoints require a
 short-lived Studio-signed student assertion. The existing AI Agents proxy does
@@ -76,13 +77,23 @@ Run the service tests from this directory:
 PYTHONPATH=src poetry run pytest
 ```
 
-Run the focused route and orchestration tests:
+Run the focused content-route and service-boundary tests:
 
 ```bash
-PYTHONPATH=src poetry run pytest -q tests/test_deployed_app_routes.py tests/test_omega_api.py tests/test_omega_routing.py
+PYTHONPATH=src poetry run pytest -q tests/test_chat_api.py tests/test_deployed_app_routes.py tests/test_api_auth.py
 ```
 
 Configure provider credentials and optional Supabase settings in the local
 environment. Never commit secrets. See [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
 for service boundaries and [`../docs/DEBUGGING_PLAYBOOK.md`](../docs/DEBUGGING_PLAYBOOK.md)
 for production checks.
+
+The legacy dispatcher contract tests are separate from this content-only
+adapter check:
+
+```bash
+PYTHONPATH=src poetry run pytest -q tests/test_omega_api.py
+```
+
+They currently fail because they expect absent `get_orchestrator()` dispatchers;
+resolve that contract before restoring policy routing or removing modules.
