@@ -1,5 +1,5 @@
 /**
- * Additive LMS contracts for CodeYetu-style delivery.
+ * Additive LMS contracts for SyncSenta delivery.
  *
  * This module is deliberately pure. It does not access Supabase, create a
  * session, or change the existing chat route. API and database adapters can
@@ -110,9 +110,9 @@ export type EnrollmentValidation =
   | { ok: true }
   | { ok: false; reason: 'consent_required_for_active' | 'invalid_status_transition' };
 
-export const CODEYETU_PROGRAMME: ProgrammeProfile = {
-  id: 'codeyetu',
-  displayName: 'CodeYetu Learning Programme',
+export const SYNCSENTA_PROGRAMME: ProgrammeProfile = {
+  id: 'syncsenta',
+  displayName: 'SyncSenta Learning Programme',
   deliveryModes: ['one_to_one', 'coding_club', 'community_cohort'],
   defaultSessionMinutes: 60,
   trialSessionMinutes: 40,
@@ -198,7 +198,7 @@ export function validateEnrollment(params: {
 
 export function sessionDurationMinutes(
   kind: SessionKind,
-  profile: ProgrammeProfile = CODEYETU_PROGRAMME,
+  profile: ProgrammeProfile = SYNCSENTA_PROGRAMME,
 ): number {
   return kind === 'trial' ? profile.trialSessionMinutes : profile.defaultSessionMinutes;
 }

@@ -46,7 +46,10 @@ import {
   buildCompassSystemPrompt,
   type LearnerLearningContext,
 } from '@/lib/chat/socratic-prompts';
-import { fetchHyperonTutoringDecision } from '@/lib/omega-claw-api';
+import {
+  fetchHyperonTutoringDecision,
+  omegaTutoringDecisionSchema,
+} from '@/lib/omega-claw-api';
 import { createOmegaProxyAuthorization } from '@/lib/omega-proxy-auth';
 import { classifyAnswerQuality } from '@/lib/omega-agent/answer-quality';
 import {
@@ -64,7 +67,10 @@ import {
   masteryPercent,
   generalCompetencyForSubjectLabel,
 } from '@/lib/chat/subject-session';
-import { getLearningSession, updateLearningSession } from '@/lib/session/session-persistence';
+import {
+  getLearningSessionReadResult,
+  updateLearningSession,
+} from '@/lib/session/session-persistence';
 import type {
   LearningSession,
   OmegaScaffoldingDecisionSnapshot,
@@ -161,8 +167,13 @@ async function updateScaffoldingLevel(
   language: 'english' | 'kiswahili' | 'mixed',
 ): Promise<void> {
   // Fetch current session so we can merge, not overwrite.
-  const current = await getLearningSession(userId).catch(() => null);
-  const prev = current?.preferences;
+  const readResult = await getLearningSessionReadResult(userId);
+  if (readResult.status === 'unavailable') {
+    throw new Error(`Redis could not read the Omega session: ${readResult.reason}`);
+  }
+  const prev = readResult.status === 'found'
+    ? readResult.session.preferences
+    : undefined;
   const merged: LearningSession['preferences'] = {
     language:        prev?.language        ?? language,
     difficultyLevel: prev?.difficultyLevel ?? 3,
@@ -178,7 +189,10 @@ async function updateScaffoldingLevel(
       ...(decision.evidence ? { evidence: decision.evidence } : {}),
     },
   };
-  await updateLearningSession(userId, { preferences: merged });
+  const updated = await updateLearningSession(userId, { preferences: merged });
+  if (!updated) {
+    throw new Error('Redis did not persist the Omega decision snapshot');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -497,14 +511,7 @@ export async function POST(req: NextRequest) {
     if (hyperonDecision.status !== 200) {
       return Response.json(hyperonDecision.body, { status: hyperonDecision.status });
     }
-    const parsedDecision = z.object({
-      scaffolding: z.enum(['Independent', 'Guided', 'Intensive']),
-      nextAction: z.string(),
-      hint: z.string(),
-      decidedAt: z.string().refine((value) => !Number.isNaN(Date.parse(value))).optional(),
-      rulesetVersion: z.string().optional(),
-      evidence: z.array(z.string()).optional(),
-    }).safeParse(hyperonDecision.body);
+    const parsedDecision = omegaTutoringDecisionSchema.safeParse(hyperonDecision.body);
     if (!parsedDecision.success) {
       console.error('[/api/chat] Invalid Hyperon tutoring decision response:', parsedDecision.error);
       return Response.json({ error: 'Invalid Omega tutoring decision' }, { status: 502 });

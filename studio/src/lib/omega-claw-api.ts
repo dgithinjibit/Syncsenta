@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
@@ -25,6 +26,16 @@ import {
  */
 
 const backendBaseUrl = () => (process.env.SYNCSENTA_BACKEND_URL || '').trim().replace(/\/$/, '');
+const omegaBackendUrl = (path: string) => `${backendBaseUrl()}/api/v1/omega-claw/${path}`;
+
+export const omegaTutoringDecisionSchema = z.object({
+  scaffolding: z.enum(['Independent', 'Guided', 'Intensive']),
+  nextAction: z.string().min(1),
+  hint: z.string().min(1),
+  rulesetVersion: z.string().min(1),
+  evidence: z.array(z.string().min(1)).min(1),
+  decidedAt: z.string().datetime(),
+});
 
 /** True when someone has pointed the app at a deployed Rust backend. */
 export function omegaClawBackendConfigured(): boolean {
@@ -50,6 +61,17 @@ export async function evaluateHyperonTutoring(
   }
   const raw = await request.text();
   const result = await forward('tutoring', raw, identity.authorization);
+  if (result.status === 200) {
+    const decision = omegaTutoringDecisionSchema.safeParse(result.body);
+    if (!decision.success) {
+      console.error('Invalid tutoring response from Rust/Hyperon:', decision.error);
+      return NextResponse.json(
+        { error: 'Invalid Omega tutoring decision response' },
+        { status: 502 },
+      );
+    }
+    return NextResponse.json(decision.data);
+  }
   return NextResponse.json(result.body, { status: result.status });
 }
 
@@ -68,7 +90,7 @@ export async function fetchHyperonTutoringDecision(
   }
 
   try {
-    const response = await fetch(`${backendBaseUrl()}/omega-claw/tutoring`, {
+    const response = await fetch(omegaBackendUrl('tutoring'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -78,6 +100,17 @@ export async function fetchHyperonTutoringDecision(
       cache: 'no-store',
     });
     const payload = await response.json().catch(() => ({ error: 'Invalid backend response' }));
+    if (response.status === 200) {
+      const decision = omegaTutoringDecisionSchema.safeParse(payload);
+      if (!decision.success) {
+        console.error('Invalid tutoring response from Rust/Hyperon:', decision.error);
+        return {
+          status: 502,
+          body: { error: 'Invalid Omega tutoring decision response' },
+        };
+      }
+      return { status: 200, body: decision.data };
+    }
     return { status: response.status, body: payload as Record<string, unknown> };
   } catch {
     return {
@@ -167,7 +200,7 @@ async function forward(
   authorization: string,
 ): Promise<OmegaClawResult> {
   try {
-    const response = await fetch(`${backendBaseUrl()}/omega-claw/${path}`, {
+    const response = await fetch(omegaBackendUrl(path), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

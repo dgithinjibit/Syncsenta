@@ -1,0 +1,38 @@
+{
+  "by_connectivity": {
+    "low_bandwidth": 1688,
+    "offline": 1584,
+    "online": 1728
+  },
+  "by_grade": {
+    "Grade 10": 1248,
+    "Grade 11": 1248,
+    "Grade 12": 1248,
+    "Grade 6": 1256
+  },
+  "by_language": {
+    "en": 1680,
+    "mixed": 1640,
+    "sw": 1680
+  },
+  "by_scaffolding": {
+    "Guided": 1667,
+    "Independent": 1666,
+    "Intensive": 1667
+  },
+  "by_split": {
+    "test": 499,
+    "train": 3995,
+    "validation": 506
+  },
+  "by_subject": {
+    "creative_arts": 832,
+    "english": 834,
+    "kiswahili": 834,
+    "mathematics": 834,
+    "science_technology": 834,
+    "social_studies": 832
+  },
+  "records": 5000,
+  "seed": 20261120
+}

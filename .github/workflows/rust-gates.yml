@@ -1,8 +1,8 @@
 name: Rust gates
 
-# The Rust backend source is active, but it is not currently deployed. This
-# workflow gates its database-backed API and MeTTa runtime; Studio has separate
-# type, test, and build gates.
+# The Rust backend has a Render blueprint, but deployment is not verified.
+# This workflow gates its database-backed API and MeTTa runtime; Studio has
+# separate type, test, and build gates.
 #
 # WHY A DATABASE JOB: 64 of the crate's queries are compile-time-checked
 # `sqlx::query!` macros and there is no committed `.sqlx/` offline data, so the

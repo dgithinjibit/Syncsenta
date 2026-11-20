@@ -87,6 +87,22 @@ its generated records are still synthetic and have not been independently
 reviewed against CBC curriculum or by educators. Automated arithmetic checks
 do not establish pedagogical quality.
 
+For a separate tabular evaluation fixture for tutoring-policy and connectivity
+labels, see [`datasets/curriculum-evaluation/`](../datasets/curriculum-evaluation/).
+It contains 5,000 deterministic synthetic rows in JSONL and CSV. Regenerate and
+validate it with:
+
+```bash
+python3 datasets/curriculum-evaluation/generate_dataset.py
+python3 -m unittest discover \
+  -s datasets/curriculum-evaluation -p 'test_*.py' -v
+python3 datasets/curriculum-evaluation/validate_dataset.py
+```
+
+Its expected labels mirror the current rules and are not educator-approved
+ground truth; do not use model scores from this fixture as evidence of learner
+outcomes, educational quality, or fairness.
+
 These commands prepare data only. The optional
 [`start_training.sh`](../developer_tools/scripts/start_training.sh) refers to
 AMD setup and model-training scripts that are not checked in, so it fails
@@ -97,7 +113,11 @@ clearly until that training implementation is supplied.
 The root workspace contains `rust-core/` and `rust-service/`. The backend is a
 separate workspace under `backend/`; its default features use Hyperon MeTTa.
 `--no-default-features` selects the limited in-process fallback and is not the
-normal runtime.
+normal runtime. When running the backend from `backend/`, copy
+[`backend/.env.example`](../backend/.env.example) to `backend/.env` and set
+`DATABASE_URL`, `JWT_SECRET`, and `SYNCSENTA_OMEGA_PROXY_JWT_SECRET`. The
+proxy secret must match Studio's server-only value; do not commit either `.env`
+file.
 
 Run root workspace tests from the repository root:
 
@@ -122,8 +142,18 @@ Studio's Omega policy proxy and the Rust backend must share
 `SYNCSENTA_OMEGA_PROXY_JWT_SECRET` (at least 32 bytes). Studio validates the
 Supabase caller, then signs a short-lived student assertion for the separately
 authenticated Omega route. Raw Supabase access tokens are not accepted by that
-Rust route. Configure `SYNCSENTA_BACKEND_URL` in Studio as the backend origin
-without `/api/v1`; missing proxy-secret configuration fails closed with 503.
+Rust route. Set `SYNCSENTA_BACKEND_URL` in Studio to the Rust service origin
+without `/api/v1`; Studio calls `/api/v1/omega-claw/{route}` to match the
+backend mount. Missing URL or proxy-secret configuration fails closed with
+503. The backend exposes `/healthz` for the Render health check in root
+[`render.yaml`](../render.yaml).
+
+For Render, set the backend's `JWT_SECRET` and shared
+`SYNCSENTA_OMEGA_PROXY_JWT_SECRET` as secrets. The backend uses compile-time
+SQLx queries, so the linked PostgreSQL schema must be migrated before the
+Rust build; runtime startup also runs the backend migrations. Supply
+`SYNCSENTA_BACKEND_URL` and the same proxy secret to Studio. This config does
+not deploy the service or verify its live URL.
 
 ## Verify changes
 

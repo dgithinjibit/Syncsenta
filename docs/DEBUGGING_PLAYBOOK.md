@@ -18,8 +18,8 @@ targets it.
 Some older documents still describe Windows-only commands, retired components,
 or paths now under `archive/`. Before running a command or following a path,
 confirm it exists in the current checkout and check the service configuration
-that actually launches it. The Rust backend source is active but is not
-currently deployed; Studio forwards to it only when
+that actually launches it. The Rust backend has a Render blueprint, but a live
+deployment is not verified; Studio forwards to it only when
 `SYNCSENTA_BACKEND_URL` is configured.
 
 ## Jira-ready bug report

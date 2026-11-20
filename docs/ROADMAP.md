@@ -65,6 +65,23 @@ The product-specific checklist below is retained as the roadmap summary.
 - Studio typecheck, tests, and production build pass; deployment and browser
   checks are reported separately.
 
+## Related Omega and curriculum evaluation work
+
+This work supports learner-facing readiness but does not expand or satisfy the
+teacher-analytics Phase 2 scope above.
+
+| Work | Status | Remaining evidence or work |
+|---|---|---|
+| Studio-to-Rust Omega route contract | Studio now prefixes the configured backend origin with `/api/v1/omega-claw`; regression assertions cover the Rust route mount. | Studio tests and Rust backend tests have not run in this environment. |
+| Rust deployment foundation | The Render blueprint includes backend configuration, secrets, database wiring, and `/healthz`. | Configure target secrets, build against the migrated database, deploy to staging, and verify authenticated Studio-to-Rust traffic. The source configuration does not prove a live deployment. |
+| Low-bandwidth challenge practice | The challenge UI can provide local hints and explicitly provisional offline practice; failed saves do not count as incorrect answers. | Run Studio checks. Offline answers are not persisted or synchronized; implement and test an idempotent sync contract before claiming offline-first completion. |
+| Curriculum policy evaluation fixture | [`datasets/curriculum-evaluation/`](../datasets/curriculum-evaluation/) contains 5,000 synthetic rows with CSV/JSONL exports, deterministic generation, and policy-label validation. Its focused Python tests and validator pass. | Curriculum mappings and policy labels are illustrative, not educator-approved ground truth. Obtain educator and child-safety review before using the labels to assess learning quality or real learner behavior. |
+
+These are separate readiness increments, not evidence that the Omega runtime
+is a general AGI architecture or that the teacher dashboard is production
+complete. Synthetic data does not replace consented, governed learner data or
+educator review.
+
 ## Verification commands
 
 Run the narrowest relevant test first. Before completing a Studio change, run:

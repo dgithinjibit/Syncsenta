@@ -10,7 +10,7 @@ target when diagnosing production behavior.
 |---|---|---|
 | [`studio/`](../studio/) | Primary Next.js 14 / React 18 / strict TypeScript application, learner and teacher pages, and `/api/*` handlers | Vercel; configured by root [`vercel.json`](../vercel.json) |
 | [`ai-agents/`](../ai-agents/) | Python 3.11 / FastAPI agent, assessment, and selected teacher-generation APIs | Render configuration in [`ai-agents/render.yaml`](../ai-agents/render.yaml) |
-| [`backend/`](../backend/) | Rust / Tokio / Axum API with Hyperon MeTTa as the default Omega Claw runtime; SQLx and Redis dependencies | Active source; deployment is not currently configured. Studio forwards only when `SYNCSENTA_BACKEND_URL` is set |
+| [`backend/`](../backend/) | Rust / Tokio / Axum API with Hyperon MeTTa as the default Omega Claw runtime; SQLx and Redis dependencies | Render service configured in root [`render.yaml`](../render.yaml); deployment and connectivity are not verified |
 | [`rust-core/`](../rust-core/) and [`rust-service/`](../rust-service/) | Separate root Rust workspace for adaptive policy and service code | Source workspace; verify deployment and integration separately |
 | Supabase | Authentication, PostgreSQL, application data, and row-level security | Managed service; verify the actual target and applied schema |
 | Upstash Redis | Optional rate limiting and short-lived session state | Used only by configured paths |
@@ -503,9 +503,10 @@ that a metric is backed by live data.
   provider chain. It is not automatically a request to the AI Agents service.
 - Omega Claw rule endpoints fail closed when `SYNCSENTA_BACKEND_URL` is absent
   and forward to the Rust/Hyperon service when configured. There is no
-  TypeScript policy fallback; the Rust service is not currently deployed.
-  See the [production completion specification](specs.md) for the target
-  architecture and acceptance criteria.
+  TypeScript policy fallback. The Render blueprint configures the Rust
+  service, but a live deployment is not verified. See the [production
+  completion specification](specs.md) for the target architecture and
+  acceptance criteria.
 - Selected agent and teacher-generation flows pass from Studio API handlers to
   the FastAPI application at
   [`ai-agents/src/syncsenta_agents/api/server.py`](../ai-agents/src/syncsenta_agents/api/server.py).

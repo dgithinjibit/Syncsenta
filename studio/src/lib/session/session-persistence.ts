@@ -149,10 +149,12 @@ export async function updateLearningSession(
     const key = `learning_session:${userId}`;
     
     // Get current session or create new one
-    let session = await getLearningSession(userId);
-    if (!session) {
-      session = createInitialSession(userId, deviceId || 'unknown');
-    }
+    const readResult = await getLearningSessionReadResult(userId);
+    if (readResult.status === 'unavailable') return false;
+
+    const session = readResult.status === 'found'
+      ? readResult.session
+      : createInitialSession(userId, deviceId || 'unknown');
     
     // Apply updates
     const updatedSession: LearningSession = {

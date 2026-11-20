@@ -83,7 +83,7 @@ describe('Hyperon Omega authority', () => {
   });
 
   it('forwards a synthetic tutoring request and caller token to the Rust boundary', async () => {
-    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test/api/v1/';
+    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test/';
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({
         scaffolding: 'Guided',
@@ -131,8 +131,27 @@ describe('Hyperon Omega authority', () => {
     );
   });
 
+  it('rejects a successful Rust response that omits its decision provenance', async () => {
+    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test';
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        scaffolding: 'Guided',
+        nextAction: 'ask-guiding-question',
+        hint: 'isolate-step',
+      }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      fetchHyperonTutoringDecision({}, 'Bearer signed-proxy-token'),
+    ).resolves.toEqual({
+      status: 502,
+      body: { error: 'Invalid Omega tutoring decision response' },
+    });
+  });
+
   it('forwards the authenticated cookie session to the Rust progression boundary', async () => {
-    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test/api/v1';
+    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test';
     process.env.SYNCSENTA_OMEGA_PROXY_JWT_SECRET =
       'synthetic-only-omega-proxy-secret-32-bytes';
     const callerClient = mockCallerClient();
@@ -161,7 +180,7 @@ describe('Hyperon Omega authority', () => {
   });
 
   it('validates explicit Supabase bearer tokens and exchanges them for scoped Rust identity', async () => {
-    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test/api/v1';
+    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test';
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://syncsenta.test';
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'synthetic-anon-key';
     process.env.SYNCSENTA_OMEGA_PROXY_JWT_SECRET =
@@ -195,7 +214,7 @@ describe('Hyperon Omega authority', () => {
   });
 
   it('does not call Rust when the cookie session is unauthenticated', async () => {
-    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test/api/v1';
+    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test';
     deps.routeClient.mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -218,7 +237,7 @@ describe('Hyperon Omega authority', () => {
   });
 
   it('rejects non-student Supabase profiles before calling Rust', async () => {
-    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test/api/v1';
+    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test';
     process.env.SYNCSENTA_OMEGA_PROXY_JWT_SECRET =
       'synthetic-only-omega-proxy-secret-32-bytes';
     deps.routeClient.mockResolvedValue(mockCallerClient(
@@ -239,7 +258,7 @@ describe('Hyperon Omega authority', () => {
   });
 
   it('fails with 503 when the shared proxy secret is not configured', async () => {
-    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test/api/v1';
+    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test';
     deps.routeClient.mockResolvedValue(mockCallerClient());
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
@@ -255,14 +274,14 @@ describe('Hyperon Omega authority', () => {
   });
 
   it('returns an explicit 502 when the Hyperon boundary is unreachable', async () => {
-    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test/api/v1';
+    process.env.SYNCSENTA_BACKEND_URL = 'https://omega.test';
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
     await expect(fetchHyperonTutoringDecision({}, 'test-access-token')).resolves.toMatchObject({
       status: 502,
       body: {
         error: 'Omega Claw backend is unreachable',
-        backend: 'https://omega.test/api/v1',
+        backend: 'https://omega.test',
       },
     });
   });

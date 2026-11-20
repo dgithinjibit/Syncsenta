@@ -122,6 +122,11 @@ fn validate_omega_proxy_token(token: &str, secret: &str) -> anyhow::Result<Claim
     )?
     .claims;
     anyhow::ensure!(
+        proxy_claims.iss == OMEGA_PROXY_ISSUER
+            && proxy_claims.aud == OMEGA_PROXY_AUDIENCE,
+        "Omega proxy token has an invalid issuer or audience"
+    );
+    anyhow::ensure!(
         proxy_claims.role == "student",
         "Omega proxy token does not represent a student"
     );

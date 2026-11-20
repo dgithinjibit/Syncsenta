@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   AI_LITERACY_FOUNDATIONS_MODULE,
-  CODEYETU_PROGRAMME,
+  SYNCSENTA_PROGRAMME,
   sessionDurationMinutes,
   validateCohort,
   validateEnrollment,
   validateLessonSession,
 } from '../lms-contract';
 
-describe('CodeYetu-compatible LMS contract', () => {
+describe('SyncSenta LMS contract', () => {
   it('supports one-to-one, club, and community delivery without changing chat slugs', () => {
-    expect(CODEYETU_PROGRAMME.deliveryModes).toEqual([
+    expect(SYNCSENTA_PROGRAMME.id).toBe('syncsenta');
+    expect(SYNCSENTA_PROGRAMME.displayName).toBe('SyncSenta Learning Programme');
+    expect(SYNCSENTA_PROGRAMME.deliveryModes).toEqual([
       'one_to_one',
       'coding_club',
       'community_cohort',
@@ -19,7 +21,7 @@ describe('CodeYetu-compatible LMS contract', () => {
     expect(AI_LITERACY_FOUNDATIONS_MODULE.sandboxActivity).toBe('source-checker');
   });
 
-  it('keeps CodeYetu trial and regular lesson durations explicit', () => {
+  it('keeps trial and regular lesson durations explicit', () => {
     expect(sessionDurationMinutes('trial')).toBe(40);
     expect(sessionDurationMinutes('lesson')).toBe(60);
   });

@@ -99,7 +99,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn codeyetu_delivery_modes_have_bounded_groups() {
+    fn syncsenta_delivery_modes_have_bounded_groups() {
         let one_to_one = session_policy(DeliveryMode::OneToOne, SessionKind::Trial);
         let club = session_policy(DeliveryMode::CodingClub, SessionKind::Lesson);
         let cohort = session_policy(DeliveryMode::CommunityCohort, SessionKind::Project);
