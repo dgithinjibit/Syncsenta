@@ -24,9 +24,10 @@ and this file for boundaries and canonical file locations.
 - Supabase supplies authentication and application data. Existing migrations under
   `supabase/migrations_live/` describe applied live-schema history, but listing or applying source
   migrations is not by itself proof of the live schema or browser-visible behavior.
-- Rust code in `backend/syncsenta-backend/`, `rust-core/`, and `rust-service/` is not a third active
-  Studio rule voice. It remains optional/configuration-dependent until deployment and cut-over evidence
-  exist under the accepted one-rule-voice decision.
+- Rust/Hyperon was selected on 2026-11-20 as the target sole authority for structured tutoring policy.
+  This is an owner decision, not deployment or cut-over evidence: Studio's `/api/chat` calls the Rust
+  tutoring API, while TypeScript policy code remains in the tree and other request paths. The
+  `/agents/chat` Python route is absent, and no free-form Rust chat API exists.
 - The AI Agents route and orchestration contract is under reconciliation. See
   [`ai-agents/README.md`](../ai-agents/README.md) for tested source status and
   [`TASKS.md`](TASKS.md) for the next bounded decision and implementation slice.
@@ -147,15 +148,16 @@ Before an implementation task:
 
 ## Policy and data boundaries
 
-- Student tutoring decisions in Studio and the optional Rust policy service are separate implementations. Follow the accepted [one-rule-voice decision](architecture/decision-one-rule-voice.md); do not introduce a third runtime or silently claim Rust is serving production traffic.
-- Authenticated database access must preserve Supabase RLS. Review [the single schema history decision](architecture/decision-single-schema-history.md) before changing schema ownership or migration behavior.
+- Rust/Hyperon is the selected target authority for structured tutoring decisions. Preserve the existing
+  Studio-signed identity boundary when calling Rust; the Python service's API key and forwarded user
+  header are not a substitute. Research whether `/agents/chat` should be retired or retained as a
+  content-generation adapter before changing its route or orchestration.
+- Authenticated database access must preserve Supabase RLS. Require a bounded active task and verified migration evidence before changing schema ownership or migration behavior.
 - Security-sensitive or deployment-specific work should update the corresponding accepted decision and the current task entry with evidence.
 
-## Maintained decisions
+## Decision sources
 
-- [One rule voice](architecture/decision-one-rule-voice.md)
-- [Rust primary backend](architecture/decision-rust-primary-backend.md)
-- [Single schema history](architecture/decision-single-schema-history.md)
-- [Laya decision router](architecture/laya-decision-router.md)
+- [Project charter](BASIX-NORTH-STAR.md) and [evidence record](research/BASIX-FINAL-POSITION.md) — current policy direction and limitations.
+- The standalone decision files previously listed under `docs/architecture/` are not present in this checkout. Record and verify any new accepted decision before treating it as implementation evidence.
 
 For project status and verification evidence, use [ROADMAP.md](ROADMAP.md). For the active backlog, use [TASKS.md](TASKS.md).

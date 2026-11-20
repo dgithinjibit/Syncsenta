@@ -7,7 +7,6 @@ Endpoints:
     GET  /healthz
     POST /agents/assessment/quiz   -> Quiz JSON
     POST /agents/assessment/grade  -> GradedSubmission JSON
-    POST /agents/chat              -> Omega Queen response
     /lesson-architect/*            -> teacher generation (see LESSON_ARCHITECT_MOUNT_ERROR)
 
 This is the app Render runs (`render.yaml` -> startCommand). `api/scheme_server.py`

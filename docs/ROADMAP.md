@@ -27,15 +27,25 @@ The lesson-architect router mounts; `/agents/chat` is absent; five tests referen
 `get_orchestrator()` and related orchestration functions that are absent from `api/server.py`.
 This is tested source behavior, not deployed behavior.
 
-No AI Agents modules or dependencies were removed. The active task in `TASKS.md` is to confirm the
-policy authority and service boundary, reconcile the Studio route contract, then make the
-route/orchestration tests green before pruning candidates. The Python venv is local and ignored by Git.
+The owner selected Rust/Hyperon as the target sole authority for structured tutoring policy on
+2026-11-20. This is an architecture decision, not evidence that Hyperon is running or Rust is deployed.
+Further source review found Studio's learner chat uses `/api/chat`, calls Rust for structured tutoring
+decisions, and streams generated content through Studio; no Studio call site for Python `/agents/chat`
+was found. Rust exposes scope, activity, progression, hint, and tutoring endpoints, but no free-form
+chat endpoint. Those Rust routes require a short-lived, Studio-signed student assertion; the existing
+AI Agents proxy sends a service key and forwarded user ID instead. Do not treat that header as
+authorization.
+
+No AI Agents behavior, modules, or dependencies were changed. The active task in `TASKS.md` is to
+settle whether the legacy `/agents/chat` route is retired or retained as a content-generation adapter,
+and define the signed identity and Rust policy contract before implementation or pruning. The Python
+venv is local and ignored by Git.
 
 ## Active work
 
 Use [TASKS.md](TASKS.md) for the live backlog. The current backlog is:
 
-1. Confirm the AI Agents policy authority and service boundary before cleanup.
+1. Define the AI Agents service boundary and disposition of `/agents/chat` before cleanup.
 2. Rebuild the Codespace and record the container build result.
 3. Run the focused Studio regressions.
 4. Browser-verify authorized student, teacher, and head flows.
