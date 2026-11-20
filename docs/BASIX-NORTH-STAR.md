@@ -5,10 +5,10 @@ north star, take your time so we can start on having the foundation."*
 
 This file is not documentation about the project. It is the **operating instruction** for the agent
 working on it, and it exists because the project spent a month climbing accurately and energetically up
-the wrong wall. The wall was chosen by a document nobody re-read (`OMEGA_ARCHITECTURE.md`, 29 Aug,
-"Hyperon not required", "No changes needed — architecture is sound"). The climb was fine. The
-selection process was not. Everything below is a defence against repeating that, in this project or any
-later one.
+the wrong wall. An August architecture note argued "Hyperon not required" and "No changes needed —
+architecture is sound"; it was later removed because its claims were unsupported. The climb was fine.
+The selection process was not. Everything below is a defence against repeating that, in this project or
+any later one.
 
 Read this file, then [`BASIX-FINAL-POSITION.md`](research/BASIX-FINAL-POSITION.md) for the evidence
 behind it, then `docs/ROADMAP.md` for where the next spoon goes.

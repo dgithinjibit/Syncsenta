@@ -1,7 +1,7 @@
 # MeTTa Prototype Archive
 
-**Archived:** September 7, 2026  
-**Reason:** Code was fully implemented but never wired to production. See `OMEGA_METTA_STATUS.md` at the project root for full assessment.
+**Archived:** September 7, 2026
+**Purpose:** Inventory of the archived MeTTa prototype. This is historical context, not a current deployment or reintegration assessment.
 
 ---
 
@@ -51,7 +51,7 @@ To bring any of these files back into production:
 
 ## Integration Decision Criteria
 
-Per `OMEGA_METTA_STATUS.md`, MeTTa is worth reintegrating if:
+Any proposal to reintegrate this code should be tracked in [docs/TASKS.md](../../../docs/TASKS.md) and supported by current evidence. The original decision criteria were:
 
 - It measurably improves learning outcomes vs. the current Omega decision engine
 - It reduces code complexity (not increases it)

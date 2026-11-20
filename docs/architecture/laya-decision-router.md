@@ -21,10 +21,9 @@ computes Independent / Guided / Intensive from integer mastery, a hint count, an
 boolean. It is deterministic, costs microseconds, and is kept in byte-for-byte parity
 with `rust-core/src/agent_runtime.rs` (see the parity note at `metta-core.ts:790-794`).
 
-Replacing a free exact rule with a 33 ms probabilistic model would be a regression on
-every axis that rule exists to protect: latency, determinism, replay, and the
-TypeScript/Rust parity gate that `.kiro/specs/main-stability-and-branch-consolidation/`
-is still working to enforce. **Laya stays out of this function.**
+Replacing a free exact rule with a probabilistic model would be a regression on
+every axis that rule exists to protect: latency, determinism, and replay.
+**Laya stays out of this function.**
 
 ## The actual weak link is the signal feeding that rule
 

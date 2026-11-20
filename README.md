@@ -339,9 +339,6 @@ before committing any change to the Next.js app. [P.M](https://dgithinji331s-tea
 The [TDD analysis](docs/TDD_ANALYSIS.md) documents current test coverage gaps and
 the implementation plan for closing them, prioritised by production risk.
 
-The [Omega/MeTTa status](docs/OMEGA_METTA_STATUS.md) tracks the implementation
-status of the Omega decision engine and the broader MeTTa neuro-symbolic system.
-
 Point-in-time reports were removed from the tree on 2026-10-02; the repository's history
 is the archive, and [`docs/ROADMAP.md`](docs/ROADMAP.md) is the record of where the
 project actually stands.

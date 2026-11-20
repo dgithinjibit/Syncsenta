@@ -3,9 +3,9 @@
 One repository, several runtimes: the Next.js app in `studio/`, Python agent
 services in `ai-agents/`, Rust engines at the root (`rust-core/`, `rust-service/`,
 `backend/`), and Supabase migrations in `supabase/`. Read
-[`docs/ROADMAP.md`](docs/ROADMAP.md) before planning work — it is the binding
-map of what is proven, what is recorded-but-unverified, and what our own docs
-used to claim falsely.
+[`docs/TASKS.md`](docs/TASKS.md) before planning work; it is the only active
+task register. Use [`docs/ROADMAP.md`](docs/ROADMAP.md) for current position
+and dated evidence, not as a second backlog.
 
 ## The one rule
 
@@ -43,9 +43,8 @@ model inference or a full Hyperon runtime — do not try.
    `archive/`); developer helpers go in `developer_tools/`. The repository
    root holds only deploy/workspace manifests, `README.md`, `AGENTS.md`,
    `LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`, and the community-health files.
-5. If you change what is proven, update `docs/ROADMAP.md` in the same commit —
-   the roadmap is the map, and a session that does work without recording it
-   has done half the work.
+5. Update `docs/TASKS.md` when work changes state, and update `docs/ROADMAP.md`
+   when you produce new project-level verification evidence.
 
 ## Commit messages
 

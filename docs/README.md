@@ -1,42 +1,30 @@
-# Syncsenta documentation
+# SyncSenta documentation
 
-This directory is the maintained source of truth for the Syncsenta platform. Current documents describe the implementation, deployment configuration, test contracts, and product decisions in the repository. Point-in-time historical reports were removed from the tree on 2026-10-02; git history is the archive.
+This directory contains maintained product guidance, implementation references, and supporting evidence. `docs/TASKS.md` is the only active task register; old plans and point-in-time reports are not sources of current status.
 
-## Active architecture
+## Start here
 
-Syncsenta is a Kenyan education platform for learners, teachers, school leaders, and families. The active production path consists of:
+1. [BASIX-NORTH-STAR.md](BASIX-NORTH-STAR.md) — product claim rules and task-selection guardrails.
+2. [../AGENTS.md](../AGENTS.md) — repository conventions and verification requirements.
+3. [TASKS.md](TASKS.md) — the active task register and working guide.
+4. [DEVELOPMENT.md](DEVELOPMENT.md) — setup, environment, test, and migration commands.
+5. [ROADMAP.md](ROADMAP.md) — current position plus dated historical evidence.
 
-| Component | Responsibility | Deployment |
-|---|---|---|
-| `studio/` | Next.js web application, student journeys, subject sandboxes, teacher workflows, and `/api/*` routes | Vercel |
-| `ai-agents/` | Python FastAPI service, agent workflows, Hyperon policy evaluation, telemetry, and readiness checks | Render |
-| Supabase | Authentication, PostgreSQL, RLS, storage, and realtime data | Managed service |
-| Upstash Redis | Rate limiting and short-lived learning-session state | Managed service |
-| `rust-core/` and `rust-service/` | Adaptive-policy source of truth and optional HTTP service | Local / planned production service |
+## Maintained references
 
-The student tutoring path uses the TypeScript MeTTa boundary and Omega decision engine in the web application. The Python service provides the Hyperon policy boundary for selected agent and telemetry flows. These are related but distinct execution paths and must not be described as one runtime until the production Hyperon route is verified end to end.
-
-## Read these first
-
-1. [`ARCHITECTURE.md`](ARCHITECTURE.md) — components, request flows, MeTTa/Omega boundaries, and deployment topology.
-2. [`DEVELOPMENT.md`](DEVELOPMENT.md) — local setup, environment variables, testing, migrations, and deployment commands.
-3. [`CONTEXT.md`](CONTEXT.md) — CBC terminology, Kenyan education context, and architectural vocabulary.
-4. [`ROADMAP.md`](ROADMAP.md) — current implementation status and prioritized work.
-5. [`TDD_ANALYSIS.md`](TDD_ANALYSIS.md) — test gaps, test seams, and the Red–Green–Refactor workflow.
-6. [`OMEGA_METTA_STATUS.md`](OMEGA_METTA_STATUS.md) — current Omega and MeTTa implementation boundaries.
-7. [`HYPERON_DEPENDENT_PROJECTS.md`](HYPERON_DEPENDENT_PROJECTS.md) — external Hyperon patterns and guardrails.
-8. [`DEMO_ROLE_ACCESS.md`](DEMO_ROLE_ACCESS.md) — Supabase-backed student, teacher, parent, and head-of-school demo access.
-
-## Supporting references
-
-- [`CODING_STANDARDS.md`](CODING_STANDARDS.md) — implementation conventions and safe-change practices.
-- [`GRADE_2_STUDENT_WORKFLOW.md`](GRADE_2_STUDENT_WORKFLOW.md) — learner workflow reference.
-- [`curriculum/README.md`](curriculum/README.md) — code-backed Traditional, Blockchain, and AI/AGI/SI status inventory.
-- [`TASKS.md`](TASKS.md) — active task register.
-- [`architecture/`](architecture/) — service-specific architecture notes.
-- [`architecture/metta-omega-target-architecture.md`](architecture/metta-omega-target-architecture.md) — proposed MeTTa/OmegaClaw target, migration gates, and tradeoffs; not yet adopted.
-- [`research/`](research/) — research and evidence notes.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — code-level components and boundaries; not deployment evidence.
+- [CODING_STANDARDS.md](CODING_STANDARDS.md) — coding and review conventions.
+- [CONTENT_READINESS.md](CONTENT_READINESS.md) — student-facing content and route readiness.
+- [DEMO_ROLE_ACCESS.md](DEMO_ROLE_ACCESS.md) — supported demo roles and access.
+- [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) — deployment operations.
+- [TDD_ANALYSIS.md](TDD_ANALYSIS.md) — test seams and coverage gaps.
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — recurring development and runtime issues.
+- [SYNCSENTA_SUPPORT_GUIDE.md](SYNCSENTA_SUPPORT_GUIDE.md) and [SYNCSENTA_USER_FAQ.md](SYNCSENTA_USER_FAQ.md) — user support.
+- [curriculum/README.md](curriculum/README.md) — curriculum document index.
+- [research/BASIX-FINAL-POSITION.md](research/BASIX-FINAL-POSITION.md) — evidence supporting the project charter.
+- [basix-sample-audit/](basix-sample-audit/) — reproducible example artifacts referenced by the README and tests.
+- [architecture/](architecture/) — accepted architecture decisions and active boundaries.
 
 ## Documentation rules
 
-Update the relevant active document in the same change as any new route, API contract, environment variable, deployment target, database migration, or service-boundary decision. Link to source files and state whether behavior is implemented, optional, or planned. Point-in-time status reports do not get committed here; `ROADMAP.md` carries the position and git carries the history.
+Update the relevant maintained reference when changing a route, API contract, environment variable, deployment target, database migration, or service boundary. Record only evidence that was actually produced. Remove superseded plans and one-off status reports after checking their inbound references; use git history for completed work.

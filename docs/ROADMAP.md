@@ -1,16 +1,26 @@
-# Syncsenta Roadmap — the map
+# Syncsenta Roadmap — current position and evidence
+
+## Current position — 2026-11-20
+
+`docs/TASKS.md` is the single active task register. The historical roadmap below records work through
+2026-10-03; its dated measurements are not evidence of the current deployment or current test baseline.
+
+The current source review found that student chat uses the Studio chat route, shared role-home routing and
+grade normalization exist, and CSP/print regression fixes are present. The `/head` workspace shell was
+added in this change. Its focused test, the related Studio suite, typecheck, production build, and deployed
+browser flows have **not** been run or verified in this environment. See `docs/TASKS.md` for the remaining
+verification work and the generated-scheme persistence decision.
+
+---
 
 **Project**: Syncsenta — a CBC teaching and learning workspace for Kenyan schools
 **Owner**: dgithinjibit
-**Last updated**: 2026-10-02
-**Supersedes**: `ROADMAP-2026-09-24-superseded.md`, which lived under `docs/archive/`; the archive batch was removed from the tree on 2026-10-02 (spoon 14) and reads via `git show HEAD~1:docs/archive/<file>` from anyone who needs it. It was never release evidence.
-**Status of this file**: plan of record.
+**Last updated**: 2026-11-20
+**History**: Earlier roadmap versions are available in git history; they were not release evidence.
+**Status of this file**: current-position summary followed by historical work records through 2026-10-03. The active task list is [docs/TASKS.md](TASKS.md).
 
-> **This document is the map, and it is binding.** Work that is not in this file is
-> not scheduled. Work in this file that changes shape gets edited here first, in the
-> same session, before the code moves. Every stage below is written so that someone
-> picking the project up cold can answer three questions without asking anyone:
-> *where are we*, *what is the next step*, and *what evidence would prove it*.
+> Use [docs/TASKS.md](TASKS.md) to select and track work. This file records project position and historical
+> evidence; its older open-item lists are not an active backlog.
 
 ---
 
@@ -1933,7 +1943,7 @@ scratch but seems we had our ladder on the wrong wall NGL."* The verdict, with e
 leaning against a wall we built in Rust and never plugged into the running product. Two corrections to the
 plan above follow from it, and they are order-and-scope corrections, not a restart.
 
-1. **The 29 Aug architecture decision is the wrong wall, in writing.** `OMEGA_ARCHITECTURE.md` chose
+1. **The 29 Aug architecture decision was the wrong wall, in writing.** The now-removed architecture note chose
    thresholds over symbolic reasoning — *"Tutoring decisions don't need symbolic reasoning (just
    thresholds)"*, *"Hyperon not required"*, the MeTTa graph is a *"Conceptual demonstration … Not used in
    production tutoring decisions"*, closing with *"✅ No changes needed — architecture is sound!"*. It was
@@ -2740,9 +2750,8 @@ unaffected. The suite is green again with the two fixes in: **1069 passed / 17 s
 
 ### Spoon 6b is *started*, not done: the AI disclosure has a scaffold, and the four paragraphs that matter are the owner's (2026-10-01, Tier A for the inventory)
 
-BASIX Solo requires an AI disclosure in the builder's own words, and it is the one outstanding deliverable no
-code can substitute. `docs/AI-DISCLOSURE-SCAFFOLD-2026-10-01.md` now holds the inventory the owner needs in
-order to write it, and four `WRITE IN YOUR OWN WORDS` blocks where mine would be a forgery.
+The BASIX submission required an AI disclosure in the builder's own words. The dated drafting scaffold is
+retired; the repository README contains the disclosure. This historical entry is not a current submission task.
 
 What the scaffold can state as Tier A, measured tonight rather than recalled:
 
@@ -2869,10 +2878,10 @@ possible in principle and abandonment is a named risk in any write-up.
 moved them under `developer_tools/` and left `scripts -> developer_tools/scripts` as a compatibility symlink.
 Every command line in the submission docs still said `node scripts/reconcile.mts`. On Linux and macOS that
 resolves, because Git materialises symlinks; on a Windows checkout, or any tool that exports the tree without
-them, the headline command of the README is a missing file. So the README, `docs/BASIX-PR-BODY.md`,
-`docs/BASIX-CALL-NOTES-2026-10-01.md`, `docs/AI-DISCLOSURE-SCAFFOLD-2026-10-01.md` and §1 of this file now cite
+them, the headline command of the README is a missing file. So the README and §1 of this file now cite
 `developer_tools/scripts/reconcile.mts` — the path that works on every checkout — and the README says in one
-sentence that the short `scripts/` form is a symlink, rather than quietly assuming it.
+sentence that the short `scripts/` form is a symlink, rather than quietly assuming it. The submission-specific
+PR body, call notes, and drafting scaffold were retired in November 2026 after their snapshots went stale.
 
 **The re-point was done with a regex, and the regex damaged three documents.** The substitution
 `(?<!developer_tools/)`?\bscripts/(reconcile\.mts|omega-alias\.m[sj])` matched spans that began with a
@@ -2963,9 +2972,9 @@ how every tool in `studio/` reads that manifest, three days out, for a cosmetic 
 
 Suite, re-measured after the four new tests: `npx vitest run --no-file-parallelism --testTimeout=30000` in
 `studio/` → **1089 passed / 17 skipped** across 111 files, exit 0, 72.32 s vitest clock, 1:14 wall,
-09:26:15Z → 09:27:29Z. README, PR body, call notes, disclosure scaffold and §9's baseline line all carry it.
+09:26:15Z → 09:27:29Z. At the time, the README, PR body, call notes, disclosure scaffold and §9's baseline line all carried this result.
 
-### Spoon 9 is a document, not a feature: `docs/DATA_PROTECTION_UAE.md` — what a UAE learner's data would need, measured against this repository (2026-10-02 ~13:10 EAT, Tier A for the code facts, Tier B for the law)
+### Historical UAE data-protection review (retired November 2026)
 
 The owner asked whether the data policy is "great for a UAE user, you know age and stuff". It is not, and the
 reason is more specific than a missing paragraph on a privacy page. Written while the machine idles, because it
@@ -2973,8 +2982,8 @@ is the one submission-adjacent task that costs no RAM.
 
 **What was checked, not assumed.** `supabase/migrations_live/20260928000000_live_baseline.sql` does hold
 `profiles.date_of_birth`, `students.date_of_birth`, `parent_student_links`, `student_link_codes` and a versioned,
-revocable, expiring `learner_consents` — so the schema is roughly right and my own sentence earlier today, "there
-is no date-of-birth or age field at all", was wrong and is corrected in that document's §9. The real finding is
+revocable, expiring `learner_consents` — so the schema is roughly right and my own sentence earlier that day, "there
+is no date-of-birth or age field at all", was wrong and was corrected in the review. The real finding is
 one level up: `studio/src/app/api/chat/route.ts` reads the date, derives an `ageBand`
 (`:132`, bands `5 and under` … `18+`), interpolates it into the tutor's system prompt
 (`studio/src/lib/chat/socratic-prompts.ts:209`, `:284`) and when the band is `undefined` the prompt prints
@@ -3122,8 +3131,8 @@ The owner looked at the deployed app and asked three questions; all three got me
 21:05 EAT), and it is what the sidebar on every `/teacher/*` page expands. Spoon 12's paragraph above said
 "there is no assignment table to populate": half right — the two legacy `teacher_grade_assignments` /
 `teacher_subject_assignments` tables are absent, the canonical one is populated with the wrong story.
-Fix: second section added to `docs/setup/OWNER-SQL-GRADE8-TEACHER.md` (owner SQL; no push can change a
-prod row). Code-side, the visible fakes went: the `ResourceLibrary` mock tab (six fabricated cards with
+The live database correction is owner-only SQL; no code push can change a
+production row. Code-side, the visible fakes went: the `ResourceLibrary` mock tab (six fabricated cards with
 dead PDF links and three Grade-4 entries) is cut from `EnhancedTeacherDashboard` per the cut rule — it was
 never usable — `MaterialLessonGenerator`'s grade default and the IEP tool's placeholder move to Grade 8,
 and four unmounted, unreferenced components (`magic-school-ai`, `magic-school-teacher`,
@@ -3237,9 +3246,10 @@ and this file's own line 6 all referenced the deleted trees. All five keepers we
 reality, because `basix-readme.test.ts` enforces that every backticked path in the README exists in a clean
 checkout of HEAD — a stale citation is exactly the error class that guard exists to catch.
 
-Kept deliberately: `docs/TASKS.md` (AGENTS.md names it the anti-pattern register), all `BASIX-*` and
-`provider-capability-evidence` (live submission-night docs), the ten README-linked docs, `docs/setup/`
-(owner runbooks), `docs/basix-sample-audit/` (submitted evidence), and `.claude/skills/` (working style).
+Kept deliberately: `docs/TASKS.md` as the active task register, the North Star and its evidence record,
+the reproducible `docs/basix-sample-audit/` artifacts, maintained user/developer references, and
+`.claude/skills/` (working style). Superseded submission snapshots and architecture proposals were retired;
+git history remains the archive.
 `.kiro/` stays tonight — dead Kiro specs are noise, but nothing reads them and deleting them would re-open
 AGENTS.md's Key Files table on submission eve.
 

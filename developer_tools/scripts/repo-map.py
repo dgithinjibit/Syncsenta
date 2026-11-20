@@ -311,7 +311,7 @@ def mind_map_svg() -> str:
         ("agents", "ai-agents/ — FastAPI + LangGraph\nRender", [], 700, 40, 260, "blue"),
         ("laya", "syncsenta_agents/decisions/\nkeyword baseline + gated Laya PoC", [], 700, 130, 260, "amber"),
         ("rust", "rust-core/  (policy source of truth)\nbackend/ Rust Axum — not deployed", [], 700, 215, 260, "slate"),
-        ("docs", "docs/ · .kiro/specs/\nWORK_PROMPT · submission scope · branch audit", [], 700, 305, 260, "slate"),
+        ("docs", "docs/TASKS · accepted decisions\ncurrent position · evidence", [], 700, 305, 260, "slate"),
     ]
     edges = [
         ("mw", "auth"), ("auth", "roles"), ("main", "roles"), ("api", "chain"), ("api", "omega"),
