@@ -20,13 +20,9 @@ import { Loader2, Save, Copy, Calendar, FileDown, Sparkles } from "lucide-react"
 import { generateSchemeOfWork, GenerateSchemeOfWorkInput } from "@/ai/flows/generate-scheme-of-work";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { TeacherResource } from "@/lib/types";
 import { buildSchemePrintDocument } from "@/lib/print-scheme";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { storage, db, app } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc } from 'firebase/firestore';
-import { getAuth } from "firebase/auth";
+import { saveTeacherResource } from '@/lib/teacher/resources-client';
 
 const grades = [
     "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"
@@ -97,34 +93,17 @@ export default function GenerateSchemeOfWorkDialog({ open, onOpenChange, onResou
 
   const handleSave = async () => {
     if (!generatedScheme) return;
-    
-    const auth = getAuth(app);
-    const user = auth.currentUser;
-
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Auth Error', description: 'User session not found.' });
-        return;
-    }
 
     setLoading(true);
 
     try {
-        const fileName = `schemes_of_work/${Date.now()}_${formData.subStrand.replace(/\s+/g, '_')}.md`;
-        const storageRef = ref(storage, fileName);
-        
-        await uploadString(storageRef, generatedScheme, 'raw', { contentType: 'text/markdown' });
-        const downloadURL = await getDownloadURL(storageRef);
-
-        const newResource: Omit<TeacherResource, 'id'> = {
+        const newResource = await saveTeacherResource({
           title: `${formData.subStrand} - Scheme of Work`,
-          url: downloadURL,
-          createdAt: new Date().toISOString(),
           type: 'Scheme of Work',
-          joinCode: '',
-          creatorId: user.uid
-        };
-
-        await addDoc(collection(db, "teacherResources"), newResource);
+          content: generatedScheme,
+          grade: formData.grade,
+          subject: formData.subject,
+        });
         
         toast({
           title: "Scheme of Work Saved!",

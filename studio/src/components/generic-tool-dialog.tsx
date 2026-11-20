@@ -18,10 +18,7 @@ import { Loader2, Copy, Save, Sparkles, Send } from "lucide-react";
 import { generateGenericToolContent } from "@/ai/flows/generic-teacher-tool";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { storage, db, app } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc } from 'firebase/firestore';
-import { getAuth } from "firebase/auth";
+import { saveTeacherResource } from '@/lib/teacher/resources-client';
 
 export type ToolField = {
     id: string;
@@ -63,30 +60,26 @@ export default function GenericToolDialog({
 
   const handleSave = async () => {
     if (!result) return;
-    const auth = getAuth(app);
-    if (!auth.currentUser) return;
 
     setLoading(true);
     try {
-        const fileName = `resources/${toolId}_${Date.now()}.md`;
-        const storageRef = ref(storage, fileName);
-        await uploadString(storageRef, result, 'raw', { contentType: 'text/markdown' });
-        const downloadURL = await getDownloadURL(storageRef);
-
-        await addDoc(collection(db, "teacherResources"), {
+        await saveTeacherResource({
             title: `${title} - ${new Date().toLocaleDateString()}`,
-            url: downloadURL,
-            createdAt: new Date().toISOString(),
             type: 'Other',
-            joinCode: '',
-            creatorId: auth.currentUser.uid
+            content: result,
+            grade: formData.grade,
+            subject: formData.subject,
         });
 
         toast({ title: "Resource Saved!", description: "Check your library." });
         onOpenChange(false);
         onResourceSaved();
     } catch (error) {
-        toast({ variant: "destructive", title: "Error Saving" });
+        toast({
+            variant: "destructive",
+            title: "Error Saving",
+            description: error instanceof Error ? error.message : "Could not save this resource.",
+        });
     } finally {
         setLoading(false);
     }

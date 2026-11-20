@@ -496,6 +496,42 @@ export interface Database {
         };
         Relationships: [];
       };
+      teacher_resources: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          title: string;
+          resource_type: 'Lesson Plan' | 'Scheme of Work' | 'Rubric' | 'Worksheet' | 'Differentiated Worksheet' | 'AI Tutor Context' | 'Other';
+          content: string;
+          grade: string | null;
+          subject: string | null;
+          join_code: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          title: string;
+          resource_type: 'Lesson Plan' | 'Scheme of Work' | 'Rubric' | 'Worksheet' | 'Differentiated Worksheet' | 'AI Tutor Context' | 'Other';
+          content: string;
+          grade?: string | null;
+          subject?: string | null;
+          join_code?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          teacher_id?: string;
+          title?: string;
+          resource_type?: 'Lesson Plan' | 'Scheme of Work' | 'Rubric' | 'Worksheet' | 'Differentiated Worksheet' | 'AI Tutor Context' | 'Other';
+          content?: string;
+          grade?: string | null;
+          subject?: string | null;
+          join_code?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       activity_submissions: LegacyTable;
       ai_personalization_queue: LegacyTable;
       ai_recommendations: LegacyTable;

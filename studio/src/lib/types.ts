@@ -86,6 +86,8 @@ export type TeacherResource = {
   type: 'Lesson Plan' | 'Scheme of Work' | 'Rubric' | 'Worksheet' | 'Differentiated Worksheet' | 'AI Tutor Context' | 'Other';
   joinCode: string;
   creatorId: string;
+  grade?: string;
+  subject?: string;
 };
 
 export type Communication = {

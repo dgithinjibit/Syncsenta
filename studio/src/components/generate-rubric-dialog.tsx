@@ -21,12 +21,8 @@ import { Loader2, Copy, Save } from "lucide-react";
 import { generateRubric, GenerateRubricInput } from "@/ai/flows/generate-rubric";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { TeacherResource } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { storage, db, app } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc } from 'firebase/firestore';
-import { getAuth } from "firebase/auth";
+import { saveTeacherResource } from '@/lib/teacher/resources-client';
 
 interface GenerateRubricDialogProps {
     open: boolean;
@@ -38,6 +34,7 @@ export default function GenerateRubricDialog({ open, onOpenChange, onResourceSav
   const [loading, setLoading] = useState(false);
   const [generatedRubric, setGeneratedRubric] = useState("");
   const [currentAssignment, setCurrentAssignment] = useState("");
+  const [currentGrade, setCurrentGrade] = useState("");
   const { toast } = useToast();
   const [levels, setLevels] = useState(3);
   const [useWebSearch, setUseWebSearch] = useState(false);
@@ -52,34 +49,16 @@ export default function GenerateRubricDialog({ open, onOpenChange, onResourceSav
 
   const handleSave = async () => {
     if (!generatedRubric) return;
-    
-    const auth = getAuth(app);
-    const user = auth.currentUser;
-
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Auth Error', description: 'User session not found.' });
-        return;
-    }
 
     setLoading(true);
     
     try {
-        const fileName = `rubrics/${Date.now()}_${currentAssignment.replace(/\s+/g, '_')}.md`;
-        const storageRef = ref(storage, fileName);
-        
-        await uploadString(storageRef, generatedRubric, 'raw', { contentType: 'text/markdown' });
-        const downloadURL = await getDownloadURL(storageRef);
-
-        const newResource: Omit<TeacherResource, 'id'> = {
+        const newResource = await saveTeacherResource({
           title: `${currentAssignment || 'Untitled Rubric'}`,
-          url: downloadURL,
-          createdAt: new Date().toISOString(),
           type: 'Rubric',
-          joinCode: '',
-          creatorId: user.uid
-        };
-        
-        await addDoc(collection(db, "teacherResources"), newResource);
+          content: generatedRubric,
+          grade: currentGrade,
+        });
         
         toast({
           title: "Rubric Saved!",
@@ -117,6 +96,7 @@ export default function GenerateRubricDialog({ open, onOpenChange, onResourceSav
     };
     
     setCurrentAssignment(data.assignmentDescription);
+    setCurrentGrade(data.grade);
 
     try {
         const result = await generateRubric(data);

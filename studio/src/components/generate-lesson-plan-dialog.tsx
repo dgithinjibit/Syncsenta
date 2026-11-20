@@ -20,11 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Copy, Save, Sparkles, Send } from "lucide-react";
 import { generateLessonPlan, GenerateLessonPlanInput } from "@/ai/flows/generate-lesson-plan";
 import { improveLessonPlan } from "@/ai/flows/improve-lesson-plan";
-import type { TeacherResource } from "@/lib/types";
-import { storage, db, app } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc } from 'firebase/firestore';
-import { getAuth } from "firebase/auth";
+import { saveTeacherResource } from '@/lib/teacher/resources-client';
 
 
 interface GenerateLessonPlanDialogProps {
@@ -39,6 +35,8 @@ export default function GenerateLessonPlanDialog({ open, onOpenChange, onResourc
   const [improving, setImproving] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState("");
   const [currentTopic, setCurrentTopic] = useState("");
+  const [currentGrade, setCurrentGrade] = useState("");
+  const [currentSubject, setCurrentSubject] = useState("");
   const [improvementRequest, setImprovementRequest] = useState("");
   const { toast } = useToast();
   // Generated plans are headed with the teacher's name from their `profiles`
@@ -63,33 +61,16 @@ export default function GenerateLessonPlanDialog({ open, onOpenChange, onResourc
   
   const handleSave = async () => {
     if (!generatedPlan) return;
-    
-    const auth = getAuth(app);
-    const user = auth.currentUser;
-
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Auth Error', description: 'User session not found.' });
-        return;
-    }
 
     setLoading(true);
     try {
-        const fileName = `lesson_plans/${Date.now()}_${currentTopic.replace(/\s+/g, '_')}.md`;
-        const storageRef = ref(storage, fileName);
-        
-        await uploadString(storageRef, generatedPlan, 'raw', { contentType: 'text/markdown' });
-        const downloadURL = await getDownloadURL(storageRef);
-
-        const newPlan: Omit<TeacherResource, 'id'> = {
+        const newPlan = await saveTeacherResource({
             title: currentTopic || "Untitled Lesson Plan",
-            url: downloadURL,
-            createdAt: new Date().toISOString(),
             type: 'Lesson Plan',
-            joinCode: '',
-            creatorId: user.uid
-        };
-
-        await addDoc(collection(db, "teacherResources"), newPlan);
+            content: generatedPlan,
+            grade: currentGrade,
+            subject: currentSubject,
+        });
 
         toast({
           title: "Lesson Plan Saved!",
@@ -154,6 +135,9 @@ export default function GenerateLessonPlanDialog({ open, onOpenChange, onResourc
         setLoading(false);
         return;
     }
+
+    setCurrentGrade(data.gradeLevel);
+    setCurrentSubject(data.subject);
     
     try {
         generateLessonPlan(data, (chunk) => {

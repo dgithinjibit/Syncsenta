@@ -16,15 +16,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Copy, Save } from "lucide-react";
 import { differentiateWorksheet, DifferentiateWorksheetInput } from "@/ai/flows/differentiate-worksheet";
-import type { TeacherResource } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { storage, db, app } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc } from 'firebase/firestore';
-import { getAuth } from "firebase/auth";
+import { saveTeacherResource } from '@/lib/teacher/resources-client';
 
 
 const differentiationLevels = [
@@ -48,6 +44,8 @@ export default function DifferentiateWorksheetDialog({ open, onOpenChange, onRes
   const [generatedContent, setGeneratedContent] = useState<DifferentiatedContent[]>([]);
   const [originalContent, setOriginalContent] = useState("");
   const [currentTopic, setCurrentTopic] = useState("Untitled Worksheet");
+  const [currentGrade, setCurrentGrade] = useState("");
+  const [currentSubject, setCurrentSubject] = useState("");
   const { toast } = useToast();
   const [selectedLevels, setSelectedLevels] = useState<string[]>(["simpler", "advanced"]);
 
@@ -61,14 +59,6 @@ export default function DifferentiateWorksheetDialog({ open, onOpenChange, onRes
 
   const handleSave = async () => {
     if (generatedContent.length === 0) return;
-    
-    const auth = getAuth(app);
-    const user = auth.currentUser;
-
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Auth Error', description: 'User session not found.' });
-        return;
-    }
 
     setLoading(true);
     
@@ -78,22 +68,13 @@ export default function DifferentiateWorksheetDialog({ open, onOpenChange, onRes
     ].map(item => `## ${item.level}\n\n${item.content}`).join("\n\n---\n\n");
 
     try {
-        const fileName = `differentiated_worksheets/${Date.now()}_${currentTopic.replace(/\s+/g, '_')}.md`;
-        const storageRef = ref(storage, fileName);
-        
-        await uploadString(storageRef, contentToSave, 'raw', { contentType: 'text/markdown' });
-        const downloadURL = await getDownloadURL(storageRef);
-
-        const newResource: Omit<TeacherResource, 'id'> = {
+        const newResource = await saveTeacherResource({
           title: `Differentiated - ${currentTopic}`,
-          url: downloadURL,
-          createdAt: new Date().toISOString(),
           type: 'Differentiated Worksheet',
-          joinCode: '',
-          creatorId: user.uid
-        };
-
-        await addDoc(collection(db, "teacherResources"), newResource);
+          content: contentToSave,
+          grade: currentGrade,
+          subject: currentSubject,
+        });
         
         toast({
           title: "Worksheet Saved!",
@@ -130,6 +111,8 @@ export default function DifferentiateWorksheetDialog({ open, onOpenChange, onRes
       subject: formData.get("subject") as string,
       levels: selectedLevels.map(id => differentiationLevels.find(l => l.id === id)!.label),
     };
+    setCurrentGrade(data.gradeLevel);
+    setCurrentSubject(data.subject);
     
     try {
         const result = await differentiateWorksheet(data);

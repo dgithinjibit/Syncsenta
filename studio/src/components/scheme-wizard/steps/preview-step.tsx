@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Download, FileText, Sparkles, CheckCircle2 } from 'lucide-react';
 import { exportSchemeToDocx, type SchemeRow } from '@/lib/export-docx';
 import { useToast } from '@/hooks/use-toast';
+import { saveTeacherResource } from '@/lib/teacher/resources-client';
 
 // Column headers for CBC scheme of work
 const COLUMN_HEADERS_EN = [
@@ -58,6 +59,7 @@ export function PreviewStep() {
 
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Determine if Kiswahili subject
   const isKiswahili = selectedSubject?.toLowerCase().includes('kiswahili');
@@ -166,8 +168,32 @@ export function PreviewStep() {
   };
 
   const handleSave = async () => {
-    // TODO: Implement scheme saving in Task 7.1
-    console.log('[PreviewStep] Scheme saving not yet implemented');
+    if (!generatedScheme) return;
+
+    setIsSaving(true);
+    try {
+      const title = `${selectedGrade} ${selectedSubject} ${selectedTerm} Scheme of Work`;
+      await saveTeacherResource({
+        title,
+        type: 'Scheme of Work',
+        content: `# ${title}\n\n\`\`\`json\n${JSON.stringify(generatedScheme, null, 2)}\n\`\`\``,
+        grade: selectedGrade ?? undefined,
+        subject: selectedSubject ?? undefined,
+      });
+      toast({
+        title: 'Scheme saved',
+        description: 'You can find it in your teacher resource library.',
+      });
+    } catch (error) {
+      console.error('[PreviewStep] Scheme save error:', error);
+      toast({
+        title: 'Could not save scheme',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isGenerating) {
@@ -297,9 +323,9 @@ export function PreviewStep() {
 
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3">
-        <Button onClick={handleSave} size="lg">
-          <FileText className="mr-2 h-4 w-4" />
-          Save to Library
+        <Button onClick={handleSave} size="lg" disabled={isSaving}>
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+          {isSaving ? 'Saving...' : 'Save to Library'}
         </Button>
         <Button onClick={handleExportDOCX} variant="outline" disabled={isExporting}>
           {isExporting ? (

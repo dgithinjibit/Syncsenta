@@ -24,16 +24,14 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { storage, db, app } from '@/lib/firebase';
-import { ref, getBytes, deleteObject } from 'firebase/storage';
-import { doc, deleteDoc, collection, query, where, onSnapshot } from "firebase/firestore";
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { deleteTeacherResource, getTeacherResources } from '@/lib/teacher/resources-client';
 
 const GenerateLessonPlanDialog = dynamic(() => import('@/components/generate-lesson-plan-dialog'), { ssr: false });
 
 
 export function MyResources() {
     const [allResources, setAllResources] = useState<TeacherResource[]>([]);
+    const [isLoadingResources, setIsLoadingResources] = useState(true);
     const [communications, setCommunications] = useState<Communication[]>([]);
     const [isLessonPlanDialogOpen, setLessonPlanDialogOpen] = useState(false);
     const [selectedSchemeContent, setSelectedSchemeContent] = useState<string | undefined>(undefined);
@@ -41,32 +39,47 @@ export function MyResources() {
     const router = useRouter();
 
     useEffect(() => {
-        const auth = getAuth(app);
-        
-        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // Fetch resources for this teacher
-                const qResources = query(collection(db, "teacherResources"), where("creatorId", "==", user.uid));
-                const unsubscribeResources = onSnapshot(qResources, (snapshot) => {
-                    const resourcesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TeacherResource));
-                    setAllResources(resourcesData);
-                });
-
-                // Comms are currently using localStorage for this prototype, 
-                // but real apps would fetch from Firestore too
-                const storedComms = localStorage.getItem("mockCommunications");
-                if (storedComms) {
-                    setCommunications(JSON.parse(storedComms).map((c: any) => ({...c, date: new Date(c.date)})));
+        let cancelled = false;
+        const loadResources = async () => {
+            if (!cancelled) setIsLoadingResources(true);
+            try {
+                const resources = await getTeacherResources();
+                if (!cancelled) setAllResources(resources);
+            } catch (error) {
+                console.error('Unable to load teacher resources:', error);
+                if (!cancelled) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Could not load your library',
+                        description: error instanceof Error ? error.message : 'Please try again.',
+                    });
                 }
-
-                return () => unsubscribeResources();
-            } else {
-                setAllResources([]);
+            } finally {
+                if (!cancelled) setIsLoadingResources(false);
             }
-        });
+        };
 
-        return () => unsubscribeAuth();
-    }, []);
+        void loadResources();
+        const handleResourceUpdate = () => { void loadResources(); };
+        window.addEventListener('resource-update', handleResourceUpdate);
+
+        const storedComms = localStorage.getItem('mockCommunications');
+        if (storedComms) {
+            try {
+                setCommunications(JSON.parse(storedComms).map((comm: Communication) => ({
+                    ...comm,
+                    date: new Date(comm.date),
+                })));
+            } catch (error) {
+                console.error('Unable to parse saved communications:', error);
+            }
+        }
+
+        return () => {
+            cancelled = true;
+            window.removeEventListener('resource-update', handleResourceUpdate);
+        };
+    }, [toast]);
     
     const learningLabs = allResources.filter(r => r.type === 'AI Tutor Context');
     const otherResources = allResources.filter(r => r.type !== 'AI Tutor Context');
@@ -75,18 +88,8 @@ export function MyResources() {
     const handleDelete = async (resource: TeacherResource, event: React.MouseEvent) => {
         event.stopPropagation();
         try {
-            if (resource.id) {
-                await deleteDoc(doc(db, "teacherResources", resource.id));
-            }
-
-            if (resource.url) {
-                try {
-                    const storageRef = ref(storage, resource.url);
-                    await deleteObject(storageRef);
-                } catch (e) {
-                    console.warn("Could not delete from storage, but document removed from Firestore", e);
-                }
-            }
+            await deleteTeacherResource(resource.id);
+            setAllResources((current) => current.filter((item) => item.id !== resource.id));
             
             toast({
                 title: "Item Deleted",
@@ -97,7 +100,7 @@ export function MyResources() {
             console.error("Error deleting resource: ", error);
              toast({
                 title: "Error Deleting",
-                description: "Could not delete the resource. Please try again.",
+                 description: error instanceof Error ? error.message : "Could not delete the resource. Please try again.",
                 variant: "destructive"
             });
         }
@@ -113,30 +116,18 @@ export function MyResources() {
         });
     };
 
-    const handleGenerateLessonPlan = async (resourceUrl: string | undefined, event: React.MouseEvent) => {
+    const handleGenerateLessonPlan = (resource: TeacherResource, event: React.MouseEvent) => {
         event.stopPropagation();
-        if (!resourceUrl) {
+        if (!resource.content) {
              toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'Resource URL is missing.',
+                description: 'This resource has no saved content to use as lesson context.',
             });
             return;
         }
-        try {
-            const storageRef = ref(storage, resourceUrl);
-            const bytes = await getBytes(storageRef);
-            const content = new TextDecoder().decode(bytes);
-            setSelectedSchemeContent(content);
-            setLessonPlanDialogOpen(true);
-        } catch (error) {
-            console.error("Error fetching scheme content:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not fetch the Scheme of Work content.',
-            });
-        }
+        setSelectedSchemeContent(resource.content);
+        setLessonPlanDialogOpen(true);
     };
 
     const onResourceSaved = () => {
@@ -167,6 +158,10 @@ export function MyResources() {
         }
     }
 
+
+    if (isLoadingResources && allResources.length === 0 && communications.length === 0) {
+        return <div className="p-8 text-center text-muted-foreground">Loading your resources…</div>;
+    }
 
     if (allResources.length === 0 && communications.length === 0) {
         return (
@@ -307,7 +302,7 @@ export function MyResources() {
                                                 </div>
                                                 <div className="flex items-center justify-end gap-2 border-t pt-2 mt-2">
                                                     {resource.type === 'Scheme of Work' && (
-                                                        <Button variant="default" size="sm" onClick={(e) => handleGenerateLessonPlan(resource.url, e)}>
+                                                        <Button variant="default" size="sm" onClick={(e) => handleGenerateLessonPlan(resource, e)}>
                                                             <FilePen className="mr-2 h-4 w-4" />
                                                             Generate Lesson Plan
                                                         </Button>
@@ -327,7 +322,7 @@ export function MyResources() {
                                                 <p className="text-xs text-muted-foreground mb-2">A preview of the document is not available. Download the file to view its content.</p>
                                                 <div className="flex items-center justify-end gap-2 border-t pt-2 mt-2">
                                                     {resource.type === 'Scheme of Work' && (
-                                                        <Button variant="default" size="sm" onClick={(e) => handleGenerateLessonPlan(resource.url, e)}>
+                                                        <Button variant="default" size="sm" onClick={(e) => handleGenerateLessonPlan(resource, e)}>
                                                             <FilePen className="mr-2 h-4 w-4" />
                                                             Generate Lesson Plan
                                                         </Button>

@@ -19,13 +19,9 @@ import { Loader2, Copy, Save } from "lucide-react";
 import { generateWorksheet, GenerateWorksheetInput } from "@/ai/flows/generate-worksheet";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { TeacherResource } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Slider } from "./ui/slider";
-import { storage, db, app } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc } from 'firebase/firestore';
-import { getAuth } from "firebase/auth";
+import { saveTeacherResource } from '@/lib/teacher/resources-client';
 
 interface GenerateWorksheetDialogProps {
     open: boolean;
@@ -37,6 +33,8 @@ export default function GenerateWorksheetDialog({ open, onOpenChange, onResource
   const [loading, setLoading] = useState(false);
   const [generatedWorksheet, setGeneratedWorksheet] = useState("");
   const [currentTopic, setCurrentTopic] = useState("");
+  const [currentGrade, setCurrentGrade] = useState("");
+  const [currentSubject, setCurrentSubject] = useState("");
   const { toast } = useToast();
   const [numQuestions, setNumQuestions] = useState(5);
 
@@ -50,34 +48,17 @@ export default function GenerateWorksheetDialog({ open, onOpenChange, onResource
 
   const handleSave = async () => {
     if (!generatedWorksheet) return;
-    
-    const auth = getAuth(app);
-    const user = auth.currentUser;
-
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Auth Error', description: 'User session not found.' });
-        return;
-    }
 
     setLoading(true);
 
     try {
-        const fileName = `worksheets/${Date.now()}_${currentTopic.replace(/\s+/g, '_')}.md`;
-        const storageRef = ref(storage, fileName);
-
-        await uploadString(storageRef, generatedWorksheet, 'raw', { contentType: 'text/markdown' });
-        const downloadURL = await getDownloadURL(storageRef);
-
-        const newResource: Omit<TeacherResource, 'id'> = {
-          title: `${currentTopic || 'Untitled Worksheet'}`,
-          url: downloadURL,
-          createdAt: new Date().toISOString(),
+        const newResource = await saveTeacherResource({
+          title: currentTopic || 'Untitled Worksheet',
           type: 'Worksheet',
-          joinCode: '',
-          creatorId: user.uid
-        };
-        
-        await addDoc(collection(db, "teacherResources"), newResource);
+          content: generatedWorksheet,
+          grade: currentGrade,
+          subject: currentSubject,
+        });
         
         toast({
           title: "Worksheet Saved!",
@@ -112,6 +93,8 @@ export default function GenerateWorksheetDialog({ open, onOpenChange, onResource
     };
     
     setCurrentTopic(data.topic);
+    setCurrentGrade(data.grade);
+    setCurrentSubject(data.subject);
 
     try {
         const result = await generateWorksheet(data);

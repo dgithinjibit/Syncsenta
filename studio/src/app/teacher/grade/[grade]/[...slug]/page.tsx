@@ -50,6 +50,10 @@ const Phase2TeacherDashboard = dynamic(
   () => import('@/components/teacher/phase2-teacher-dashboard').then(m => ({ default: m.Phase2TeacherDashboard })),
   { ssr: false },
 );
+const MyResources = dynamic(
+  () => import('@/components/my-resources').then(m => ({ default: m.MyResources })),
+  { ssr: false },
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Slug parsing
@@ -102,6 +106,16 @@ function renderPage(page: string): React.ReactNode {
       return <ExamGeneratorDialog />;
     case 'metta-analytics':
       return <Phase2TeacherDashboard />;
+    case 'resources':
+      return (
+        <section className="space-y-4">
+          <div>
+            <h1 className="text-2xl font-bold">My Resources</h1>
+            <p className="text-sm text-muted-foreground">Your saved classroom materials.</p>
+          </div>
+          <MyResources />
+        </section>
+      );
     default:
       return <ComingSoon page={page} />;
   }

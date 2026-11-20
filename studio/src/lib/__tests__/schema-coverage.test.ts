@@ -92,6 +92,8 @@ const CODE_QUERIES_A_TABLE_THAT_DOES_NOT_EXIST = [
   'teacher_student_feedback',
   'teacher_students',
   'teacher_subject_assignments',
+  // Added 2026-11-20: defined by a pending migration; remove after production applies it.
+  'teacher_resources',
   'user_profiles',
   'vision_submissions',
   'voice_conversations',
@@ -104,7 +106,7 @@ const CODE_QUERIES_A_TABLE_THAT_DOES_NOT_EXIST = [
  * applying them or by deleting the fiction. 93 are defined across the two repo histories and
  * 72 of those are not live; it was 73 until the gamification migration made one of them real.
  */
-const REPO_TABLES_NOT_IN_PRODUCTION = 72;
+const REPO_TABLES_NOT_IN_PRODUCTION = 73;
 
 /** Read from `information_schema` on 2026-09-29; see docs/ROADMAP.md §1. */
 const LIVE_PUBLIC_TABLE_COUNT = 35;
