@@ -35,6 +35,7 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 
 ## Active tasks
 
+- [ ] Confirm the AI Agents policy authority and service boundary, then reconcile routes against Studio and tests. The recommended direction is one Rust/Hyperon policy authority with Python as an adapter/specialist executor; restore `/agents/chat` and tested dispatch only after the boundary is agreed, preserving response shapes. The focused Python baseline has 6 failures: `/agents/chat` is unregistered, and five tests expect missing `get_orchestrator()` functions. Get the route/orchestration tests green before pruning modules or dependencies.
 - [ ] Rebuild the Codespace with the lean Ubuntu devcontainer image and record the container build result.
 - [ ] Run the focused Studio regression tests for head navigation, student transport, role routing, grade normalization, CSP, and safe scheme printing when Node.js and the project dependencies are available. Record the exact command and result.
 - [ ] Browser-verify student, teacher, and head workspace access on the deployed build using authorized test accounts. Record deployment and browser evidence separately.

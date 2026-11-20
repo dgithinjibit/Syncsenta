@@ -27,6 +27,9 @@ and this file for boundaries and canonical file locations.
 - Rust code in `backend/syncsenta-backend/`, `rust-core/`, and `rust-service/` is not a third active
   Studio rule voice. It remains optional/configuration-dependent until deployment and cut-over evidence
   exist under the accepted one-rule-voice decision.
+- The AI Agents route and orchestration contract is under reconciliation. See
+  [`ai-agents/README.md`](../ai-agents/README.md) for tested source status and
+  [`TASKS.md`](TASKS.md) for the next bounded decision and implementation slice.
 
 ### File inventory
 

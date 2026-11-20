@@ -18,14 +18,28 @@ configuration into proof.
   deployed browser flows.
 - Not verified: live Supabase schema state and deployed Python/Rust runtime behavior.
 
+## AI Agents architecture scout — 2026-11-20
+
+The focused command
+`cd ai-agents && PYTHONPATH=src .venv/bin/python -m pytest -q tests/test_deployed_app_routes.py tests/test_omega_api.py`
+ran against versions within the declared `pyproject.toml` ranges and returned **3 passed, 6 failed**.
+The lesson-architect router mounts; `/agents/chat` is absent; five tests reference
+`get_orchestrator()` and related orchestration functions that are absent from `api/server.py`.
+This is tested source behavior, not deployed behavior.
+
+No AI Agents modules or dependencies were removed. The active task in `TASKS.md` is to confirm the
+policy authority and service boundary, reconcile the Studio route contract, then make the
+route/orchestration tests green before pruning candidates. The Python venv is local and ignored by Git.
+
 ## Active work
 
 Use [TASKS.md](TASKS.md) for the live backlog. The current backlog is:
 
-1. Rebuild the Codespace and record the container build result.
-2. Run the focused Studio regressions.
-3. Browser-verify authorized student, teacher, and head flows.
-4. Agree on the durable generated-scheme storage contract before implementing Save to Library.
+1. Confirm the AI Agents policy authority and service boundary before cleanup.
+2. Rebuild the Codespace and record the container build result.
+3. Run the focused Studio regressions.
+4. Browser-verify authorized student, teacher, and head flows.
+5. Agree on the durable generated-scheme storage contract before implementing Save to Library.
 
 ## Working priorities
 

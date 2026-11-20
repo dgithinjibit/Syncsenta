@@ -9,7 +9,8 @@ web application in `studio/`.
 - Entrypoint: `syncsenta_agents.api.server:app`
 - Render configuration: [`render.yaml`](render.yaml)
 - Health check: `GET /healthz`
-- Student agent and assessment routes are mounted under `/agents/`.
+- Assessment routes are mounted under `/agents/assessment/`.
+- Studio calls `/agents/chat`, but that route is not currently registered.
 - Teacher generation routes are mounted by the lesson-architect router when
   its dependencies are available; `/healthz` reports whether it mounted.
 
@@ -17,17 +18,30 @@ The Render manifest documents the deployed service configuration. The live
 Render service was created manually, so changes to `render.yaml` do not deploy
 until its dashboard settings and deployment are updated.
 
-## Omega orchestration
+## Current routing status
 
-The deployed app routes chat, quiz generation/grading, and teacher content
-provider-backed generation through a direct compatibility route → a registered
-specialist. The MeTTa policy and Python fallback share the role/task routing
-contract in `src/syncsenta_agents/omega_routing.py`; add a policy route and a
-focused dispatch test when introducing a new specialist task. Structured
-specialist results are retained internally so the existing quiz and teacher
-API response shapes remain unchanged. If Omega cannot initialize, app startup
-fails; worker exceptions return an Omega-owned error instead of routing around
-the master. Scheme save/list endpoints remain data operations, not agent tasks.
+The source and its tests are not yet aligned on the intended Omega request
+path. `api/server.py` registers `/healthz` and direct assessment handlers.
+`api/lesson_architect_api.py` mounts the teacher-generation routes. Studio also
+calls `/agents/chat` (see the status above for its current registration state).
+
+Existing tests expect assessment and teacher handlers to dispatch through
+`get_orchestrator()` and preserve structured specialist results. Those
+orchestration functions are not present in the current package. The route test
+therefore fails for `/agents/chat`, and the orchestration tests fail because
+the expected dispatcher is missing. This is a source/test finding, not a
+statement about the live Render deployment.
+
+`omega_routing.py` contains a Python role/task routing table, while
+`metta-logic/syncsenta_policy.metta` and Rust policy code contain overlapping
+policy material. Do not expand the Python table or delete existing agents until
+the authoritative policy service and API contract are agreed and tested.
+
+The Python `reasoning` package also has imports targeting absent
+`metta_engine.py` and `hyperon_evaluator.py` modules. Call sites exist in rule
+sync and telemetry code, but no mounted route was established during the
+current source review. Treat these as unresolved references, not proof that
+the whole package is safe to remove.
 
 ## Local development
 
@@ -44,10 +58,10 @@ Run the service tests from this directory:
 PYTHONPATH=src poetry run pytest
 ```
 
-Run the focused Omega orchestration tests:
+Run the focused route and orchestration tests:
 
 ```bash
-PYTHONPATH=src poetry run pytest -q tests/test_omega_api.py tests/test_omega_queen.py tests/test_omega_routing.py tests/test_orchestrator.py tests/test_assessment_agent.py
+PYTHONPATH=src poetry run pytest -q tests/test_deployed_app_routes.py tests/test_omega_api.py tests/test_omega_routing.py
 ```
 
 Configure provider credentials and optional Supabase settings in the local
