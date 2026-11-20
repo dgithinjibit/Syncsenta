@@ -1,6 +1,6 @@
 -- ============================================================================
 -- LMS PROGRAMMES, ORGANISATIONS, COHORTS, AND ENROLLMENTS
--- Additive shared-schema foundation for CodeYetu-compatible delivery.
+-- Additive shared-schema foundation for SyncSenta programme delivery.
 --
 -- This migration does not alter existing student, teacher, or chat tables.
 -- Student-facing access is limited to a learner's own enrollment records.
@@ -117,7 +117,7 @@ CREATE INDEX IF NOT EXISTS idx_lms_enrollments_student
   ON public.lms_enrollments(student_id, status);
 
 COMMENT ON TABLE public.lms_organisations IS
-  'Tenant boundary for CodeYetu-style programmes, schools, and community partners.';
+  'Tenant boundary for SyncSenta programmes, schools, and community partners.';
 COMMENT ON TABLE public.lms_programmes IS
   'Versioned delivery programme configuration; curriculum content remains separately versioned.';
 COMMENT ON TABLE public.lms_cohorts IS

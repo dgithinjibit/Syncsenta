@@ -32,7 +32,16 @@ import { Phase2StudentDetail } from './phase2-student-detail';
 // Scaffolding map type (mirrors the route response shape)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ScaffoldingMap = Record<string, 'Independent' | 'Guided' | 'Intensive' | null>;
+type ScaffoldingMap = Record<
+  string,
+  {
+    level: 'Independent' | 'Guided' | 'Intensive';
+    capturedAt: string | null;
+    decidedAt?: string;
+    rulesetVersion?: string;
+    evidence?: string[];
+  } | null
+>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scaffolding badge config
@@ -52,6 +61,7 @@ export function Phase2TeacherDashboard() {
 
   const [activeStudents, setActiveStudents] = useState<StudentActivitySummary[]>([]);
   const [scaffoldingMap, setScaffoldingMap] = useState<ScaffoldingMap>({});
+  const [scaffoldingError, setScaffoldingError] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedStudentName, setSelectedStudentName] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -59,15 +69,28 @@ export function Phase2TeacherDashboard() {
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const loadScaffolding = async (students: StudentActivitySummary[]) => {
-    if (students.length === 0) return;
+    if (students.length === 0) {
+      setScaffoldingMap({});
+      setScaffoldingError(null);
+      return;
+    }
     const ids = students.map((s) => s.student_id).join(',');
     try {
       const res = await fetch(
         `/api/teacher/students-scaffolding?studentIds=${encodeURIComponent(ids)}`,
       );
-      if (res.ok) setScaffoldingMap(await res.json());
-    } catch {
-      // Non-critical — scaffolding badges just won't show
+      if (!res.ok) {
+        const payload: { error?: string } = await res.json();
+        setScaffoldingMap({});
+        setScaffoldingError(payload.error ?? 'Unable to load stored Omega decisions.');
+        return;
+      }
+      setScaffoldingMap(await res.json());
+      setScaffoldingError(null);
+    } catch (loadError) {
+      console.error('Failed to load stored Omega decisions:', loadError);
+      setScaffoldingMap({});
+      setScaffoldingError('Unable to reach stored Omega decisions.');
     }
   };
 
@@ -121,9 +144,9 @@ export function Phase2TeacherDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">MeTTa Dashboard</h1>
+          <h1 className="text-3xl font-bold">Teacher Learning Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Real-time adaptive learning analytics powered by behavioral profiling
+            Recorded learner activity and support observations for your assigned students
           </p>
         </div>
         <div className="flex gap-2">
@@ -182,14 +205,14 @@ export function Phase2TeacherDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-1">
               <Brain className="h-4 w-4" />
-              Intensive Support
+              Last recorded Intensive support
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-600">
-              {Object.values(scaffoldingMap).filter((v) => v === 'Intensive').length}
+              {Object.values(scaffoldingMap).filter((v) => v?.level === 'Intensive').length}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Need step-by-step help now</p>
+            <p className="text-xs text-muted-foreground mt-1">Based on stored scaffolding decisions</p>
           </CardContent>
         </Card>
       </div>
@@ -231,6 +254,11 @@ export function Phase2TeacherDashboard() {
                   <CardDescription>Click to view detailed analytics</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {scaffoldingError && (
+                    <p role="alert" className="mb-2 text-sm text-red-600">
+                      Omega decisions: {scaffoldingError}
+                    </p>
+                  )}
                   {error ? (
                     <p className="text-sm text-red-600">{error}</p>
                   ) : loading ? (
@@ -240,13 +268,22 @@ export function Phase2TeacherDashboard() {
                   ) : (
                     <div className="space-y-2 max-h-80 overflow-y-auto">
                       {activeStudents.map((student) => {
-                        const level = scaffoldingMap[student.student_id] as
-                          | 'Independent'
-                          | 'Guided'
-                          | 'Intensive'
-                          | null
-                          | undefined;
+                        const snapshot = scaffoldingMap[student.student_id];
+                        const level = snapshot?.level;
                         const badge = level ? SCAFFOLDING_STYLE[level] : null;
+                        const policyDetails = snapshot
+                          ? [
+                              snapshot.rulesetVersion
+                                ? `Policy ${snapshot.rulesetVersion}`
+                                : 'Policy version unavailable',
+                              snapshot.evidence?.length
+                                ? `Evidence: ${snapshot.evidence.join(', ')}`
+                                : 'Evidence unavailable',
+                              snapshot.decidedAt
+                                ? `Decision time ${new Date(snapshot.decidedAt).toLocaleString()}`
+                                : 'Decision time unavailable',
+                            ].join(' · ')
+                          : '';
 
                         return (
                         <Button
@@ -279,11 +316,26 @@ export function Phase2TeacherDashboard() {
                                 <Badge
                                   variant="outline"
                                   className={`gap-1 text-[10px] font-semibold ${badge.className}`}
-                                  title={`Omega scaffolding: ${level}`}
+                                  title={
+                                    `Last recorded Omega scaffolding: ${level}; ${
+                                      snapshot?.capturedAt
+                                        ? `captured ${new Date(snapshot.capturedAt).toLocaleString()}`
+                                        : 'capture time unavailable'
+                                    }; ${policyDetails}`
+                                  }
                                 >
                                   <Brain className="h-2.5 w-2.5" />
                                   {badge.icon} {level}
                                 </Badge>
+                              )}
+                              {snapshot && (
+                                <span className="text-muted-foreground text-[10px]">
+                                  {snapshot.capturedAt
+                                    ? `Captured ${new Date(snapshot.capturedAt).toLocaleString()}`
+                                    : 'Capture time unavailable'}
+                                  {' · '}
+                                  {policyDetails}
+                                </span>
                               )}
                               {student.current_topic && (
                                 <span className="text-muted-foreground truncate max-w-[80px]">

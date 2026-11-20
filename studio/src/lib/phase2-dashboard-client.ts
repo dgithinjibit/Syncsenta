@@ -7,7 +7,7 @@
  * - Active alerts
  */
 
-import { buildApiUrl, API_ENDPOINTS } from './api-config';
+import { API_ENDPOINTS } from './api-config';
 
 // Type definitions from backend response
 export interface StudentActivitySummary {
@@ -109,13 +109,17 @@ export interface DashboardAlert {
 
 // Helper to fetch with error handling
 async function fetchDashboardApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = buildApiUrl(endpoint);
+  const dashboardEndpoint = endpoint.startsWith('/dashboard/')
+    ? `/api/teacher/dashboard/${endpoint.slice('/dashboard/'.length)}`
+    : endpoint;
+  const url = dashboardEndpoint;
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
     },
+    credentials: 'same-origin',
   });
 
   if (!response.ok) {
@@ -123,14 +127,20 @@ async function fetchDashboardApi<T>(endpoint: string, options?: RequestInit): Pr
     throw new Error(`Dashboard API error: ${response.status} ${text}`);
   }
 
-  return response.json() as Promise<T>;
+  const payload = await response.json() as
+    | { success: true; data: T }
+    | { success: false; error: { message: string } };
+  if (!payload.success) {
+    throw new Error(payload.error.message);
+  }
+  return payload.data;
 }
 
 /**
  * Get active students (last 30 minutes of activity)
  */
 export async function getActiveStudents(limit = 50): Promise<StudentActivitySummary[]> {
-  const endpoint = `${API_ENDPOINTS.DASHBOARD_STUDENTS_ACTIVE}?limit=${limit}`;
+  const endpoint = `${API_ENDPOINTS.DASHBOARD_STUDENTS_ACTIVE.replace('/dashboard/students/active', '/dashboard/overview')}?limit=${limit}`;
   return fetchDashboardApi<StudentActivitySummary[]>(endpoint);
 }
 
@@ -153,8 +163,7 @@ export async function getStudentMisconceptions(
   limit = 50
 ): Promise<Misconception[]> {
   const endpoint = `${API_ENDPOINTS.DASHBOARD_STUDENTS_MISCONCEPTIONS(studentId)}?limit=${limit}`;
-  const data = await fetchDashboardApi<{ student_id: string; rows: Misconception[] }>(endpoint);
-  return data.rows;
+  return fetchDashboardApi<Misconception[]>(endpoint);
 }
 
 /**
@@ -164,11 +173,7 @@ export async function getStudentMisconceptionsSummary(
   studentId: string
 ): Promise<MisconceptionSummary[]> {
   const endpoint = `${API_ENDPOINTS.DASHBOARD_STUDENTS_MISCONCEPTIONS(studentId)}?grouped=true`;
-  const data = await fetchDashboardApi<{
-    student_id: string;
-    by_type: MisconceptionSummary[];
-  }>(endpoint);
-  return data.by_type;
+  return fetchDashboardApi<MisconceptionSummary[]>(endpoint);
 }
 
 /**
@@ -179,8 +184,7 @@ export async function getStudentInterventions(
   limit = 25
 ): Promise<Intervention[]> {
   const endpoint = `${API_ENDPOINTS.DASHBOARD_STUDENTS_INTERVENTIONS(studentId)}?limit=${limit}`;
-  const data = await fetchDashboardApi<{ student_id: string; rows: Intervention[] }>(endpoint);
-  return data.rows;
+  return fetchDashboardApi<Intervention[]>(endpoint);
 }
 
 /**
@@ -191,10 +195,7 @@ export async function getStudentTimeline(
   limit = 30
 ): Promise<TimelineSession[]> {
   const endpoint = `${API_ENDPOINTS.DASHBOARD_STUDENTS_TIMELINE(studentId)}?limit=${limit}`;
-  const data = await fetchDashboardApi<{ student_id: string; sessions: TimelineSession[] }>(
-    endpoint
-  );
-  return data.sessions;
+  return fetchDashboardApi<TimelineSession[]>(endpoint);
 }
 
 /**
@@ -202,15 +203,16 @@ export async function getStudentTimeline(
  */
 export async function getCompetencySummary(limit = 50): Promise<CompetencySummary[]> {
   const endpoint = `${API_ENDPOINTS.DASHBOARD_COMPETENCIES_SUMMARY}?limit=${limit}`;
-  const data = await fetchDashboardApi<{ competencies: CompetencySummary[] }>(endpoint);
-  return data.competencies;
+  return fetchDashboardApi<CompetencySummary[]>(endpoint);
 }
 
 /**
  * Get cohort-level trends for one competency
  */
 export async function getCompetencyTrends(competency: string): Promise<CompetencyTrends> {
-  const endpoint = API_ENDPOINTS.DASHBOARD_COMPETENCIES_TRENDS(competency);
+  const endpoint = API_ENDPOINTS.DASHBOARD_COMPETENCIES_TRENDS(
+    encodeURIComponent(competency),
+  );
   return fetchDashboardApi<CompetencyTrends>(endpoint);
 }
 

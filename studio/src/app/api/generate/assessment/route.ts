@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildApiUrl } from '@/lib/api-config';
+import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import {
   detectBlockedOmegaClawContent,
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     new Promise<null>((resolve) => setTimeout(() => resolve(null), AUTH_LOOKUP_TIMEOUT_MS)),
   ]);
   const user = authResult?.data?.user ?? null;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers = getAiAgentsServiceHeaders({ 'Content-Type': 'application/json' });
   if (user?.id) headers['X-Forwarded-User'] = user.id;
 
   try {

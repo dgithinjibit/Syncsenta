@@ -140,7 +140,7 @@ If the project uses a different service entrypoint in your local checkout, follo
 The project docs are intentionally organized around active, operational guidance rather than historical snapshots.
 
 - [docs/README.md](docs/README.md) — active documentation index
-- [docs/BASIX-NORTH-STAR.md](docs/BASIX-NORTH-STAR.md) — evidence and scope guardrails
+- [docs/specs.md](docs/specs.md) — production-completion requirements for active product surfaces, including Omega and Hyperon
 - [docs/ROADMAP.md](docs/ROADMAP.md) — Phase 2 teacher analytics scope and acceptance criteria
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — active runtime and data boundaries
 - [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) — Studio and teacher analytics conventions

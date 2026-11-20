@@ -1,15 +1,10 @@
 /**
  * POST /api/teacher/feedback
  *
- * Teacher submits feedback on:
- * 1. Generated schemes of work (lesson order, activities, pacing)
- * 2. Student scaffolding decisions (Omega thresholds)
+ * Teacher submits feedback on generated schemes or Omega policy outcomes.
  *
- * Flow:
- * - Validate + store in Supabase
- * - Record in MeTTa session boundary
- * - POST to FastAPI for analysis
- * - Return proposed patch to teacher
+ * Scheme feedback may be analyzed by FastAPI. Omega feedback is stored for
+ * human review and cannot propose or apply a live MeTTa policy patch.
  */
 
 import { NextRequest } from 'next/server';
@@ -17,6 +12,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
 
 // ────────────────────────────────────────────────────────────────
 // Schema
@@ -127,9 +123,24 @@ export async function POST(req: NextRequest) {
 
   const feedbackId = feedbackRecord?.id;
 
+  if (body.type === 'omega_threshold') {
+    return Response.json(
+      {
+        success: true,
+        feedbackId,
+        status: 'pending_review',
+        policyUpdated: false,
+        message: 'Omega feedback was saved for review. No active policy was changed.',
+      },
+      { status: 202 },
+    );
+  }
+
   // ── Send to FastAPI for analysis ────────────────────────────────
-  const aiAgentsUrl = process.env.NEXT_PUBLIC_AI_AGENTS_URL;
-  if (!aiAgentsUrl) {
+  let analysisUrl: string;
+  try {
+    analysisUrl = buildApiUrl('/teacher/feedback-analysis');
+  } catch {
     console.warn('[/api/teacher/feedback] AI_AGENTS_URL not configured, skipping analysis');
     return Response.json(
       {
@@ -143,9 +154,9 @@ export async function POST(req: NextRequest) {
 
   let analysisResult: Record<string, unknown> = {};
   try {
-    const analysisResponse = await fetch(`${aiAgentsUrl}/teacher/feedback-analysis`, {
+    const analysisResponse = await fetch(analysisUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAiAgentsServiceHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         feedbackId,
         teacherId: user.id,

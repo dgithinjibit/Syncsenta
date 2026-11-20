@@ -602,7 +602,7 @@ mod tests {
     async fn seed_schema_installs_subjects_and_roles() {
         let mut kb = KnowledgeBase::new().unwrap();
         kb.load_curriculum().await.unwrap();
-        let count = kb.global_space().atom_count().await;
+        let count = kb.global_space().atom_count().await.unwrap();
         // 8 subjects + 6 inheritance edges + 7 role atoms + 3 mastery rules
         assert!(count >= 8 + 6 + 7 + 3);
     }

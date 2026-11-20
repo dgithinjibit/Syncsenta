@@ -20,7 +20,7 @@ until its dashboard settings and deployment are updated.
 ## Omega orchestration
 
 The deployed app routes chat, quiz generation/grading, and teacher content
-generation through `SyncSentaOrchestrator` → Omega Queen → a registered
+provider-backed generation through a direct compatibility route → a registered
 specialist. The MeTTa policy and Python fallback share the role/task routing
 contract in `src/syncsenta_agents/omega_routing.py`; add a policy route and a
 focused dispatch test when introducing a new specialist task. Structured

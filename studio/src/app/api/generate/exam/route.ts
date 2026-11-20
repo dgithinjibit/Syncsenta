@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { buildApiUrl } from '@/lib/api-config';
+import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
 import { toLessonArchitectAllocation, type StudioAllocation } from '@/lib/exam-allocation';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import {
@@ -102,7 +102,10 @@ export async function POST(req: NextRequest) {
   try {
     const res = await fetch(target, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Forwarded-User': user.id },
+      headers: getAiAgentsServiceHeaders({
+        'Content-Type': 'application/json',
+        'X-Forwarded-User': user.id,
+      }),
       // teacher_id is taken from the session, never from the body: the agent
       // caches and persists exams under it.
       body: JSON.stringify({

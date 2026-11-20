@@ -8,7 +8,7 @@ mod auth;
 #[cfg(test)]
 mod tests;
 
-use axum::Router;
+use axum::{http::StatusCode, routing::get, Router};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -36,7 +36,7 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&db_pool).await?;
 
     // Build router
-    let app = Router::new()
+    let app = health_routes()
         .nest("/api/v1", routes::all_routes(db_pool.clone(), cfg.clone()))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());
@@ -48,4 +48,25 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+fn health_routes() -> Router {
+    Router::new().route("/healthz", get(|| async { StatusCode::OK }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{body::Body, http::Request};
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn health_check_is_available_at_the_deployment_path() {
+        let response = health_routes()
+            .oneshot(Request::builder().uri("/healthz").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }

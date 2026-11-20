@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syncsenta.org/datasets/curriculum-evaluation/v1/schema.json",
+  "title": "SyncSenta Synthetic Curriculum Policy Evaluation v1",
+  "description": "Synthetic-only tabular evaluation fixture for bounded tutoring-policy and connectivity handling. Curriculum mappings and targets are unreviewed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_id", "split", "grade", "subject", "strand", "competency",
+    "learning_objective", "language", "connectivity", "questions_answered",
+    "correct_answers", "mastery_percent", "hints_used", "consecutive_wrong",
+    "expected_scaffolding", "expected_next_action", "expected_hint",
+    "expected_evidence", "expected_delivery_mode", "expected_progress_policy",
+    "policy_version", "label_source", "synthetic", "pii_present",
+    "consent_status", "educator_reviewed", "curriculum_review_status",
+    "provenance"
+  ],
+  "properties": {
+    "record_id": {"type": "string", "pattern": "^synthetic-curriculum-[0-9]{5}$"},
+    "split": {"enum": ["train", "validation", "test"]},
+    "grade": {"enum": ["Grade 6", "Grade 10", "Grade 11", "Grade 12"]},
+    "subject": {"enum": ["mathematics", "english", "kiswahili", "science_technology", "social_studies", "creative_arts"]},
+    "strand": {"type": "string", "minLength": 1},
+    "competency": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+    "learning_objective": {"type": "string", "minLength": 1},
+    "language": {"enum": ["en", "sw", "mixed"]},
+    "connectivity": {"enum": ["online", "low_bandwidth", "offline"]},
+    "questions_answered": {"type": "integer", "minimum": 0},
+    "correct_answers": {"type": "integer", "minimum": 0},
+    "mastery_percent": {"type": "number", "minimum": 0, "maximum": 100},
+    "hints_used": {"type": "integer", "minimum": 0},
+    "consecutive_wrong": {"type": "integer", "minimum": 0},
+    "expected_scaffolding": {"enum": ["Intensive", "Guided", "Independent"]},
+    "expected_next_action": {"type": "string"},
+    "expected_hint": {"enum": ["notice", "isolate-step", "worked-example"]},
+    "expected_evidence": {"type": "string"},
+    "expected_delivery_mode": {
+      "enum": ["local_practice_only", "text_first_defer_optional_media", "standard_connected_interaction"]
+    },
+    "expected_progress_policy": {
+      "enum": ["do_not_award_or_sync", "save_when_server_confirms"]
+    },
+    "policy_version": {"const": "omega-tutoring-v1"},
+    "label_source": {"const": "deterministic_metta_policy_mirror"},
+    "synthetic": {"const": true},
+    "pii_present": {"const": false},
+    "consent_status": {"const": "not_applicable_synthetic"},
+    "educator_reviewed": {"const": false},
+    "curriculum_review_status": {"const": "illustrative_mapping_unreviewed"},
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "generator", "seed", "generated_on", "license"],
+      "properties": {
+        "kind": {"const": "deterministic_synthetic_generator"},
+        "generator": {"const": "generate_dataset.py"},
+        "seed": {"type": "integer"},
+        "generated_on": {"type": "string", "format": "date"},
+        "license": {"const": "CC BY 4.0"}
+      }
+    }
+  }
+}

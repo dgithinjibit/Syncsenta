@@ -20,14 +20,15 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from secrets import compare_digest
 
 from ..agents.assessment import AssessmentAgent
 from ..core.exceptions import AgentError
-from ..core.models import AgentRequest
-from ..orchestrator.main import SyncSentaOrchestrator
+from ..core.models import Quiz, QuizSubmission
 
 
 # ---------------------------------------------------------------------------
@@ -67,13 +68,54 @@ class ChatRequest(BaseModel):
 
 app = FastAPI(title="SyncSenta Omega Agent API", version="0.1.0")
 
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip()
+cors_origins = [origin.strip() for origin in FRONTEND_URL.split(",") if origin.strip()]
+cors_origins.extend(
+    origin
+    for origin in ("http://localhost:3000", "http://127.0.0.1:3000")
+    if origin not in cors_origins
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # dev only; tighten for prod
+    allow_origins=cors_origins,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
+
+
+def _configured_api_key() -> Optional[str]:
+    value = os.environ.get("SYNCSENTA_AI_AGENTS_API_KEY", "").strip()
+    return value or None
+
+
+def _has_valid_api_key(request: Request) -> bool:
+    configured = _configured_api_key()
+    if configured is None:
+        return False
+
+    authorization = request.headers.get("Authorization", "")
+    bearer_key = authorization.removeprefix("Bearer ").strip()
+    api_key = request.headers.get("X-API-Key", "").strip()
+    return compare_digest(bearer_key, configured) or compare_digest(api_key, configured)
+
+
+@app.middleware("http")
+async def require_service_api_key(request: Request, call_next):
+    if request.url.path in {"/healthz", "/docs", "/openapi.json"}:
+        return await call_next(request)
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    if _configured_api_key() is None:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "AI service authentication is not configured"},
+        )
+    if not _has_valid_api_key(request):
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    return await call_next(request)
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +165,6 @@ def _build_agent() -> AssessmentAgent:
 
 
 _agent: Optional[AssessmentAgent] = None
-_orchestrator: Optional[SyncSentaOrchestrator] = None
 
 
 def get_agent() -> AssessmentAgent:
@@ -131,52 +172,6 @@ def get_agent() -> AssessmentAgent:
     if _agent is None:
         _agent = _build_agent()
     return _agent
-
-
-async def get_orchestrator() -> SyncSentaOrchestrator:
-    """Return the Omega Queen orchestrator and its registered specialists.
-
-    Normally initialized on FastAPI startup; falls back to lazy init for tests
-    or direct ASGI mounting that skips the lifespan event.
-    """
-    global _orchestrator
-    if _orchestrator is None:
-        orch = SyncSentaOrchestrator()
-        await orch.initialize()
-        orch.register_agent("assessment", get_agent())
-        if lesson_architect_api is not None:
-            orch.register_agent(
-                "lesson_architect",
-                lesson_architect_api.LessonArchitectAgent(
-                    supabase_client=lesson_architect_api.get_supabase_client()
-                ),
-            )
-        _orchestrator = orch
-    return _orchestrator
-
-
-async def run_omega_task(
-    request: AgentRequest,
-    *,
-    task_context: Dict[str, Any],
-) -> Dict[str, Any]:
-    """Run a structured API task through Omega and return the worker data."""
-    orchestrator = await get_orchestrator()
-    response = await orchestrator.process_request(
-        request,
-        task_context=task_context,
-    )
-    if not response.success:
-        raise AgentError(response.error or response.response)
-    if not isinstance(response.structured_result, dict):
-        raise AgentError("Omega specialist returned no structured result")
-    return response.structured_result
-
-
-@app.on_event("startup")
-async def _warm_orchestrator() -> None:
-    """Initialize Omega at startup; service availability depends on its policy."""
-    await get_orchestrator()
 
 
 # ---------------------------------------------------------------------------
@@ -202,60 +197,15 @@ async def healthz() -> Dict[str, Any]:
 @app.post("/agents/assessment/quiz")
 async def generate_quiz(req: QuizRequest) -> Dict[str, Any]:
     try:
-        result = await run_omega_task(
-            AgentRequest(
-                message=f"Generate a quiz on {req.competency}",
-                user_id="anonymous",
-                grade=req.grade,
-                subject=req.subject,
-                role="teacher",
-                type="assessment",
-            ),
-            task_context={
-                "action": "generate_quiz",
-                "competency": req.competency,
-                "num_questions": req.num_questions,
-                "language": req.language,
-                "question_types": req.question_types,
-            },
-        )
-        quiz = result.get("quiz")
-        if not isinstance(quiz, dict):
-            raise AgentError("Omega assessment specialist returned no quiz")
-        return quiz
-    except AgentError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-
-@app.post("/agents/chat")
-async def agent_chat(req: ChatRequest) -> Dict[str, Any]:
-    """Route a message through Omega Queen → specialist agent.
-
-    Returns the selected specialist response and its agent identity so the
-    Rust backend can broadcast the message and agent activity over WebSocket.
-    """
-    try:
-        orch = await get_orchestrator()
-        agent_req = AgentRequest(
-            message=req.message,
-            user_id=req.user_id,
-            session_id=req.session_id,
+        quiz = await get_agent().generate_quiz(
             grade=req.grade,
             subject=req.subject,
-            role=req.role,
-            type=req.type,
-            context={"language": req.language},
+            competency=req.competency,
+            num_questions=req.num_questions,
+            language=req.language,
+            question_types=req.question_types,
         )
-        resp = await orch.process_request(agent_req)
-        return {
-            "success": resp.success,
-            "response": resp.response,
-            "primary_agent": resp.primary_agent,
-            "agents_used": resp.agents_used,
-            "response_time_ms": resp.response_time_ms,
-            "fallback_used": resp.fallback_used,
-            "error": resp.error,
-        }
+        return quiz.model_dump(mode="json")
     except AgentError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -263,23 +213,10 @@ async def agent_chat(req: ChatRequest) -> Dict[str, Any]:
 @app.post("/agents/assessment/grade")
 async def grade_submission(req: GradeRequest) -> Dict[str, Any]:
     try:
-        result = await run_omega_task(
-            AgentRequest(
-                message="Grade the submitted quiz",
-                user_id=req.submission.get("student_id") or "anonymous",
-                role="student",
-                type="assessment",
-            ),
-            task_context={
-                "action": "grade_submission",
-                "quiz": req.quiz,
-                "submission": req.submission,
-            },
-        )
-        graded = result.get("graded")
-        if not isinstance(graded, dict):
-            raise AgentError("Omega assessment specialist returned no grade")
-        return graded
+        quiz = Quiz.model_validate(req.quiz)
+        submission = QuizSubmission.model_validate(req.submission)
+        graded = await get_agent().grade_submission(quiz, submission)
+        return graded.model_dump(mode="json")
     except AgentError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except (KeyError, ValueError, TypeError) as exc:

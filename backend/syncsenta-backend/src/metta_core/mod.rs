@@ -22,7 +22,7 @@ pub mod omega_claw;
 
 pub use interpreter::{AtomString, MettaInterpreter, MettaSpace, SpaceId};
 pub use knowledge_base::{AtomDomain, IpfsBackend, KnowledgeBase, NullIpfs, PersistedAtom};
-pub use omega_claw::OmegaClawRules;
+pub use omega_claw::{OmegaClawRules, TutoringDecisionError};
 pub use orchestration::{
     OrchestrationOutcome, OrchestrationRequest, OrchestrationResponse, SystemOrchestrator,
 };
@@ -79,7 +79,7 @@ mod tests {
         let mut core = MettaCore::new().unwrap();
         core.initialize().await.unwrap();
 
-        let count = core.interpreter.global_space().atom_count().await;
+        let count = core.interpreter.global_space().atom_count().await.unwrap();
         assert!(count > 0);
         assert!(!core.reasoning_engine.loaded_rule_packs().await.is_empty());
     }

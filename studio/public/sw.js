@@ -5,7 +5,7 @@
  * Implements a network-first strategy for API calls and cache-first for static assets.
  */
 
-const CACHE_NAME = 'syncsenta-v1';
+const CACHE_NAME = 'syncsenta-v2';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache on install
@@ -65,11 +65,17 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone the response before caching
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
+          const cacheControl = response.headers.get('Cache-Control') || '';
+          if (
+            response.status === 200 &&
+            !cacheControl.includes('no-store') &&
+            !cacheControl.includes('private')
+          ) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
           return response;
         })
         .catch(() => {
@@ -84,6 +90,27 @@ self.addEventListener('fetch', (event) => {
             }
             return new Response('Offline', { status: 503 });
           });
+        })
+    );
+    return;
+  }
+
+  // Navigation requests - network first, cached page fallback
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedResponse = await caches.match(request);
+          return cachedResponse || caches.match(OFFLINE_URL);
         })
     );
     return;
@@ -131,6 +158,9 @@ self.addEventListener('message', (event) => {
   if (!event.data) return;
   if (event.data.type === 'PING_SW') {
     event.source?.postMessage({ type: 'PONG_SW' });
+  }
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });
 
