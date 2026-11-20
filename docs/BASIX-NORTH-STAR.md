@@ -121,9 +121,20 @@ Quality over quantity is not a mood here, it is the arithmetic of this laptop.
 ## 7. Cut, explicitly, so nobody re-litigates it
 
 The on-chain credential sentence; "built on Omega"; every subject except **AI and blockchain**; every
-grade below **Grade 6**; Leptos, Topcoat, hydration islands and any Rust rewrite of `studio/`; payments
-and M-Pesa variables; the three frozen roles (`parent`, `county_officer`, `national_admin`); sign-ups of
-any kind (four hand-seeded demo accounts only).
+grade below **Grade 6**; Leptos, Topcoat, hydration islands and any Rust rewrite of `studio/`; M-Pesa
+and non-crypto payment integrations; internal cash-flow tooling; the three frozen roles
+(`parent`, `county_officer`, `national_admin`); sign-ups of any kind (four hand-seeded demo accounts
+only).
+
+**Owner-approved scope change, 20 Nov 2026:** crypto contribution and service-payment intake on
+ASI:Chain is reopened for planning and implementation. Application-side integration must be Rust;
+do not add Solidity. Keep the existing Polygon/Solidity code frozen until its deployment and caller
+status are audited. The current ASI:Chain documentation describes a DevNet whose tokens have no real
+value, so development and verification may target DevNet only. Production acceptance is blocked until
+an official real-value network and asset are available and the owner has approved the treasury,
+pricing, refund, compliance, and operational decisions. Internal cash-flow tooling remains deferred.
+If ASI:Chain is not production-ready at release, stop and explicitly revisit the NEAR fallback rather
+than silently switching networks.
 
 Researching an option and declining it is fine — Leptos was researched, measured, and declined on the
 bytes. Adopting something because it was mentioned is not: Fulcrum and MemX have zero footprint in the

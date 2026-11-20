@@ -35,6 +35,7 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 
 ## Active tasks
 
+- [ ] Design and implement Rust-only ASI:Chain contribution and service-payment intake, initially against DevNet test tokens only. Keep payer keys outside SyncSenta; verify finalized transfer deploys and record receipts idempotently, separately from learner rewards. Before any real-value release, settle the production asset, treasury control, payment quote/price, refund policy, legal review, and reliable finality/indexing. Audit existing EVM deployments and consumers before changing the frozen Solidity code. Exclude internal cash-flow tooling.
 - [ ] Reconcile the five legacy `tests/test_omega_api.py` expectations with the content-only adapter boundary. They still expect missing `get_orchestrator()` dispatchers for quiz, grading, and teacher-generation operations; audit whether those are supported contracts before restoring orchestration or pruning modules.
 - [ ] Rebuild the Codespace with the lean Ubuntu devcontainer image and record the container build result.
 - [ ] Run the focused Studio regression tests for head navigation, student transport, role routing, grade normalization, CSP, and safe scheme printing when Node.js and the project dependencies are available. Record the exact command and result.

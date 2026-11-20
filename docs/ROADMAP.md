@@ -61,16 +61,54 @@ Verification:
 No deployment or browser verification was performed. Python's declared dotenv dependency was added to
 `pyproject.toml` because the provider client imports it directly; the local `.venv` was missing it.
 
+## Crypto payment intake scout — ASI:Chain — 2026-11-20
+
+Owner direction: begin with crypto contributions and service-payment intake on ASI:Chain, use Rust for
+SyncSenta application integration, and defer internal cash-flow tooling. No Solidity is to be added.
+Existing Polygon/Solidity code remains frozen until its deployment and caller status are audited.
+This is a planning decision, not an implemented payment feature.
+
+Current official ASI:Chain documentation describes an active DevNet with test tokens that have no real
+value, three validators, and an unstable observer. It describes Rholang as the smart-contract language.
+The official Rust wallet CLI supports native token transfers and waits for deploy finalization, but
+its send path receives the wallet private key to sign the user's transfer. SyncSenta must not collect
+or store payer keys. A first slice should avoid project-authored on-chain contract code: the user signs
+in their wallet, and a Rust service verifies the submitted transfer proof against a trusted chain
+source. If custom on-chain logic later proves necessary, ASI:Chain's Rholang runtime conflicts with a
+strict Rust-only contract requirement and requires a new owner decision.
+
+Proposed boundaries:
+
+- Keep contributions, service-payment intents, and learner rewards as separate records.
+- Validate the chain/network, recipient, amount, finalized deploy status, and replay/idempotency before
+  crediting a payment. Do not put learner identity or other personal data on-chain.
+- Do not enable real-value payments until an official ASI:Chain mainnet and supported production asset
+  exist, and treasury control, price/quote rules, refunds, legal review, finality, and operational
+  monitoring are approved.
+- Exclude internal cash-flow management, payouts, DAO voting, M-Pesa, and changes to existing EVM
+  contracts from this payment-intake slice. Revisit NEAR only if ASI:Chain is not production-ready at
+  the release gate.
+
+Evidence sources: [ASI:Chain overview](https://docs.asichain.io/general/overview/),
+[ASI:Chain FAQ](https://docs.asichain.io/faq/),
+[transaction flow](https://docs.asichain.io/architecture/sequence-diagrams/transaction/),
+[Rust wallet CLI](https://github.com/asi-alliance/asi-chain-wallet-cli), and its
+[send implementation](https://github.com/asi-alliance/asi-chain-wallet-cli/blob/main/src/commands/send.rs).
+These sources establish the current documented DevNet and client flow only; they do not prove a future
+mainnet launch date or production readiness.
+
 ## Active work
 
 Use [TASKS.md](TASKS.md) for the live backlog. The current backlog is:
 
-1. Reconcile the legacy Python orchestration-test expectations with the content-only adapter boundary
+1. Design and implement the ASI:Chain payment-intake slice in Rust, with DevNet-only verification and
+   explicit production readiness gates.
+2. Reconcile the legacy Python orchestration-test expectations with the content-only adapter boundary
    before pruning or restoring any modules.
-2. Rebuild the Codespace and record the container build result.
-3. Run the focused Studio regressions.
-4. Browser-verify authorized student, teacher, and head flows.
-5. Agree on the durable generated-scheme storage contract before implementing Save to Library.
+3. Rebuild the Codespace and record the container build result.
+4. Run the focused Studio regressions.
+5. Browser-verify authorized student, teacher, and head flows.
+6. Agree on the durable generated-scheme storage contract before implementing Save to Library.
 
 ## Working priorities
 
