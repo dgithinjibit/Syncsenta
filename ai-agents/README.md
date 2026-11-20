@@ -23,7 +23,8 @@ until its dashboard settings and deployment are updated.
 The source and its tests are not yet aligned on the intended Omega request
 path. `api/server.py` registers `/healthz` and direct assessment handlers.
 `api/lesson_architect_api.py` mounts the teacher-generation routes. Existing
-tests expect `/agents/chat`, but no Studio call site for that route was found.
+tests and the teacher assessment proxy expect `/agents/chat`, but FastAPI does
+not register it.
 
 Existing tests expect assessment and teacher handlers to dispatch through
 `get_orchestrator()` and preserve structured specialist results. Those
@@ -35,11 +36,17 @@ statement about the live Render deployment.
 The active learner-chat path is Studio's same-origin `/api/chat`, not this
 service's `/agents/chat`: it requests a structured tutoring decision from the
 Rust API and streams the generated response through Studio's provider path.
-No Studio call site for `/agents/chat` was found in the source review. The Rust
-API has no free-form chat endpoint; its tutoring endpoints require a short-lived
-Studio-signed student assertion. The existing AI Agents proxy sends a service
-key and `X-Forwarded-User`, which is not that assertion and must not be treated
-as authenticated identity.
+Separately, the teacher assessment generator calls Studio's
+`/api/generate/assessment`, which proxies to this service's `/agents/chat`.
+That FastAPI route is missing, so the proxy maps its 404 to an explicitly
+labelled prescribed-template response. The UI sends a placeholder `user_id`
+and client-supplied `role`; the proxy's `getSupabaseServerClient()` uses the
+service-role client rather than reading the request session. Do not treat those
+payload fields or `X-Forwarded-User` as verified identity.
+
+The Rust API has no free-form chat endpoint; its tutoring endpoints require a
+short-lived Studio-signed student assertion. The existing AI Agents proxy does
+not send that assertion.
 
 `omega_routing.py` contains a Python role/task routing table, while
 `metta-logic/syncsenta_policy.metta` and Rust policy code contain overlapping

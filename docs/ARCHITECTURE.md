@@ -26,8 +26,9 @@ and this file for boundaries and canonical file locations.
   migrations is not by itself proof of the live schema or browser-visible behavior.
 - Rust/Hyperon was selected on 2026-11-20 as the target sole authority for structured tutoring policy.
   This is an owner decision, not deployment or cut-over evidence: Studio's `/api/chat` calls the Rust
-  tutoring API, while TypeScript policy code remains in the tree and other request paths. The
-  `/agents/chat` Python route is absent, and no free-form Rust chat API exists.
+  tutoring API, while TypeScript policy code remains in the tree and other request paths. The teacher
+  assessment route proxies to the absent Python `/agents/chat` route and falls back to prescribed
+  template content on non-2xx responses. Rust has no free-form chat API.
 - The AI Agents route and orchestration contract is under reconciliation. See
   [`ai-agents/README.md`](../ai-agents/README.md) for tested source status and
   [`TASKS.md`](TASKS.md) for the next bounded decision and implementation slice.
@@ -80,6 +81,7 @@ and this file for boundaries and canonical file locations.
 | Surface | Handler | Source state |
 |---|---|---|
 | `POST /api/chat` | `studio/src/app/api/chat/route.ts` | Same-origin active Studio route |
+| `POST /api/generate/assessment` | `studio/src/app/api/generate/assessment/route.ts` | Proxies to missing Python `/agents/chat`; uses a labelled prescribed-template fallback on upstream failure |
 | `POST /api/generate/scheme` | `studio/src/app/api/generate/scheme/route.ts` | Calls Python when configured; has labelled prescribed-template fallback |
 | `POST /api/generate/lesson-plan` | `studio/src/app/api/generate/lesson-plan/route.ts` | Studio route with Python proxy behavior |
 | `POST /api/generate/exam` | `studio/src/app/api/generate/exam/route.ts` | Studio route; does not invent a curriculum allocation |
@@ -150,8 +152,9 @@ Before an implementation task:
 
 - Rust/Hyperon is the selected target authority for structured tutoring decisions. Preserve the existing
   Studio-signed identity boundary when calling Rust; the Python service's API key and forwarded user
-  header are not a substitute. Research whether `/agents/chat` should be retired or retained as a
-  content-generation adapter before changing its route or orchestration.
+  header are not a substitute. Either restore `/agents/chat` as a content-generation adapter or migrate
+  the active teacher assessment caller to a documented replacement; do not remove that integration
+  without migrating its caller.
 - Authenticated database access must preserve Supabase RLS. Require a bounded active task and verified migration evidence before changing schema ownership or migration behavior.
 - Security-sensitive or deployment-specific work should update the corresponding accepted decision and the current task entry with evidence.
 
