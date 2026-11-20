@@ -38,20 +38,21 @@ require a short-lived, Studio-signed student assertion; the AI Agents proxy inst
 key and may send `X-Forwarded-User`.
 
 The assessment UI sends a placeholder `user_id` and client-supplied `role`. The proxy calls
-`getSupabaseServerClient()` (a service-role client) rather than reading the request session, so this
-path does not establish the caller's identity from the authenticated Studio session. Treat its
-identity contract as unresolved, not as evidence of authorized teacher access.
+`getSupabaseServerClient()` (a service-role client) rather than reading the request session. The
+handler has no request-level session or teacher-role check, and the global workspace middleware only
+protects workspace prefixes, not `/api/generate/assessment`. Treat this as an unresolved authorization
+boundary in source; it is not evidence about the live deployment's reachability.
 
 No AI Agents behavior, modules, or dependencies were changed. The active task in `TASKS.md` is to
-define an authenticated teacher identity and response contract for assessment generation before
-restoring or migrating the route, then define the signed identity and Rust policy contract before
+define and test authenticated teacher identity first, then specify the response contract before
+restoring or migrating the route, and define the signed identity and Rust policy contract before
 pruning. The Python venv is local and ignored by Git.
 
 ## Active work
 
 Use [TASKS.md](TASKS.md) for the live backlog. The current backlog is:
 
-1. Define the authenticated assessment-generation contract and AI Agents service boundary before cleanup.
+1. Define and test assessment-route authorization, then settle the AI Agents service boundary before cleanup.
 2. Rebuild the Codespace and record the container build result.
 3. Run the focused Studio regressions.
 4. Browser-verify authorized student, teacher, and head flows.

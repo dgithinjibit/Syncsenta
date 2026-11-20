@@ -41,8 +41,10 @@ Separately, the teacher assessment generator calls Studio's
 That FastAPI route is missing, so the proxy maps its 404 to an explicitly
 labelled prescribed-template response. The UI sends a placeholder `user_id`
 and client-supplied `role`; the proxy's `getSupabaseServerClient()` uses the
-service-role client rather than reading the request session. Do not treat those
-payload fields or `X-Forwarded-User` as verified identity.
+service-role client rather than reading the request session. The handler has
+no request-level authentication or role check, and the workspace middleware
+does not protect `/api/generate/assessment`. Do not treat those payload fields
+or `X-Forwarded-User` as verified identity.
 
 The Rust API has no free-form chat endpoint; its tutoring endpoints require a
 short-lived Studio-signed student assertion. The existing AI Agents proxy does
