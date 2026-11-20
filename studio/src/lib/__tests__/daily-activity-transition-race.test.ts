@@ -7,8 +7,8 @@
  * `/api/chat/route.ts:658`, so the race is two tutor requests from one learner — a double-send, a retry
  * over a slow stream, or the same child on two tabs — both reading `messages_sent: 4` and both writing 5,
  * which leaves the teacher's dashboard reporting one message fewer than the learner actually sent.
- * `docs/ROADMAP.md` §2's whole point is that every number a teacher sees traces to a real learner action,
- * so a quietly lost action is a defect in that promise rather than a rounding error.
+ * A teacher-facing count must trace to real learner actions, so a quietly lost
+ * action is a data-integrity defect rather than a rounding error.
  *
  * Red-green record: 4 of these 5 failed against the code before `9110da3`. The one that passed is the
  * uncontested day — the shape this guard must not disturb.

@@ -38,7 +38,7 @@ usage() {
     echo ""
     echo "Examples:"
     echo "  $0 feature --name user-auth"
-    echo "  $0 ai-safety --name value-alignment --attachment .kiro/specs/syncsenta-education-os/requirements.md"
+    echo "  $0 feature --name teacher-analytics --attachment docs/ROADMAP.md"
     echo "  $0 web4 --name smart-contract"
     exit 0
 }

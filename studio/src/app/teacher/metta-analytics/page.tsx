@@ -1,15 +1,10 @@
-/**
- * MeTTa Analytics Dashboard Page (Phase 2)
- * 
- * Advanced adaptive learning analytics with misconception detection,
- * behavioral profiling, and competency trends.
- */
+/** Phase 2 teacher analytics page. */
 
 import { Phase2TeacherDashboard } from '@/components/teacher/phase2-teacher-dashboard';
 
 export const metadata = {
-  title: 'MeTTa Analytics - syncsenta',
-  description: 'Advanced behavioral analytics and misconception detection dashboard',
+  title: 'Teacher Analytics - syncsenta',
+  description: 'Roster-scoped learner activity, progress, and support observations',
 };
 
 export default function MeTTaAnalyticsDashboardPage() {

@@ -70,7 +70,7 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ -z "$1" ]; then
     echo ""
     echo "Examples:"
     echo "  $0 implement-auth"
-    echo "  $0 implement-task-1 .kiro/specs/syncsenta-education-os/requirements.md"
+    echo "  $0 teacher-analytics docs/ROADMAP.md"
     echo ""
     exit 0
 fi

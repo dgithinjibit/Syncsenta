@@ -102,13 +102,11 @@ describe('posture reaches the prompt', () => {
    * There is no cheap runtime harness for a streaming route handler, so this
    * checks the wiring exists at the source level; behaviour is covered above.
    */
-  it('is wired into /api/chat and the Mwalimu pipeline', () => {
+  it('is wired into /api/chat and uses the Rust/Hyperon tutoring boundary', () => {
     const chatRoute = readFileSync('src/app/api/chat/route.ts', 'utf8');
-    const pipeline = readFileSync('src/lib/mwalimu-pipeline.ts', 'utf8');
-    for (const source of [chatRoute, pipeline]) {
-      expect(source).toContain('formatPedagogyConstraintBlock');
-      expect(source).toContain('formatPlanePostureLine');
-    }
+    expect(chatRoute).toContain('fetchHyperonTutoringDecision');
+    expect(chatRoute).toContain('formatPedagogyConstraintBlock');
+    expect(chatRoute).toContain('formatPlanePostureLine');
     expect(chatRoute).toMatch(/systemPrompt \+= [^\n]*formatPedagogyConstraintBlock\(\)/);
   });
 });

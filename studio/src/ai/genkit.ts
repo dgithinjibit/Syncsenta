@@ -6,12 +6,8 @@ import {googleAI} from '@genkit-ai/googleai';
 /**
  * Provider: the ASI gateway (SingularityNET's OpenAI-compatible endpoint).
  *
- * Why not Google AI directly: production never had GEMINI_API_KEY on the
- * Vercel project, which made all 18 Co-Pilot tools 500 identically
- * (recorded in docs/ROADMAP.md, spoon 12c). The ASI key arrives from the
- * BASIX organizers as ASI_CLOUD_KEY, so it is the credential that actually
- * exists. compat-oai speaks the OpenAI wire format against ASI's
- * /v1/chat/completions.
+ * The primary provider uses the OpenAI-compatible ASI endpoint through
+ * `compat-oai`. Gemini-specific capabilities use the Google AI plugin below.
  *
  * The googleAI plugin stays registered but is NOT the default: only
  * Gemini-specific capabilities use it (Mwalimu's TTS voice replies), and

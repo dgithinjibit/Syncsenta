@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "syncsenta-ai-agents"
 version = "0.1.0"
-description = "SyncSenta AI Agents - Production-ready LangChain + CrewAI + Stellar system for Kenya's CBC curriculum"
+description = "SyncSenta AI Agents - MeTTa-governed Omega agents for Kenya's CBC curriculum"
 authors = ["SyncSenta Team <team@syncsenta.ke>"]
 readme = "README.md"
 packages = [{include = "syncsenta_agents", from = "src"}]
@@ -19,7 +19,6 @@ uvicorn = {extras = ["standard"], version = "^0.27.0"}
 # LangChain ecosystem
 langchain = "^0.1.0"
 langchain-community = "^0.0.29"
-langgraph = "^0.0.26"
 langsmith = "^0.0.83"
 
 # CrewAI framework

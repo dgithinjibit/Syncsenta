@@ -54,7 +54,7 @@ class AgentRequest(BaseModel):
     session_id: Optional[str] = None
     grade: Optional[str] = None
     subject: Optional[str] = None
-    role: Optional[str] = "student"  # student, teacher, parent, admin
+    role: Optional[str] = "student"  # Routing hint only; never authorization.
     type: Optional[str] = None  # tutoring, curriculum, lesson_planning, assessment
     priority: RequestPriority = RequestPriority.MEDIUM
 
@@ -63,6 +63,7 @@ class AgentResponse(BaseModel):
     """Response from the agent system."""
     success: bool
     response: str
+    structured_result: Optional[Dict[str, Any]] = None
     primary_agent: str
     agents_used: List[str]
     response_time_ms: int

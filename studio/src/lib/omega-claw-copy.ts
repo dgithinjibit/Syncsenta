@@ -23,6 +23,7 @@
 import {
   OMEGA_CLAW_ACTION_COPY,
   OMEGA_CLAW_HINT_COPY,
+  omegaClawHintFor,
 } from './omega-agent/omega-claw-rules';
 
 /** What `/api/omega-claw/*` returns, or `null` when the request never landed. */
@@ -39,8 +40,9 @@ function serverSentence(value: unknown): string | null {
  * that field is the MeTTa symbol (`worked-example`), which is a graph node, not
  * something a learner reads.
  */
-export function hintFeedback(result: OmegaClawResponse): string {
-  return serverSentence(result?.hintMessage) ?? OMEGA_CLAW_HINT_COPY.notice;
+export function hintFeedback(result: OmegaClawResponse, fallbackLevel = 1): string {
+  const hint = omegaClawHintFor(fallbackLevel);
+  return serverSentence(result?.hintMessage) ?? OMEGA_CLAW_HINT_COPY[hint];
 }
 
 /**
@@ -53,4 +55,12 @@ export function answerFeedback(result: OmegaClawResponse, correct: boolean): str
   return correct
     ? OMEGA_CLAW_ACTION_COPY['celebrate-transfer']
     : OMEGA_CLAW_ACTION_COPY['scaffold-retry'];
+}
+
+export function offlineAnswerFeedback(correct: boolean): string {
+  return `Offline practice only; this answer is not saved. ${answerFeedback(null, correct)}`;
+}
+
+export function uncertainAnswerFeedback(): string {
+  return "We couldn't confirm whether this answer was saved. Reconnect and check your progress before trying again.";
 }

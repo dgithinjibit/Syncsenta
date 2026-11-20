@@ -9,7 +9,7 @@
  * - Live hints_used + consecutive_wrong tracking fed to the Omega engine
  * - questions_asked / questions_answered / correct_answers incremented
  *   post-stream so mastery data is real for the next decision cycle
- * - Redis scaffolding level write (fire-and-forget) for teacher visibility
+ * - Redis decision snapshot write (fire-and-forget) for teacher visibility
  * - Usage logging
  *
  * Omega wiring changes (Sept 2, 2026):
@@ -46,14 +46,17 @@ import {
   buildCompassSystemPrompt,
   type LearnerLearningContext,
 } from '@/lib/chat/socratic-prompts';
-import { evaluateTutoringDecision, MeTTaEducationKnowledgeGraph, MeTTaSession } from '@/lib/omega-agent/metta-core';
+import {
+  fetchHyperonTutoringDecision,
+  omegaTutoringDecisionSchema,
+} from '@/lib/omega-claw-api';
+import { createOmegaProxyAuthorization } from '@/lib/omega-proxy-auth';
 import { classifyAnswerQuality } from '@/lib/omega-agent/answer-quality';
 import {
   detectBlockedOmegaClawContent,
   omegaClawLearnerRefusal,
 } from '@/lib/omega-agent/omega-claw-safety';
 import { refusalEventStream } from '@/lib/chat/refusal-stream';
-import { buildOmegaEnrichment, enrichSystemPrompt } from '@/lib/omega-agent/server-enrichment';
 import {
   buildScaffoldingEventPayload,
   payloadToDbRow,
@@ -64,8 +67,15 @@ import {
   masteryPercent,
   generalCompetencyForSubjectLabel,
 } from '@/lib/chat/subject-session';
-import { getLearningSession, updateLearningSession } from '@/lib/session/session-persistence';
-import type { LearningSession } from '@/lib/session/session-persistence';
+import {
+  getLearningSessionReadResult,
+  updateLearningSession,
+} from '@/lib/session/session-persistence';
+import type {
+  LearningSession,
+  OmegaScaffoldingDecisionSnapshot,
+  OmegaScaffoldingLevel,
+} from '@/lib/session/session-persistence';
 import { checkChatRateLimit } from '@/lib/session/rate-limit-upstash';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
@@ -146,25 +156,43 @@ function ageBandFromDateOfBirth(dob: string | null | undefined): string | undefi
 }
 
 /**
- * Deep-patches only `preferences.scaffoldingLevel` without clobbering the
- * rest of the LearningSession (achievements, competencyProgress, etc.).
- * Replaces the old `preferences: { ... } as any` cast.
+ * Deep-patches the Omega decision fields without clobbering the rest of the
+ * LearningSession (achievements, competencyProgress, etc.).
  */
 async function updateScaffoldingLevel(
   userId: string,
-  level: 'Independent' | 'Guided' | 'Intensive',
+  decision: Omit<OmegaScaffoldingDecisionSnapshot, 'level'> & {
+    scaffolding: OmegaScaffoldingLevel;
+  },
   language: 'english' | 'kiswahili' | 'mixed',
 ): Promise<void> {
   // Fetch current session so we can merge, not overwrite.
-  const current = await getLearningSession(userId).catch(() => null);
-  const prev = current?.preferences;
+  const readResult = await getLearningSessionReadResult(userId);
+  if (readResult.status === 'unavailable') {
+    throw new Error(`Redis could not read the Omega session: ${readResult.reason}`);
+  }
+  const prev = readResult.status === 'found'
+    ? readResult.session.preferences
+    : undefined;
   const merged: LearningSession['preferences'] = {
     language:        prev?.language        ?? language,
     difficultyLevel: prev?.difficultyLevel ?? 3,
     learningStyle:   prev?.learningStyle   ?? 'mixed',
-    scaffoldingLevel: level,
+    scaffoldingLevel: decision.scaffolding,
+    scaffoldingDecision: {
+      level: decision.scaffolding,
+      capturedAt: decision.capturedAt,
+      ...(decision.decidedAt ? { decidedAt: decision.decidedAt } : {}),
+      nextAction: decision.nextAction,
+      hint: decision.hint,
+      ...(decision.rulesetVersion ? { rulesetVersion: decision.rulesetVersion } : {}),
+      ...(decision.evidence ? { evidence: decision.evidence } : {}),
+    },
   };
-  await updateLearningSession(userId, { preferences: merged });
+  const updated = await updateLearningSession(userId, { preferences: merged });
+  if (!updated) {
+    throw new Error('Redis did not persist the Omega decision snapshot');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +249,7 @@ export async function POST(req: NextRequest) {
   const profile = authenticatedUser
     ? (await supabase
         .from('profiles')
-        .select('subscription_tier, grade, full_name, date_of_birth, language_preference, timezone')
+        .select('subscription_tier, grade, full_name, date_of_birth, language_preference, timezone, role')
         .eq('id', authenticatedUser.id)
         .single()).data
     : {
@@ -231,6 +259,7 @@ export async function POST(req: NextRequest) {
         date_of_birth: null,
         language_preference: 'mixed' as const,
         timezone: PLATFORM_TIME_ZONE,
+        role: 'student' as const,
       };
 
   if (!profile) {
@@ -312,27 +341,6 @@ export async function POST(req: NextRequest) {
       }
     : generalCompetencyForSubjectLabel(body.subject);
 
-  // Every student turn now passes through the MeTTa session boundary before
-  // Omega selects the tutoring policy.  The graph is intentionally scoped to
-  // this request; durable session facts remain owned by the persistence API.
-  // This keeps subject handling uniform for Mathematics, Languages, Sciences,
-  // Social Studies, Creative Arts, and every future CBC subject.
-  let mettaTurnStatus = 'recorded';
-  try {
-    const mettaSession = new MeTTaSession(
-      user.id,
-      new MeTTaEducationKnowledgeGraph(),
-      verifiedGrade,
-    );
-    await mettaSession.processInteraction({
-      type: 'student_turn',
-      subject: body.subject,
-      grade: verifiedGrade,
-    });
-  } catch (error) {
-    mettaTurnStatus = 'unavailable';
-    console.error('[/api/chat] MeTTa student-turn evaluation failed:', error);
-  }
 
   if (body.mode === 'compass' && !body.teacherContext) {
     return Response.json({ error: 'Compass mode requires teacherContext' }, { status: 400 });
@@ -473,11 +481,46 @@ export async function POST(req: NextRequest) {
       consecutive_wrong:  contextRow?.consecutive_wrong  ?? null,
     });
 
-    const decision = evaluateTutoringDecision(learningState, learningTrack);
+    if (!authenticatedUser) {
+      return Response.json({ error: 'Sign in to use Omega tutoring decisions' }, { status: 401 });
+    }
+    const omegaAuthorization = createOmegaProxyAuthorization(
+      authenticatedUser.id,
+      profile.role,
+    );
+    if (!omegaAuthorization.ok) {
+      return Response.json(
+        { error: omegaAuthorization.error },
+        { status: omegaAuthorization.status },
+      );
+    }
 
-    // Fire-and-forget Redis scaffolding level write for teacher visibility.
+    const hyperonDecision = await fetchHyperonTutoringDecision(
+      {
+        questions_answered: learningState.attempts,
+        correct_answers: learningState.correctAttempts,
+        mastery_percent: masteryPercent(
+          learningState.attempts,
+          learningState.correctAttempts,
+        ),
+        hints_used: learningState.hintsUsed,
+        consecutive_wrong: contextRow?.consecutive_wrong ?? 0,
+      },
+      omegaAuthorization.authorization,
+    );
+    if (hyperonDecision.status !== 200) {
+      return Response.json(hyperonDecision.body, { status: hyperonDecision.status });
+    }
+    const parsedDecision = omegaTutoringDecisionSchema.safeParse(hyperonDecision.body);
+    if (!parsedDecision.success) {
+      console.error('[/api/chat] Invalid Hyperon tutoring decision response:', parsedDecision.error);
+      return Response.json({ error: 'Invalid Omega tutoring decision' }, { status: 502 });
+    }
+    const decision = { ...parsedDecision.data, capturedAt: new Date().toISOString() };
+
+    // Fire-and-forget Redis decision snapshot write for teacher visibility.
     if (authenticatedUser) {
-      updateScaffoldingLevel(authenticatedUser.id, decision.scaffolding, body.language)
+      updateScaffoldingLevel(authenticatedUser.id, decision, body.language)
         .catch((err) => console.error('[/api/chat] Redis scaffolding write failed:', err));
     }
 
@@ -486,23 +529,7 @@ export async function POST(req: NextRequest) {
         ? (profile.language_preference as 'english' | 'kiswahili' | 'mixed')
         : body.language;
 
-    // ── Omega server enrichment (#3) ─────────────────────────────────────────
-    // Derives cultural examples + teacher alerts server-side using the same
-    // signals the Omega engine has. No extra I/O — pure function.
-    const currentMasteryPct = masteryPercent(
-      contextRow?.questions_answered ?? 0,
-      contextRow?.correct_answers    ?? 0,
-    );
-    const omegaEnrichment = buildOmegaEnrichment({
-      decision,
-      subject:         body.subject,
-      consecutiveWrong: contextRow?.consecutive_wrong ?? 0,
-      masteryPct:      currentMasteryPct,
-      competencyName:  contextRow?.competency_name ?? competency.competencyName,
-      studentName:     body.studentName || profile.full_name || undefined,
-    });
-
-    // Base prompt + cultural examples injected when Intensive.
+    // Base prompt uses the authoritative Hyperon decision.
     const basePrompt = buildDynamicSystemPrompt({
       decision,
       subject: body.subject,
@@ -511,17 +538,11 @@ export async function POST(req: NextRequest) {
       studentName: body.studentName || profile.full_name || undefined,
       learnerContext,
     });
-    systemPrompt = enrichSystemPrompt(basePrompt, omegaEnrichment, decision.scaffolding);
-
-    // Attach enrichment to request scope so the post-stream block can use it.
+    systemPrompt = basePrompt;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).__omegaEnrichment = omegaEnrichment;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).__omegaDecision   = decision;
+    (req as any).__omegaDecision = decision;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (req as any).__learningState   = learningState;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).__currentMasteryPct = currentMasteryPct;
   }
 
   // The pedagogy registry and the learner's stage posture are appended to every
@@ -531,7 +552,6 @@ export async function POST(req: NextRequest) {
   // limits, Montessori/Reggio's rejection of points) observable in a reply.
   systemPrompt += `\n\n${formatPedagogyConstraintBlock()}`;
   systemPrompt += `\n\n${formatPlanePostureLine(verifiedGrade)}`;
-  systemPrompt += `\nMeTTa student-turn boundary: ${mettaTurnStatus}. Omega policy decision remains authoritative.`;
 
   // ── Build message array ─────────────────────────────────────────────────────
   const trimmedHistory = body.history.slice(-MAX_HISTORY_TURNS * 2);
@@ -675,8 +695,6 @@ export async function POST(req: NextRequest) {
             const omegaDecision   = (req as any).__omegaDecision;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const learningState   = (req as any).__learningState;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const omegaEnrichment = (req as any).__omegaEnrichment;
 
             // Multi-signal answer classification (#1 + #2)
             const classification = classifyAnswerQuality(
@@ -757,24 +775,6 @@ export async function POST(req: NextRequest) {
                 });
             }
 
-            // ── Teacher alert: SSE metadata event before close (#3) ──────────
-            // Sent BEFORE controller.close() so the client receives it.
-            // Clients should handle { type: 'omega_teacher_alert' } separately
-            // from delta chunks and forward to the teacher dashboard.
-            if (omegaEnrichment?.teacherAlert) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    type:    'omega_teacher_alert',
-                    alert:   omegaEnrichment.teacherAlert,
-                    urgency: omegaEnrichment.alertUrgency,
-                    nextActivityType: omegaEnrichment.nextActivityType,
-                    competencyCode:   competency.competencyCode,
-                    learningTrack,
-                  })}\n\n`,
-                ),
-              );
-            }
           } catch (e) { console.error('[/api/chat] Failed to update learning progress:', e); }
         }
 

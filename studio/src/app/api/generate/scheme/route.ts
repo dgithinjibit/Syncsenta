@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildApiUrl } from '@/lib/api-config';
+import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import {
   detectBlockedOmegaClawContent,
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers = getAiAgentsServiceHeaders({ 'Content-Type': 'application/json' });
   headers['X-Forwarded-User'] = user.id;
 
   // teacher_id is derived from the session, never from the request body: the

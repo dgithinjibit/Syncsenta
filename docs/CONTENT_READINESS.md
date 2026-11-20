@@ -1,9 +1,5 @@
 # Student Content Readiness
 
-**Last updated:** 2026-09-21
-
-For the project-wide distinction between learner sandbox coverage, teacher curriculum packs, Blockchain Literacy, and AI/AGI/SI source modules, see the [curriculum status inventory](curriculum/README.md). This document remains specifically about student routes and interaction readiness.
-
 This document is the source of truth for what a student can currently do in SyncSenta. It distinguishes a complete learning path from a playable activity, a generated guided foundation, and a route that is not yet available.
 
 ## Route model
@@ -13,7 +9,7 @@ The student learning model has two intentional subject layouts:
 | Subject family | Entry route | Learning interaction |
 |---|---|---|
 | Core CBC subjects | `/student/sandbox/{grade}/{subject}` | Grade-specific activity overview followed by sandbox activities |
-| AI Literacy, Blockchain Literacy, Financial Literacy | `/student/subject/{slug}` | Omega-aware Socratic chat with track-specific prompts |
+| AI Literacy, Blockchain Literacy, Financial Literacy | `/student/subject/{slug}` | Chat-first subject page with track-specific prompts |
 
 `/student/learn_by_making` is the unified subject catalog. Selecting a core subject opens its grade-specific sandbox overview. Selecting an extended course opens its chat-first subject page.
 
@@ -23,7 +19,7 @@ The student learning model has two intentional subject layouts:
 |---|---|
 | **Canvas-ready** | The activity uses `InteractiveSandbox` with a supported manipulative such as tokens or fraction bars. |
 | **Worksheet-ready** | The activity is playable through `GenericActivity`, with questions, choices, hints, feedback, scoring, and completion persistence. |
-| **Chat-ready** | The subject has a working Socratic tutor route and Omega-aware scaffolding, but is not a canvas course. |
+| **Chat-ready** | The subject has a working Socratic tutor route, but is not a canvas course. |
 | **Guided fallback** | A short generated foundation activity exists while the full grade/subject catalogue is authored. It is playable but must not be described as a complete course. |
 | **Catalog-only** | A subject card or overview exists, but it does not yet have enough reviewed activities for a complete pathway. |
 

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { buildApiUrl } from '@/lib/api-config';
+import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import {
   detectBlockedOmegaClawContent,
@@ -112,9 +112,9 @@ export async function POST(req: NextRequest) {
   const authResult = await supabase.auth.getUser().catch(() => null);
   const user = authResult?.data?.user ?? null;
 
-  const headers: Record<string, string> = {
+  const headers = getAiAgentsServiceHeaders({
     'Content-Type': 'application/json',
-  };
+  });
   if (user?.id) headers['X-Forwarded-User'] = user.id;
 
   // GenerateLessonPlanRequest requires teacher_id, week and lesson. Callers

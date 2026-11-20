@@ -2,6 +2,7 @@
 name = "syncsenta-backend"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 
 [lib]
 name = "syncsenta_backend"
@@ -12,10 +13,9 @@ name = "syncsenta-backend"
 path = "src/main.rs"
 
 [features]
-default = []
-# Enable the real hyperon-backed MeTTa runtime. When disabled, `metta_core`
-# falls back to an in-process symbolic engine so the crate still compiles
-# without the native hyperon build toolchain.
+default = ["metta"]
+# The in-process fallback remains available only for explicit
+# `--no-default-features` builds without Hyperon's native toolchain.
 metta = ["dep:hyperon"]
 
 [dependencies]

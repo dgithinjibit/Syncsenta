@@ -13,6 +13,10 @@ services:
         sync: false
       - key: NEXT_PUBLIC_WS_URL
         sync: false
+      - key: SYNCSENTA_BACKEND_URL
+        sync: false
+      - key: SYNCSENTA_OMEGA_PROXY_JWT_SECRET
+        sync: false
 
   # Backend Service (Rust/Axum - backend/syncsenta-backend/)
   - type: web
@@ -21,15 +25,20 @@ services:
     rootDir: backend
     buildCommand: cargo build --release --package syncsenta-backend
     startCommand: ./target/release/syncsenta-backend
+    healthCheckPath: /healthz
     envVars:
       - key: DATABASE_URL
+        fromDatabase:
+          name: syncsenta-db
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+      - key: SYNCSENTA_OMEGA_PROXY_JWT_SECRET
         sync: false
       - key: REDIS_URL
         sync: false
       - key: RUST_LOG
         value: info
-      - key: PORT
-        value: 8080
 
   # AI Agents Service (Python/FastAPI - ai-agents/)
   - type: web

@@ -1,8 +1,7 @@
 /**
- * Stage 3, Phase 0 — the canonical evidence tree.
+ * Canonical evidence-tree contract.
  *
- * The design is `docs/research/ASI-DAPP-PATH.md` §"What is acceptable for the recommended slice": one
- * Ed25519-signed Merkle root per class-term, published so the platform cannot silently rewrite a cohort's
+ * The contract is one Ed25519-signed Merkle root per class-term, published so the platform cannot silently rewrite a cohort's
  * history. The root is only worth publishing if a third party can recompute it from a sanctioned export
  * without trusting any code of ours that has not been read carefully — which means the serialization is a
  * *contract*, not an implementation detail. So every rule below is asserted here rather than documented

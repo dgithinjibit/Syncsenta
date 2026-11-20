@@ -52,12 +52,39 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/curriculum-cache.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
     }
   ],
   "rewrites": [
     {
-      "source": "/api/agents/:path*",
-      "destination": "https://ascendra-1.onrender.com/agents/:path*"
+      "source": "/api/agents/assessment/:path*",
+      "destination": "https://ascendra-1.onrender.com/agents/assessment/:path*"
     },
     {
       "source": "/api/lesson-architect/:path*",

@@ -4,6 +4,20 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_ROOT"
+
+TRAINING_SETUP="$REPO_ROOT/ai-training/scripts/setup_amd_training.py"
+TRAINING_RUNNER="$REPO_ROOT/ai-training/scripts/train_cbc_model.py"
+if [[ ! -f "$TRAINING_SETUP" || ! -f "$TRAINING_RUNNER" ]]; then
+    echo "❌ Model training cannot start: the AMD setup/training scripts are not checked in."
+    echo "Dataset preparation is available with:"
+    echo "  python3 developer_tools/ai-agents/scripts/generate_training_dataset.py"
+    echo "  python3 developer_tools/ai-agents/scripts/prepare_for_training.py"
+    exit 2
+fi
+
 echo "🚀 SyncSenta CBC Model Training Pipeline"
 echo "========================================"
 

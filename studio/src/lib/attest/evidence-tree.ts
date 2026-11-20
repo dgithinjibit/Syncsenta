@@ -1,11 +1,11 @@
 /**
- * The canonical evidence tree — Stage 3, Phase 0 of `docs/research/ASI-DAPP-PATH.md`.
+ * Canonical serialization for an evidence tree.
  *
  * One class-term's learning evidence becomes one hash. That hash is signed with Ed25519 (`sign.ts`) and,
  * on the chain leg, published; the value of publishing it is that a county office holding a sanctioned CSV
  * export can recompute the same hash from data alone. So this file is a serialization contract wearing a
  * TypeScript coat, and every choice below is one a second implementation in another language has to be
- * able to copy without asking us a question:
+ * able to reproduce independently:
  *
  *   1. **Field set, not row shape.** `syncsenta-evidence-v1` commits to the fifteen columns that describe
  *      the learning claim. It deliberately excludes `created_at`, `event_id`, `reviewed_by` and
@@ -233,9 +233,8 @@ function emit(value: JsonValue): string {
 }
 
 /**
- * The exact string whose hash is the leaf. Exposed because the auditor CLI described in
- * `docs/research/ASI-DAPP-PATH.md` Phase 1 shows it to a human, and because a mirror implementation in
- * another language is only checkable against this if the string itself is reachable.
+ * The exact string whose hash is the leaf. It is exposed so a reviewer or a
+ * mirror implementation in another language can check the canonical bytes.
  */
 export function canonicalEvidenceRecord(record: EvidenceRecord): string {
   const picked: { [key: string]: JsonValue } = {};
@@ -352,8 +351,7 @@ export interface InclusionProof {
 
 /**
  * The path that shows one learner's evidence row is inside the anchored set, without showing anybody
- * else's row. `docs/research/ASI-DAPP-PATH.md` Phase 0 item 4 asks for exactly this at
- * `/api/verify/[anchorId]`: a party who already knows the learner id can prove inclusion and learns
+ * else's row. A party who already knows the learner id can prove inclusion and learns
  * nothing about the rest of the class.
  *
  * Plain JSON, on purpose — `leafIndex`, `steps` and the hex strings are all serializable as they stand, so

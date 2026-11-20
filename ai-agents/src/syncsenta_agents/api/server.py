@@ -1,4 +1,4 @@
-"""FastAPI HTTP wrapper exposing the Assessment Agent to the student frontend.
+"""FastAPI service routing student and teacher agent tasks through Omega.
 
 Run:
     PYTHONPATH=src venv/bin/uvicorn syncsenta_agents.api.server:app --port 8001 --reload
@@ -7,7 +7,7 @@ Endpoints:
     GET  /healthz
     POST /agents/assessment/quiz   -> Quiz JSON
     POST /agents/assessment/grade  -> GradedSubmission JSON
-    POST /agents/chat              -> orchestrator (Teacher_Agent) response
+    POST /agents/chat              -> Omega Queen response
     /lesson-architect/*            -> teacher generation (see LESSON_ARCHITECT_MOUNT_ERROR)
 
 This is the app Render runs (`render.yaml` -> startCommand). `api/scheme_server.py`
@@ -20,14 +20,15 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from secrets import compare_digest
 
 from ..agents.assessment import AssessmentAgent
 from ..core.exceptions import AgentError
-from ..core.models import AgentRequest, Quiz, QuizSubmission
-from ..orchestrator.main import SyncSentaOrchestrator
+from ..core.models import Quiz, QuizSubmission
 
 
 # ---------------------------------------------------------------------------
@@ -50,7 +51,7 @@ class GradeRequest(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """Student message routed through the Teacher_Agent orchestrator."""
+    """Message routed by Omega; role is a routing hint, not authorization."""
     message: str
     user_id: str = "anonymous"
     session_id: Optional[str] = None
@@ -58,21 +59,63 @@ class ChatRequest(BaseModel):
     subject: Optional[str] = None
     language: str = "english"
     role: str = "student"
+    type: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
 # App + agent (singleton)
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="SyncSenta Assessment Agent API", version="0.1.0")
+app = FastAPI(title="SyncSenta Omega Agent API", version="0.1.0")
+
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip()
+cors_origins = [origin.strip() for origin in FRONTEND_URL.split(",") if origin.strip()]
+cors_origins.extend(
+    origin
+    for origin in ("http://localhost:3000", "http://127.0.0.1:3000")
+    if origin not in cors_origins
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # dev only; tighten for prod
+    allow_origins=cors_origins,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
+
+
+def _configured_api_key() -> Optional[str]:
+    value = os.environ.get("SYNCSENTA_AI_AGENTS_API_KEY", "").strip()
+    return value or None
+
+
+def _has_valid_api_key(request: Request) -> bool:
+    configured = _configured_api_key()
+    if configured is None:
+        return False
+
+    authorization = request.headers.get("Authorization", "")
+    bearer_key = authorization.removeprefix("Bearer ").strip()
+    api_key = request.headers.get("X-API-Key", "").strip()
+    return compare_digest(bearer_key, configured) or compare_digest(api_key, configured)
+
+
+@app.middleware("http")
+async def require_service_api_key(request: Request, call_next):
+    if request.url.path in {"/healthz", "/docs", "/openapi.json"}:
+        return await call_next(request)
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    if _configured_api_key() is None:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "AI service authentication is not configured"},
+        )
+    if not _has_valid_api_key(request):
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    return await call_next(request)
 
 
 # ---------------------------------------------------------------------------
@@ -93,22 +136,20 @@ app.add_middleware(
 #
 # The import is guarded, not because a failure here is acceptable, but because
 # an unguarded one would take `/agents/chat` (the student tutor) down with it.
-# `lesson_architect_api` pulls in `db.supabase_client`, which imports the
-# `supabase` package at module scope; nothing else on this app's boot path does
-# (verified: only `db/supabase_client.py` and `api/training_export_api.py`
-# import it, and neither is reachable from `server.py` today). A broken wheel
-# would therefore crash the whole service instead of the teacher tool. The
-# guard converts that into a field on /healthz that says so — observable, not
-# swallowed. If `lesson_architect.mounted` is ever false in production, fix the
-# import; do not delete the guard.
+# `lesson_architect_api` imports the optional Supabase package at module scope.
+# Keep its failure isolated so learner chat remains available, and report it
+# through /healthz rather than hiding it.
 LESSON_ARCHITECT_MOUNT_ERROR: Optional[str] = None
 
 try:
-    from .lesson_architect_api import router as lesson_architect_router
+    from . import lesson_architect_api
 except Exception as exc:  # noqa: BLE001 — see the comment above
-    lesson_architect_router = None
+    lesson_architect_api = None
     LESSON_ARCHITECT_MOUNT_ERROR = f"{type(exc).__name__}: {exc}"
 
+lesson_architect_router = (
+    lesson_architect_api.router if lesson_architect_api is not None else None
+)
 if lesson_architect_router is not None:
     app.include_router(lesson_architect_router)
 
@@ -124,7 +165,6 @@ def _build_agent() -> AssessmentAgent:
 
 
 _agent: Optional[AssessmentAgent] = None
-_orchestrator: Optional[SyncSentaOrchestrator] = None
 
 
 def get_agent() -> AssessmentAgent:
@@ -132,32 +172,6 @@ def get_agent() -> AssessmentAgent:
     if _agent is None:
         _agent = _build_agent()
     return _agent
-
-
-async def get_orchestrator() -> SyncSentaOrchestrator:
-    """Return the multi-agent orchestrator (Teacher_Agent + 7 specialists).
-
-    Normally initialized on FastAPI startup; falls back to lazy init for tests
-    or direct ASGI mounting that skips the lifespan event.
-    """
-    global _orchestrator
-    if _orchestrator is None:
-        orch = SyncSentaOrchestrator()
-        await orch.initialize()
-        _orchestrator = orch
-    return _orchestrator
-
-
-@app.on_event("startup")
-async def _warm_orchestrator() -> None:
-    # Pay the LangGraph + agent-registry boot cost once at server start so
-    # the first /agents/chat request doesn't take the hit.
-    try:
-        await get_orchestrator()
-    except Exception:
-        # Don't block server startup on orchestrator init — get_orchestrator
-        # will retry lazily on first request and surface the error there.
-        pass
 
 
 # ---------------------------------------------------------------------------
@@ -196,44 +210,11 @@ async def generate_quiz(req: QuizRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@app.post("/agents/chat")
-async def agent_chat(req: ChatRequest) -> Dict[str, Any]:
-    """Route a student message through Teacher_Agent → specialist agent.
-
-    Returns the synthesized response plus which agents participated, so the
-    Rust backend can broadcast both the message and the agent activity over
-    WebSocket to the teacher dashboard.
-    """
-    try:
-        orch = await get_orchestrator()
-        agent_req = AgentRequest(
-            message=req.message,
-            user_id=req.user_id,
-            session_id=req.session_id,
-            grade=req.grade,
-            subject=req.subject,
-            role=req.role,
-            context={"language": req.language},
-        )
-        resp = await orch.process_request(agent_req)
-        return {
-            "success": resp.success,
-            "response": resp.response,
-            "primary_agent": resp.primary_agent,
-            "agents_used": resp.agents_used,
-            "response_time_ms": resp.response_time_ms,
-            "fallback_used": resp.fallback_used,
-            "error": resp.error,
-        }
-    except AgentError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-
 @app.post("/agents/assessment/grade")
 async def grade_submission(req: GradeRequest) -> Dict[str, Any]:
     try:
-        quiz = Quiz(**req.quiz)
-        submission = QuizSubmission(**req.submission)
+        quiz = Quiz.model_validate(req.quiz)
+        submission = QuizSubmission.model_validate(req.submission)
         graded = await get_agent().grade_submission(quiz, submission)
         return graded.model_dump(mode="json")
     except AgentError as exc:

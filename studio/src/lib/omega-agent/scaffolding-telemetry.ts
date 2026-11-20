@@ -32,8 +32,13 @@
  */
 
 import type { AnswerQuality } from './answer-quality';
-import type { TutoringDecision } from './metta-core';
 import { masteryPercent } from '@/lib/chat/subject-session';
+
+interface TutoringDecision {
+  scaffolding: 'Independent' | 'Guided' | 'Intensive';
+  nextAction: string;
+  hint: string;
+}
 
 export interface ScaffoldingEventPayload {
   userId: string;

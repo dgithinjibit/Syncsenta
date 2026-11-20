@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeToggleButton } from '@/components/ui/theme-toggle-button';
 import { AppInstallPrompt } from '@/components/app-install-prompt';
+import PWABootstrap from '@/components/pwa-bootstrap';
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     const [isMounted, setIsMounted] = useState(false);
@@ -24,6 +25,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
+          <PWABootstrap />
           {children}
           <Toaster />
           <ThemeToggleButton />

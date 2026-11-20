@@ -24,7 +24,12 @@ import {
   OMEGA_CLAW_HINT_COPY,
   type OmegaClawHint,
 } from '@/lib/omega-agent/omega-claw-rules';
-import { answerFeedback, hintFeedback } from '@/lib/omega-claw-copy';
+import {
+  answerFeedback,
+  hintFeedback,
+  offlineAnswerFeedback,
+  uncertainAnswerFeedback,
+} from '@/lib/omega-claw-copy';
 
 describe('hintFeedback', () => {
   it('says the server sentence rather than the rule symbol', () => {
@@ -45,12 +50,29 @@ describe('hintFeedback', () => {
     }
   });
 
-  it('does not invent a sentence when the response has no message', () => {
-    expect(hintFeedback({ hintLevel: 3, hint: 'representation' })).toBe(hintFeedback(null));
+  it('uses the requested local hint when the response has no message', () => {
+    expect(hintFeedback({ hintLevel: 3, hint: 'representation' }, 3)).toBe(
+      OMEGA_CLAW_HINT_COPY.representation,
+    );
   });
 
-  it('falls back once, and the fallback is the same string for every level', () => {
-    expect(hintFeedback(null)).toBe(hintFeedback({}));
+  it('uses the requested hint rung when the service is offline', () => {
+    expect(hintFeedback(null, 3)).toBe(OMEGA_CLAW_HINT_COPY.representation);
+    expect(hintFeedback(null, 4)).toBe(OMEGA_CLAW_HINT_COPY['worked-example']);
+    expect(hintFeedback(null, 99)).toBe(OMEGA_CLAW_HINT_COPY['worked-example']);
+    expect(hintFeedback(null, Number.NaN)).toBe(OMEGA_CLAW_HINT_COPY.notice);
+  });
+
+  it('marks locally checked answers as practice, not saved progress', () => {
+    const feedback = offlineAnswerFeedback(true);
+    expect(feedback).toContain('Offline practice only');
+    expect(feedback).toContain('not saved');
+    expect(feedback).toContain(OMEGA_CLAW_ACTION_COPY['celebrate-transfer']);
+    expect(offlineAnswerFeedback(false)).toContain(OMEGA_CLAW_ACTION_COPY['scaffold-retry']);
+  });
+
+  it('does not claim whether a timed-out answer was saved', () => {
+    expect(uncertainAnswerFeedback()).toContain("couldn't confirm whether it was saved");
   });
 });
 
@@ -118,5 +140,29 @@ describe('the component keeps no learner copy of its own', () => {
     const source = readFileSync(file, 'utf8');
     expect(source).not.toMatch(/nextAction\s*===\s*'/);
     expect(source).not.toMatch(/typeof result\?\.hint === 'string'/);
+  });
+
+  it('does not ask for progression when an answer could not be saved', () => {
+    const source = readFileSync(file, 'utf8');
+    const answerHandler = source.slice(
+      source.indexOf('const handleAnswer'),
+      source.indexOf('const handleContinue'),
+    );
+    expect(answerHandler.indexOf('uncertainAnswerFeedback()')).toBeGreaterThan(-1);
+    expect(answerHandler.indexOf('uncertainAnswerFeedback()')).toBeLessThan(
+      answerHandler.indexOf("postOmegaClaw('progression'"),
+    );
+  });
+
+  it('keeps offline answers provisional and does not send them as saved attempts', () => {
+    const source = readFileSync(file, 'utf8');
+    const answerHandler = source.slice(
+      source.indexOf('const handleAnswer'),
+      source.indexOf('const handleContinue'),
+    );
+    expect(answerHandler).toContain('if (!navigator.onLine)');
+    expect(answerHandler.indexOf('offlineAnswerFeedback(correct)')).toBeLessThan(
+      answerHandler.indexOf("'challenge',"),
+    );
   });
 });

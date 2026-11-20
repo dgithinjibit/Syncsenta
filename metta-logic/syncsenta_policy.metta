@@ -45,7 +45,24 @@
                (Review offline-assessment)
                Approved))))
 
-; Explicit expert intent mapping for a future MeTTa-native dispatcher.
+; Omega Queen role/task routes. Unsupported role/task pairs have no route.
+(= (omega-agent-route student tutoring) socratic-tutor)
+(= (omega-agent-route student curriculum) cbc-curriculum)
+(= (omega-agent-route student assessment) assessment)
+(= (omega-agent-route student career-pathways) career-pathways)
+(= (omega-agent-route teacher teacher-support) teacher-support)
+(= (omega-agent-route teacher curriculum) cbc-curriculum)
+(= (omega-agent-route teacher scheme) lesson-architect)
+(= (omega-agent-route teacher lesson-plan) lesson-architect)
+(= (omega-agent-route teacher worksheet) lesson-architect)
+(= (omega-agent-route teacher text-leveler) lesson-architect)
+(= (omega-agent-route teacher unpack-outcome) lesson-architect)
+(= (omega-agent-route teacher differentiation) lesson-architect)
+(= (omega-agent-route teacher exam) lesson-architect)
+(= (omega-agent-route teacher assessment) assessment)
+(= (omega-agent-route institution-head school-intelligence) school-intelligence)
+
+; Explicit expert intent mapping for the MeTTa-native dispatcher.
 (= (intent-expert socratic-tutor) socratic-tutor)
 (= (intent-expert curriculum) curriculum)
 (= (intent-expert lesson-plan) lesson-architect)

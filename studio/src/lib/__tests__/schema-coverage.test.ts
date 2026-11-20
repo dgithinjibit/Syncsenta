@@ -44,7 +44,7 @@ const BASELINE = join(LIVE_DIR, '20260928000000_live_baseline.sql');
 
 /**
  * Migrations applied to `tumikgwhrbvirpjswlzh` after the capture, in apply order. Each one is
- * dated and evidenced in `docs/ROADMAP.md` §3 and §5, and the gamification file carries its
+ * documented in the explicit baseline and migration list in this test, and the gamification file carries its
  * own V1–V7 read-back.
  */
 const APPLIED_LIVE_MIGRATIONS = [
@@ -108,7 +108,7 @@ const CODE_QUERIES_A_TABLE_THAT_DOES_NOT_EXIST = [
  */
 const REPO_TABLES_NOT_IN_PRODUCTION = 73;
 
-/** Read from `information_schema` on 2026-09-29; see docs/ROADMAP.md §1. */
+/** Read from `information_schema` on 2026-09-29; retained here as baseline provenance. */
 const LIVE_PUBLIC_TABLE_COUNT = 35;
 
 const DANGLING_SQL_SYMLINKS: string[] = [];

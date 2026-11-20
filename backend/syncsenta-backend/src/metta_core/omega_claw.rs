@@ -4,6 +4,24 @@ use super::interpreter::MettaSpace;
 
 const RULES: &str = include_str!("../../data/omega_claw_rules.metta");
 
+#[derive(Debug, thiserror::Error)]
+pub enum TutoringDecisionError {
+    #[error("{0}")]
+    InvalidInput(&'static str),
+    #[error("MeTTa tutoring policy failed: {0}")]
+    Runtime(#[from] anyhow::Error),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TutoringDecision {
+    pub scaffolding: String,
+    pub next_action: String,
+    pub hint: String,
+    pub ruleset_version: String,
+    pub evidence: Vec<String>,
+    pub decided_at: String,
+}
+
 /// Typed façade over the symbolic Omega Claw student-learning rules.
 ///
 /// The rule pack owns learning scope and progression decisions; the UI remains
@@ -11,7 +29,6 @@ const RULES: &str = include_str!("../../data/omega_claw_rules.metta");
 /// for authentication, persistence, and teacher approval.
 pub struct OmegaClawRules {
     space: MettaSpace,
-    /// The pack is asserted once, no matter how many times `load` is called.
     loaded: tokio::sync::OnceCell<Result<(), String>>,
 }
 
@@ -49,7 +66,13 @@ impl OmegaClawRules {
     pub async fn load(&self) -> Result<()> {
         let outcome = self
             .loaded
-            .get_or_init(|| async { self.space.run(RULES).await.map(|_| ()).map_err(|e| e.to_string()) })
+            .get_or_init(|| async {
+                self.space
+                    .run(RULES)
+                    .await
+                    .map(|_| ())
+                    .map_err(|e| e.to_string())
+            })
             .await;
         match outcome {
             Ok(()) => Ok(()),
@@ -177,6 +200,80 @@ impl OmegaClawRules {
             .iter()
             .any(|atom| atom_symbol(atom.as_str()) == "yes"))
     }
+
+    pub async fn tutoring_decision(
+        &self,
+        questions: u32,
+        correct: u32,
+        mastery: f64,
+        hints: u32,
+        consecutive_wrong: u32,
+    ) -> std::result::Result<TutoringDecision, TutoringDecisionError> {
+        if correct > questions {
+            return Err(TutoringDecisionError::InvalidInput(
+                "correct answer count cannot exceed questions answered",
+            ));
+        }
+        if !mastery.is_finite() || !(0.0..=100.0).contains(&mastery) {
+            return Err(TutoringDecisionError::InvalidInput(
+                "mastery percent must be between 0 and 100",
+            ));
+        }
+
+        let level = first_symbol(
+            self.space
+                .query(&format!(
+                    "(omega-tutoring-level {questions} {correct} {mastery} {hints} {consecutive_wrong})"
+                ))
+                .await?,
+        )?;
+        if !matches!(level.as_str(), "intensive" | "guided" | "independent") {
+            return Err(anyhow!("unknown Omega tutoring level: {level}").into());
+        }
+
+        let scaffold = first_symbol(
+            self.space
+                .query(&format!("(omega-tutoring-scaffolding {level})"))
+                .await?,
+        )?;
+        let next_action_key = first_symbol(
+            self.space
+                .query(&format!("(omega-tutoring-next-action-for {level})"))
+                .await?,
+        )?;
+        let next_action = first_symbol(
+            self.space
+                .query(&format!("(omega-tutoring-next-action {next_action_key})"))
+                .await?,
+        )?;
+        let hint = first_symbol(
+            self.space
+                .query(&format!("(omega-tutoring-hint-for {level})"))
+                .await?,
+        )?;
+        let ruleset_version = first_symbol(
+            self.space
+                .query("(omega-tutoring-ruleset-version)")
+                .await?,
+        )?;
+        let evidence = first_symbol(
+            self.space
+                .query(&format!(
+                    "(omega-tutoring-evidence {questions} {correct} {mastery} {hints} {consecutive_wrong})"
+                ))
+                .await?,
+        )?;
+
+        Ok(TutoringDecision {
+            scaffolding: scaffold,
+            next_action,
+            hint,
+            ruleset_version,
+            evidence: vec![evidence],
+            decided_at: chrono::Utc::now()
+                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        })
+    }
 }
 
 fn first_symbol(atoms: Vec<super::interpreter::AtomString>) -> Result<String> {
@@ -227,6 +324,146 @@ fn canonical_token(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "metta")]
+    #[tokio::test]
+    async fn tutoring_decisions_require_a_metta_policy_result() {
+        let interpreter = super::super::interpreter::MettaInterpreter::new().unwrap();
+        let space = interpreter.global_space().clone();
+        space
+            .run(
+                "(= (omega-tutoring-scaffolding guided) Guided)\n\
+                 (= (omega-tutoring-next-action guiding) ask-guiding-question)",
+            )
+            .await
+            .unwrap();
+        let rules = OmegaClawRules::with_space(space);
+
+        assert!(
+            rules.tutoring_decision(4, 2, 50.0, 1, 0).await.is_err(),
+            "Rust must not invent a tutoring decision when the MeTTa policy is absent"
+        );
+    }
+
+    #[cfg(feature = "metta")]
+    #[tokio::test]
+    async fn tutoring_decisions_come_from_metta_for_intensive_guided_and_independent_cases() {
+        let rules = OmegaClawRules::new().await.unwrap();
+
+        let intensive = rules.tutoring_decision(4, 1, 50.0, 0, 0).await.unwrap();
+        assert_eq!(intensive.scaffolding, "Intensive");
+        assert_eq!(intensive.next_action, "show-conceptual-example");
+        assert_eq!(intensive.hint, "notice");
+        assert_eq!(intensive.ruleset_version, "omega-tutoring-v1");
+        assert_eq!(intensive.evidence, vec!["low-accuracy".to_string()]);
+        assert!(chrono::DateTime::parse_from_rfc3339(&intensive.decided_at).is_ok());
+
+        let guided = rules.tutoring_decision(4, 2, 50.0, 1, 0).await.unwrap();
+        assert_eq!(guided.scaffolding, "Guided");
+        assert_eq!(guided.next_action, "ask-guiding-question");
+        assert_eq!(guided.hint, "isolate-step");
+        assert_eq!(
+            guided.evidence,
+            vec!["below-mastery-target".to_string()]
+        );
+
+        let independent = rules.tutoring_decision(10, 10, 90.0, 0, 0).await.unwrap();
+        assert_eq!(independent.scaffolding, "Independent");
+        assert_eq!(independent.next_action, "present-next-challenge");
+        assert_eq!(independent.hint, "worked-example");
+        assert_eq!(
+            independent.evidence,
+            vec!["independent-progress".to_string()]
+        );
+    }
+
+    #[cfg(feature = "metta")]
+    #[tokio::test]
+    async fn tutoring_evidence_tracks_the_rule_that_selected_each_level() {
+        let rules = OmegaClawRules::new().await.unwrap();
+        let cases = [
+            ((10, 8, 90.0, 0, 3), "Intensive", "consecutive-wrong"),
+            ((10, 8, 90.0, 8, 0), "Intensive", "high-hint-use"),
+            ((10, 8, 30.0, 0, 2), "Intensive", "low-mastery-repeated-errors"),
+            ((10, 2, 90.0, 0, 0), "Intensive", "low-accuracy"),
+            ((10, 8, 79.0, 0, 0), "Guided", "below-mastery-target"),
+            ((10, 6, 90.0, 0, 0), "Guided", "below-guided-accuracy"),
+            ((10, 8, 90.0, 3, 0), "Guided", "hint-dependence"),
+            ((10, 8, 90.0, 0, 1), "Guided", "repeated-error"),
+            ((10, 10, 90.0, 0, 0), "Independent", "independent-progress"),
+        ];
+
+        for ((questions, correct, mastery, hints, wrong), level, evidence) in cases {
+            let decision = rules
+                .tutoring_decision(questions, correct, mastery, hints, wrong)
+                .await
+                .unwrap();
+            assert_eq!(decision.scaffolding, level);
+            assert_eq!(decision.evidence, vec![evidence.to_string()]);
+        }
+    }
+
+    #[cfg(feature = "metta")]
+    #[tokio::test]
+    async fn tutoring_threshold_boundaries_are_evaluated_by_metta() {
+        let rules = OmegaClawRules::new().await.unwrap();
+
+        assert_eq!(
+            rules.tutoring_decision(0, 0, 80.0, 0, 0).await.unwrap().scaffolding,
+            "Intensive"
+        );
+        assert_eq!(
+            rules.tutoring_decision(10, 7, 80.0, 0, 0).await.unwrap().scaffolding,
+            "Independent"
+        );
+        assert_eq!(
+            rules.tutoring_decision(10, 3, 80.0, 0, 0).await.unwrap().scaffolding,
+            "Guided"
+        );
+        assert_eq!(
+            rules.tutoring_decision(10, 6, 80.0, 0, 0).await.unwrap().scaffolding,
+            "Guided"
+        );
+        assert_eq!(
+            rules.tutoring_decision(10, 7, 30.0, 0, 2).await.unwrap().scaffolding,
+            "Intensive"
+        );
+        assert_eq!(
+            rules.tutoring_decision(10, 7, 80.0, 8, 0).await.unwrap().scaffolding,
+            "Intensive"
+        );
+        assert_eq!(
+            rules.tutoring_decision(10, 7, 80.0, 3, 0).await.unwrap().scaffolding,
+            "Guided"
+        );
+        assert_eq!(
+            rules.tutoring_decision(10, 7, 80.0, 0, 3).await.unwrap().scaffolding,
+            "Intensive"
+        );
+        assert_eq!(
+            rules.tutoring_decision(10, 7, 40.0, 0, 2).await.unwrap().scaffolding,
+            "Guided"
+        );
+    }
+
+    #[cfg(feature = "metta")]
+    #[tokio::test]
+    async fn tutoring_decisions_reject_inconsistent_or_out_of_range_inputs() {
+        let rules = OmegaClawRules::new().await.unwrap();
+
+        assert!(matches!(
+            rules.tutoring_decision(2, 3, 50.0, 0, 0).await,
+            Err(TutoringDecisionError::InvalidInput(_))
+        ));
+        assert!(matches!(
+            rules.tutoring_decision(2, 1, 100.1, 0, 0).await,
+            Err(TutoringDecisionError::InvalidInput(_))
+        ));
+        assert!(matches!(
+            rules.tutoring_decision(2, 1, f64::NAN, 0, 0).await,
+            Err(TutoringDecisionError::InvalidInput(_))
+        ));
+    }
 
     #[tokio::test]
     async fn grade_six_is_introductory_and_lower_grades_are_blocked() {
@@ -347,13 +584,13 @@ mod tests {
     #[tokio::test]
     async fn loading_repeatedly_asserts_the_pack_once() {
         let rules = OmegaClawRules::new().await.unwrap();
-        let before = rules.space.atom_count().await;
+        let before = rules.space.atom_count().await.unwrap();
 
         for _ in 0..20 {
             rules.load().await.unwrap();
         }
 
-        assert_eq!(rules.space.atom_count().await, before);
+        assert_eq!(rules.space.atom_count().await.unwrap(), before);
         assert_eq!(rules.activities_for("Grade 6").await.unwrap().len(), 3);
     }
 
@@ -391,7 +628,7 @@ mod tests {
     #[tokio::test]
     async fn answering_a_learner_never_grows_the_space() {
         let rules = OmegaClawRules::new().await.unwrap();
-        let before = rules.space.atom_count().await;
+        let before = rules.space.atom_count().await.unwrap();
 
         for _ in 0..50 {
             rules.scope_for("Grade 6").await.unwrap();
@@ -403,6 +640,6 @@ mod tests {
             rules.can_unlock_transfer(true, true).await.unwrap();
         }
 
-        assert_eq!(rules.space.atom_count().await, before);
+        assert_eq!(rules.space.atom_count().await.unwrap(), before);
     }
 }

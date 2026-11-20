@@ -42,6 +42,76 @@
 (= (omega-claw-can-unlock-transfer true true) yes)
 (= (omega-claw-can-unlock-transfer $correct $explained) no)
 
+;; Student tutoring policy.
+;; Accuracy comparisons use cross multiplication to avoid division and keep
+;; the threshold boundaries explicit.
+(= (omega-tutoring-ruleset-version) omega-tutoring-v1)
+
+(= (omega-tutoring-accuracy-below-intensive $questions $correct)
+   (if (== $questions 0)
+       True
+       (< (* $correct 10) (* $questions 3))))
+
+(= (omega-tutoring-accuracy-below-guided $questions $correct)
+   (< (* $correct 10) (* $questions 7)))
+
+(= (omega-tutoring-intensive $questions $correct $mastery $hints $wrong)
+   (if (>= $wrong 3)
+       True
+       (if (>= $hints 8)
+           True
+           (if (and (< $mastery 40) (>= $wrong 2))
+               True
+               (omega-tutoring-accuracy-below-intensive $questions $correct)))))
+
+(= (omega-tutoring-guided $questions $correct $mastery $hints $wrong)
+   (if (< $mastery 80)
+       True
+       (if (omega-tutoring-accuracy-below-guided $questions $correct)
+           True
+           (if (>= $hints 3)
+               True
+               (>= $wrong 1)))))
+
+(= (omega-tutoring-level $questions $correct $mastery $hints $wrong)
+   (if (omega-tutoring-intensive $questions $correct $mastery $hints $wrong)
+       intensive
+       (if (omega-tutoring-guided $questions $correct $mastery $hints $wrong)
+           guided
+           independent)))
+
+(= (omega-tutoring-evidence $questions $correct $mastery $hints $wrong)
+   (if (>= $wrong 3)
+       consecutive-wrong
+       (if (>= $hints 8)
+           high-hint-use
+           (if (and (< $mastery 40) (>= $wrong 2))
+               low-mastery-repeated-errors
+               (if (omega-tutoring-accuracy-below-intensive $questions $correct)
+                   low-accuracy
+                   (if (< $mastery 80)
+                       below-mastery-target
+                       (if (omega-tutoring-accuracy-below-guided $questions $correct)
+                           below-guided-accuracy
+                           (if (>= $hints 3)
+                               hint-dependence
+                               (if (>= $wrong 1)
+                                   repeated-error
+                                   independent-progress)))))))))
+
+(= (omega-tutoring-scaffolding intensive) Intensive)
+(= (omega-tutoring-scaffolding guided) Guided)
+(= (omega-tutoring-scaffolding independent) Independent)
+(= (omega-tutoring-next-action-for intensive) conceptual)
+(= (omega-tutoring-next-action-for guided) guiding)
+(= (omega-tutoring-next-action-for independent) challenge)
+(= (omega-tutoring-next-action conceptual) show-conceptual-example)
+(= (omega-tutoring-next-action guiding) ask-guiding-question)
+(= (omega-tutoring-next-action challenge) present-next-challenge)
+(= (omega-tutoring-hint-for intensive) notice)
+(= (omega-tutoring-hint-for guided) isolate-step)
+(= (omega-tutoring-hint-for independent) worked-example)
+
 ;; Safety boundaries for student work.
 (omega-claw-blocked-topic crypto-trading)
 (omega-claw-blocked-topic investment-advice)

@@ -98,6 +98,21 @@ export function buildApiUrl(endpoint: string): string {
   return `${baseUrl}${endpoint}`;
 }
 
+export function getAiAgentsServiceHeaders(
+  additionalHeaders: Record<string, string> = {},
+): Record<string, string> {
+  const apiKey = process.env.SYNCSENTA_AI_AGENTS_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error(
+      'SYNCSENTA_AI_AGENTS_API_KEY is not configured for the Studio server.',
+    );
+  }
+  return {
+    ...additionalHeaders,
+    Authorization: `Bearer ${apiKey}`,
+  };
+}
+
 /**
  * Build WebSocket URL
  * Throws error if backend is not configured (at call time, not module load time)

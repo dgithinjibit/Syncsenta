@@ -6,7 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { answerFeedback, hintFeedback } from '@/lib/omega-claw-copy';
+import {
+  answerFeedback,
+  hintFeedback,
+  offlineAnswerFeedback,
+  uncertainAnswerFeedback,
+} from '@/lib/omega-claw-copy';
 import { showsOmegaClawPath } from '@/lib/omega-claw-path';
 import { OMEGA_CLAW_CHALLENGE_NODES } from '@/lib/omega-agent/omega-claw-challenge';
 
@@ -14,17 +19,30 @@ interface InteractiveChallengePathProps {
   grade: string;
 }
 
-async function postOmegaClaw(path: string, payload: unknown): Promise<Record<string, unknown> | null> {
+const OMEGA_REQUEST_TIMEOUT_MS = 8_000;
+
+async function postOmegaClaw(
+  path: string,
+  payload: unknown,
+  timeoutMs: number | null = OMEGA_REQUEST_TIMEOUT_MS,
+): Promise<Record<string, unknown> | null> {
+  const controller = new AbortController();
+  const timeout = timeoutMs === null
+    ? undefined
+    : setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`/api/omega-claw/${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
     if (!response.ok) return null;
     return await response.json();
   } catch {
     return null;
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 
@@ -58,6 +76,8 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
   const [feedback, setFeedback] = useState<string | null>(null);
   const [hintLevel, setHintLevel] = useState(1);
   const [isChecking, setIsChecking] = useState(false);
+  const [offlinePractice, setOfflinePractice] = useState(false);
+  const [offlinePracticed, setOfflinePracticed] = useState<string[]>([]);
 
   // A second mount reads back what the first one wrote. Without this the path is React state, which
   // is nothing at all to a learner who closed the tab.
@@ -83,23 +103,47 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
 
   const handleHint = async () => {
     setIsChecking(true);
-    const result = await postOmegaClaw('hint', { hint_level: hintLevel });
-    setFeedback(hintFeedback(result));
+    const result = navigator.onLine
+      ? await postOmegaClaw('hint', { hint_level: hintLevel })
+      : null;
+    setFeedback(hintFeedback(result, hintLevel));
     setHintLevel((level) => Math.min(level + 1, 4));
     setIsChecking(false);
   };
 
   const handleAnswer = async (option: string) => {
+    if (!navigator.onLine) {
+      const correct = option.trim() === activeNode.answer.trim();
+      setSelected(option);
+      setOfflinePractice(true);
+      if (correct) {
+        setOfflinePracticed((nodes) => [...new Set([...nodes, activeNode.id])]);
+      }
+      setFeedback(offlineAnswerFeedback(correct));
+      return;
+    }
+
     setSelected(option);
     setIsChecking(true);
 
-    // The server grades this answer. The card could grade it — it has always known which option is
-    // right — but the record that grades it is the one that feeds `learning_progress` and, on a
-    // mastery transition, the points ledger, so that judgement cannot come from the browser.
-    const saved = await postOmegaClaw('challenge', { nodeId: activeNode.id, answer: option });
-    const correct = saved?.correct === true;
+    const saved = await postOmegaClaw(
+      'challenge',
+      { nodeId: activeNode.id, answer: option },
+      null,
+    );
+    if (typeof saved?.correct !== 'boolean') {
+      setSelected(null);
+      setFeedback(uncertainAnswerFeedback());
+      setIsChecking(false);
+      return;
+    }
+
+    const correct = saved.correct;
     const earned = stringArray(saved?.completed);
     if (saved) setCompleted(earned);
+    if (correct) {
+      setOfflinePracticed((nodes) => nodes.filter((node) => node !== activeNode.id));
+    }
 
     const result = await postOmegaClaw('progression', {
       outcome: correct ? 'correct' : 'incorrect',
@@ -114,7 +158,9 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
   const handleContinue = () => {
     const nextNode = OMEGA_CLAW_CHALLENGE_NODES[activeIndex + 1];
     if (!nextNode) {
-      setFeedback('Challenge path complete. Try the ideas in a new local example.');
+      setFeedback(offlinePractice
+        ? 'Offline practice complete. Only answers confirmed while connected were saved.'
+        : 'Challenge path complete. Try the ideas in a new local example.');
       return;
     }
     setActiveId(nextNode.id);
@@ -154,7 +200,11 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
         <div className="grid gap-2 md:grid-cols-3" aria-label="Challenge path">
           {OMEGA_CLAW_CHALLENGE_NODES.map((node, index) => {
             const isComplete = completed.includes(node.id);
-            const isLocked = index > 0 && !completed.includes(OMEGA_CLAW_CHALLENGE_NODES[index - 1].id);
+            const isOfflinePracticed = offlinePracticed.includes(node.id);
+            const previousNodeId = OMEGA_CLAW_CHALLENGE_NODES[index - 1]?.id;
+            const isLocked = previousNodeId !== undefined
+              && !completed.includes(previousNodeId)
+              && !offlinePracticed.includes(previousNodeId);
             const isActive = node.id === activeNode.id;
             return (
               <button
@@ -167,11 +217,12 @@ export function InteractiveChallengePath({ grade }: InteractiveChallengePathProp
                 } ${isLocked ? 'cursor-not-allowed opacity-60' : ''}`}
               >
                 <div className="flex items-center gap-2">
-                  {isComplete ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : isLocked ? <LockKeyhole className="h-4 w-4" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                  {isComplete ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : isLocked ? <LockKeyhole className="h-4 w-4" /> : <Circle className={`h-4 w-4 ${isOfflinePracticed ? 'text-amber-600' : 'text-muted-foreground'}`} />}
                   <span className="text-xs font-medium">Node {index + 1}</span>
                 </div>
                 <p className="mt-2 text-sm font-semibold">{node.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{node.concept}</p>
+                {isOfflinePracticed && <p className="mt-1 text-xs text-amber-700">Practiced offline; not saved</p>}
               </button>
             );
           })}

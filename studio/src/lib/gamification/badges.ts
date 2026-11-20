@@ -3,9 +3,8 @@ import type { GamificationBadge } from '@/components/student/gamification-panel'
 /**
  * Catalog of culturally-relevant badges for SentaStudio students.
  *
- * Designed per docs/gamification/UI_MOCKUP_RECOMMENDATIONS.md §3 — badges tie
- * to Kenyan heroes, CBC core competencies, and Ubuntu values rather than
- * generic "First Steps" / "Speed Demon" tropes.
+ * Badge labels are tied to Kenyan context and CBC competencies rather than
+ * generic achievement labels.
  *
  * `earned` and `earnedAt` are placeholders; downstream code (or the demo
  * dashboard) decides which are unlocked for the current student.

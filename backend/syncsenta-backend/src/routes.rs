@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use std::sync::Arc;
 
 use crate::config::AppConfig;
-use crate::middleware::auth::require_auth;
+use crate::middleware::auth::{require_auth, require_omega_proxy_auth};
 use crate::metta_core::{MettaInterpreter, OmegaClawRules};
 
 pub fn all_routes(db: PgPool, cfg: AppConfig) -> Router {
@@ -24,7 +24,6 @@ pub fn all_routes(db: PgPool, cfg: AppConfig) -> Router {
     let protected = Router::new()
         .nest("/assessments", crate::handlers::assessments::router(db.clone(), cfg.clone()))
         .nest("/mwalimu", crate::handlers::mwalimu::router(db.clone(), cfg.clone()))
-        .nest("/omega-claw", crate::handlers::omega_claw::router(omega_rules))
         // COMMENTED OUT: Non-student routes for later implementation
         // .nest("/approvals", crate::handlers::approvals::router(db.clone(), cfg.clone()))
         // .nest("/blockchain", crate::handlers::blockchain::router(db.clone(), cfg.clone()))
@@ -41,9 +40,16 @@ pub fn all_routes(db: PgPool, cfg: AppConfig) -> Router {
             cfg.jwt_secret.clone(),
             require_auth,
         ));
+    let omega = Router::new()
+        .nest("/omega-claw", crate::handlers::omega_claw::router(omega_rules))
+        .layer(middleware::from_fn_with_state(
+            cfg.omega_proxy_jwt_secret.clone(),
+            require_omega_proxy_auth,
+        ));
 
     Router::new()
         .merge(mvp)
         .merge(public)
         .merge(protected)
+        .merge(omega)
 }
