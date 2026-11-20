@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 import {
   detectBlockedOmegaClawContent,
   omegaClawGenerationHaystack,
@@ -9,8 +9,6 @@ import {
 
 export const runtime = 'nodejs';
 export const maxDuration = 10;
-
-const AUTH_LOOKUP_TIMEOUT_MS = 1_500;
 
 type AssessmentRequest = {
   message?: string;
@@ -49,6 +47,27 @@ export async function POST(req: NextRequest) {
   );
   if (blocked) return Response.json(omegaClawTeacherRefusal(blocked), { status: 400 });
 
+  const supabase = await createSupabaseRouteHandlerClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Sign in as a teacher to generate an assessment.' }, {
+      status: 401,
+    });
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profileError) {
+    console.error('Unable to verify assessment-generation role:', profileError);
+    return NextResponse.json({ error: 'Unable to verify teacher access.' }, { status: 500 });
+  }
+  if (profile?.role !== 'teacher') {
+    return NextResponse.json({ error: 'Teacher access required.' }, { status: 403 });
+  }
+
   let target: string;
   try {
     target = buildApiUrl('/agents/chat');
@@ -56,20 +75,20 @@ export async function POST(req: NextRequest) {
     return prescribedAssessment(body, 'AI service is not configured for this deployment.');
   }
 
-  const supabase = getSupabaseServerClient();
-  const authResult = await Promise.race([
-    supabase.auth.getUser().catch(() => null),
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), AUTH_LOOKUP_TIMEOUT_MS)),
-  ]);
-  const user = authResult?.data?.user ?? null;
-  const headers = getAiAgentsServiceHeaders({ 'Content-Type': 'application/json' });
-  if (user?.id) headers['X-Forwarded-User'] = user.id;
+  const headers = getAiAgentsServiceHeaders({
+    'Content-Type': 'application/json',
+    'X-Forwarded-User': user.id,
+  });
 
   try {
     const res = await fetch(target, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        user_id: user.id,
+        role: 'teacher',
+      }),
       signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return prescribedAssessment(body, 'AI service returned an unavailable response.');

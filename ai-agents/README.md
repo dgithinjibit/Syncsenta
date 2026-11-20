@@ -38,13 +38,11 @@ service's `/agents/chat`: it requests a structured tutoring decision from the
 Rust API and streams the generated response through Studio's provider path.
 Separately, the teacher assessment generator calls Studio's
 `/api/generate/assessment`, which proxies to this service's `/agents/chat`.
-That FastAPI route is missing, so the proxy maps its 404 to an explicitly
-labelled prescribed-template response. The UI sends a placeholder `user_id`
-and client-supplied `role`; the proxy's `getSupabaseServerClient()` uses the
-service-role client rather than reading the request session. The handler has
-no request-level authentication or role check, and the workspace middleware
-does not protect `/api/generate/assessment`. Do not treat those payload fields
-or `X-Forwarded-User` as verified identity.
+That FastAPI route is missing, so the proxy currently maps its 404 to an
+explicitly labelled prescribed-template response. The Studio handler now
+checks the request-bound session and teacher profile, and replaces the
+client-supplied `user_id` and `role` before proxying. The forwarded user header
+is derived from that session; it is not itself an authentication credential.
 
 The Rust API has no free-form chat endpoint; its tutoring endpoints require a
 short-lived Studio-signed student assertion. The existing AI Agents proxy does
