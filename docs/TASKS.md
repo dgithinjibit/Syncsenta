@@ -35,6 +35,7 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 
 ## Active tasks
 
+- [ ] Rebuild the Codespace with the lean Ubuntu devcontainer image and record the container build result.
 - [ ] Run the focused Studio regression tests for head navigation, student transport, role routing, grade normalization, CSP, and safe scheme printing when Node.js and the project dependencies are available. Record the exact command and result.
 - [ ] Browser-verify student, teacher, and head workspace access on the deployed build using authorized test accounts. Record deployment and browser evidence separately.
 - [ ] Agree on the durable storage contract for generated schemes before implementing the wizard's **Save to Library** action. Do not select Firebase, Supabase, or another store by assumption.

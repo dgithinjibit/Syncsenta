@@ -5,6 +5,15 @@
 `docs/TASKS.md` is the single active task register. The historical roadmap below records work through
 2026-10-03; its dated measurements are not evidence of the current deployment or current test baseline.
 
+The architecture guide was reconciled on 2026-11-20 with a maintained code-level handover, canonical
+file and route inventory, naming conventions, and an agent scout checklist. It is source guidance, not
+deployment evidence.
+
+The Codespace creation log on 2026-11-20 reported `no space left on device` while Docker registered the
+large `mcr.microsoft.com/devcontainers/universal:2` image and `torch` files. The devcontainer now uses the
+leaner Ubuntu base and setup skips Ollama model downloads when less than 10 GB remains. Rebuild verification
+is pending in [docs/TASKS.md](TASKS.md); no container build result is claimed here.
+
 The current source review found that student chat uses the Studio chat route, shared role-home routing and
 grade normalization exist, and CSP/print regression fixes are present. The `/head` workspace shell was
 added in this change. Its focused test, the related Studio suite, typecheck, production build, and deployed
