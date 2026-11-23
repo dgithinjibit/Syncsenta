@@ -22,6 +22,7 @@ interface Question {
 }
 
 interface Quiz {
+  quiz_id: string;
   title: string;
   competencies: string[];
   cbc_citations: string[];
@@ -63,11 +64,8 @@ export default function QuizPage() {
     setAnswers({});
 
     try {
-      // `/api/agents/*` is rewritten to the deployed ai-agents service by
-      // studio/vercel.json. The `/api/v1/mvp/agents/...` this used to call is
-      // rewritten to http://localhost:8080 by next.config.js, so on Vercel it
-      // could only ever fail - the same dead prefix that left the student
-      // tutor spinning.
+      // Route through the authenticated Studio handler; it adds the service
+      // credential and does not forward browser-supplied identity fields.
       const res = await fetch('/api/agents/assessment/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,8 +107,8 @@ export default function QuizPage() {
 
     try {
       const submission = {
-        quiz_id: 'demo',
-        student_id: 'demo-student',
+        submission_id: crypto.randomUUID(),
+        quiz_id: quiz.quiz_id,
         answers: quiz.questions.map((_, i) => ({
           question_id: String(i),
           answer: answers[i] ?? '',

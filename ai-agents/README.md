@@ -39,11 +39,12 @@ requests a structured tutoring decision from the Rust API and streams the
 generated response through Studio's provider path. Do not route learner
 tutoring policy through `/agents/chat`.
 
-Teacher-generation routes dispatch directly to `LessonArchitectAgent`; quiz and
-grading routes dispatch to `AssessmentAgent`. No Omega orchestrator or startup
-hook is mounted by this service. The former dispatcher tests have been replaced
-with tests for these current route contracts. The focused test command passed
-5 tests on 2026-11-23; this is source/test evidence, not deployment verification.
+Teacher-generation routes dispatch to `LessonArchitectAgent`; quiz and grading
+routes dispatch to `AssessmentAgent`. `server.run_omega_task()` remains as a
+compatibility adapter for the former `AgentRequest`/task-context call shape, but
+it does not mount or recreate an Omega orchestrator. The focused test command
+passed 6 route-contract tests on 2026-11-23; this is source/test evidence, not
+deployment verification.
 
 The Rust API has no free-form chat endpoint; its tutoring endpoints require a
 short-lived Studio-signed student assertion. The existing AI Agents proxy does

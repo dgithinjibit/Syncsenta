@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
 import { toLessonArchitectAllocation, type StudioAllocation } from '@/lib/exam-allocation';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 import {
   detectBlockedOmegaClawContent,
   omegaClawGenerationHaystack,
@@ -78,14 +78,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabase = getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const supabase = await createSupabaseRouteHandlerClient();
+  const authResult = await supabase.auth.getUser().catch(() => null);
+  const user = authResult?.data?.user ?? null;
   if (!user?.id) {
     return NextResponse.json(
       { error: 'Sign in as a teacher to generate an exam.' },
       { status: 401 },
+    );
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profileError) {
+    return NextResponse.json(
+      { error: 'Unable to verify teacher access.' },
+      { status: 500 },
+    );
+  }
+  if (profile?.role !== 'teacher') {
+    return NextResponse.json(
+      { error: 'Teacher access required.' },
+      { status: 403 },
     );
   }
 

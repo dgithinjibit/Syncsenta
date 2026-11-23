@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 import {
   detectBlockedOmegaClawContent,
   omegaClawGenerationHaystack,
@@ -108,9 +108,33 @@ export async function POST(req: NextRequest) {
   }
 
   // Attach user context if available
-  const supabase = getSupabaseServerClient();
+  const supabase = await createSupabaseRouteHandlerClient();
   const authResult = await supabase.auth.getUser().catch(() => null);
   const user = authResult?.data?.user ?? null;
+  if (!user) {
+    return Response.json(
+      { error: 'Sign in as a teacher to generate a lesson plan.' },
+      { status: 401 },
+    );
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profileError) {
+    return Response.json(
+      { error: 'Unable to verify teacher access.' },
+      { status: 500 },
+    );
+  }
+  if (profile?.role !== 'teacher') {
+    return Response.json(
+      { error: 'Teacher access required.' },
+      { status: 403 },
+    );
+  }
 
   const headers = getAiAgentsServiceHeaders({
     'Content-Type': 'application/json',
@@ -124,7 +148,7 @@ export async function POST(req: NextRequest) {
   // prefer the session over any teacher_id the client chose to send.
   const upstreamPayload = {
     ...body,
-    teacher_id: user?.id ?? body.teacher_id ?? 'teacher_demo',
+    teacher_id: user.id,
     week: Number.isFinite(body.week) ? body.week : 1,
     lesson: Number.isFinite(body.lesson) ? body.lesson : 1,
   };

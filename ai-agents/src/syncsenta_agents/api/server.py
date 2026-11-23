@@ -184,6 +184,32 @@ def get_agent() -> AssessmentAgent:
     return _agent
 
 
+async def run_omega_task(
+    request: AgentRequest,
+    *,
+    task_context: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Compatibility adapter for teacher-generation routes.
+
+    Teacher content dispatch belongs to LessonArchitectAgent. This helper keeps
+    the existing AgentRequest/task_context call shape while avoiding a second
+    orchestrator implementation or an import cycle in the API package.
+    """
+    from ..agents.lesson_architect import LessonArchitectAgent
+    from ..db.supabase_client import get_supabase_client
+
+    context = dict(task_context or {})
+    context.update({
+        "teacher_id": request.user_id,
+        "grade": request.grade,
+        "subject": request.subject,
+        "language": context.get("language", "english"),
+    })
+
+    agent = LessonArchitectAgent(supabase_client=get_supabase_client())
+    return await agent.execute_task(request.message, context)
+
+
 def _get_chat_generator() -> MultiProviderClient:
     from ..inference.multi_provider_client import get_multi_provider_client
 
@@ -197,9 +223,28 @@ def _get_chat_generator() -> MultiProviderClient:
 
 @app.get("/healthz")
 async def healthz() -> Dict[str, Any]:
+    llm_configured = any(
+        os.environ.get(name, "").strip()
+        for name in (
+            "NVIDIA_API_KEY",
+            "OPENAI_API_KEY",
+            "GEMINI_API_KEY",
+            "GROQ_API_KEY",
+        )
+    )
+    database_configured = bool(
+        os.environ.get("SUPABASE_URL", "").strip()
+        and os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+    )
+
     return {
         "status": "ok",
         "offline_demo": os.environ.get("SYNCSENTA_OFFLINE_DEMO") == "1",
+        "dependencies": {
+            "llm_provider": llm_configured,
+            "database": database_configured,
+            "service_api_key": _configured_api_key() is not None,
+        },
         # `mounted: false` means the teacher generation routes are 404ing even
         # though this endpoint answers 200. Report it rather than let the
         # studio proxies look healthy from the outside.
