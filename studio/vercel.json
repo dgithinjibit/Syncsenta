@@ -83,10 +83,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/agents/assessment/:path*",
-      "destination": "https://ascendra-1.onrender.com/agents/assessment/:path*"
-    },
-    {
       "source": "/api/lesson-architect/:path*",
       "destination": "https://ascendra-1.onrender.com/lesson-architect/:path*"
     }

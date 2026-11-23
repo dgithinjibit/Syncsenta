@@ -9,7 +9,8 @@ web application in `studio/`.
 - Entrypoint: `syncsenta_agents.api.server:app`
 - Render configuration: [`render.yaml`](render.yaml)
 - Health check: `GET /healthz`
-- Student agent and assessment routes are mounted under `/agents/`.
+- Teacher assessment content: `POST /agents/chat`
+- Assessment routes are mounted under `/agents/assessment/`.
 - Teacher generation routes are mounted by the lesson-architect router when
   its dependencies are available; `/healthz` reports whether it mounted.
 
@@ -17,17 +18,50 @@ The Render manifest documents the deployed service configuration. The live
 Render service was created manually, so changes to `render.yaml` do not deploy
 until its dashboard settings and deployment are updated.
 
-## Omega orchestration
+## Current routing status
 
-The deployed app routes chat, quiz generation/grading, and teacher content
-provider-backed generation through a direct compatibility route → a registered
-specialist. The MeTTa policy and Python fallback share the role/task routing
-contract in `src/syncsenta_agents/omega_routing.py`; add a policy route and a
-focused dispatch test when introducing a new specialist task. Structured
-specialist results are retained internally so the existing quiz and teacher
-API response shapes remain unchanged. If Omega cannot initialize, app startup
-fails; worker exceptions return an Omega-owned error instead of routing around
-the master. Scheme save/list endpoints remain data operations, not agent tasks.
+`POST /agents/chat` is a content-only adapter for the teacher assessment
+generator. It uses the existing multi-provider client and returns
+`{success, response, source}`. Blank messages and provider failures return
+explicit errors; the endpoint does not make structured tutoring-policy
+decisions. The service API-key middleware protects the route. Request `role`
+and `user_id` fields are not authorization credentials.
+
+Studio's assessment generator calls `/api/generate/assessment`, which verifies
+the request-bound session and teacher profile, then replaces client-supplied
+identity fields before proxying. Missing service configuration returns 503;
+provider/upstream failures return 502 rather than a fabricated assessment.
+The forwarded user header is derived from the session, but is not itself an
+authentication credential.
+
+The active learner-chat path remains Studio's same-origin `/api/chat`: it
+requests a structured tutoring decision from the Rust API and streams the
+generated response through Studio's provider path. Do not route learner
+tutoring policy through `/agents/chat`.
+
+Teacher-generation routes dispatch to `LessonArchitectAgent`; quiz and grading
+routes dispatch to `AssessmentAgent`. `server.run_omega_task()` remains as a
+compatibility adapter for the former `AgentRequest`/task-context call shape, but
+it does not mount or recreate an Omega orchestrator. The focused test command
+passed 6 route-contract tests on 2026-11-23; this is source/test evidence, not
+deployment verification.
+
+The Rust API has no free-form chat endpoint; its tutoring endpoints require a
+short-lived Studio-signed student assertion. The existing AI Agents proxy does
+not send that assertion.
+
+`omega_routing.py` contains a Python role/task routing table, while
+`metta-logic/syncsenta_policy.metta` and Rust policy code contain overlapping
+policy material. Do not expand the Python table or delete existing agents until
+the service contract is agreed and tested. Rust/Hyperon was selected as the
+target policy authority on 2026-11-20; this choice is not evidence that all
+policy paths are unified, Hyperon is running, or the Rust service is deployed.
+
+The Python `reasoning` package also has imports targeting absent
+`metta_engine.py` and `hyperon_evaluator.py` modules. Call sites exist in rule
+sync and telemetry code, but no mounted route was established during the
+current source review. Treat these as unresolved references, not proof that
+the whole package is safe to remove.
 
 ## Local development
 
@@ -44,13 +78,23 @@ Run the service tests from this directory:
 PYTHONPATH=src poetry run pytest
 ```
 
-Run the focused Omega orchestration tests:
+Run the focused content-route and service-boundary tests:
 
 ```bash
-PYTHONPATH=src poetry run pytest -q tests/test_omega_api.py tests/test_omega_queen.py tests/test_omega_routing.py tests/test_orchestrator.py tests/test_assessment_agent.py
+PYTHONPATH=src poetry run pytest -q tests/test_chat_api.py tests/test_deployed_app_routes.py tests/test_api_auth.py
 ```
 
 Configure provider credentials and optional Supabase settings in the local
 environment. Never commit secrets. See [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
 for service boundaries and [`../docs/DEBUGGING_PLAYBOOK.md`](../docs/DEBUGGING_PLAYBOOK.md)
 for production checks.
+
+The route-contract tests are separate from this content-only adapter check:
+
+```bash
+PYTHONPATH=src poetry run pytest -q tests/test_omega_api.py
+```
+
+They cover the direct AssessmentAgent and LessonArchitectAgent route boundaries.
+Do not restore Python tutoring-policy routing; Rust remains the selected target
+authority for structured tutoring decisions.

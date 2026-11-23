@@ -569,7 +569,7 @@ class TestAgentFailureRecovery:
         assert manager.retry_strategy is not None
         assert manager.fallback_strategy is not None
     
-    @pytest:mark.asyncio
+    @pytest.mark.asyncio
     async def test_agent_failure_with_fallback(self):
         """Test agent failure triggers fallback mechanism."""
         manager = FailureRecoveryManager()

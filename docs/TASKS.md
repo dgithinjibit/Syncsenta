@@ -1,6 +1,6 @@
 # SyncSenta Developer Guide and Active Tasks
 
-**Last reviewed:** 2026-11-20
+**Last reviewed:** 2026-11-23
 **Purpose:** the one active task register for maintainers and coding agents. Update this file when work is started, completed, blocked, or newly verified. Git history is the archive.
 
 ## How to work in this repository
@@ -35,12 +35,18 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 
 ## Active tasks
 
+- [ ] Complete Phase 0 route stabilization: add focused scheme/exam authorization tests, repair Python test/plugin compatibility, reconcile deployment manifests, and verify live route behavior. Start in [lesson-plan route](../studio/src/app/api/generate/lesson-plan/route.ts), [scheme route](../studio/src/app/api/generate/scheme/route.ts), [exam route](../studio/src/app/api/generate/exam/route.ts), and [server health](../ai-agents/src/syncsenta_agents/api/server.py).
+- [ ] Complete the server-owned assessment boundary: persist generated quizzes and submissions, bind results to authenticated learner/teacher IDs, and add browser-verifiable quiz/grade flows. Start in [quiz route](../studio/src/app/api/agents/assessment/quiz/route.ts) and [grade route](../studio/src/app/api/agents/assessment/grade/route.ts).
+- [ ] Agree on and implement the durable generated-scheme schema, Save to Library handler, and scheme version/history contract. Start in [scheme wizard](../studio/src/app/teacher/scheme-wizard/page.tsx) and [lesson_architect.py](../ai-agents/src/syncsenta_agents/agents/lesson_architect.py).
+- [ ] Design and implement Rust-only ASI:Chain contribution and service-payment intake, initially against DevNet test tokens only. Keep payer keys outside SyncSenta; verify finalized transfer deploys and record receipts idempotently, separately from learner rewards. Before any real-value release, settle the production asset, treasury control, payment quote/price, refund policy, legal review, and reliable finality/indexing. Audit existing EVM deployments and consumers before changing the frozen Solidity code. Exclude internal cash-flow tooling.
+- [ ] Rebuild the Codespace with the lean Ubuntu devcontainer image and record the container build result.
 - [ ] Run the focused Studio regression tests for head navigation, student transport, role routing, grade normalization, CSP, and safe scheme printing when Node.js and the project dependencies are available. Record the exact command and result.
 - [ ] Browser-verify student, teacher, and head workspace access on the deployed build using authorized test accounts. Record deployment and browser evidence separately.
-- [ ] Agree on the durable storage contract for generated schemes before implementing the wizard's **Save to Library** action. Do not select Firebase, Supabase, or another store by assumption.
 
 ## Completed in the current work
 
+- [x] Reconciled the AI Agents route tests with the mounted service: teacher generation dispatches through `LessonArchitectAgent`, quiz/grading use `AssessmentAgent`, and `server.run_omega_task()` provides the compatibility adapter for former task-context callers. No legacy Omega startup hook is required. `PYTHONPATH=src .venv/bin/python -m pytest -q tests/test_omega_api.py tests/test_deployed_app_routes.py tests/test_lesson_plan.py` passed (21 tests); no deployment verification.
+- [x] Restored Python `POST /agents/chat` as a content-only teacher assessment adapter using the existing multi-provider client. Studio verifies teacher identity and returns explicit 503/502 errors rather than fabricated assessments. Focused Python tests passed (13); focused Studio route tests passed (7). No deployment or browser verification.
 - [x] Added the `/head` layout with `AppSidebar`, `AppHeader`, `SidebarProvider`, and `SidebarInset`.
 - [x] Added a regression test asserting the head workspace mounts its navigation shell.
 - [x] Reviewed the reported CSP, print-sink, student-routing, and grade-normalization causes against the current source; fixes and corresponding tests already exist.
@@ -51,4 +57,4 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 - [README.md](../README.md) is the repository overview; [docs/README.md](README.md) indexes maintained documentation.
 - [ROADMAP.md](ROADMAP.md) records current project position and evidence. It is not a second task list.
 - Keep detailed technical references only when they remain useful to current implementation or future maintenance. Dated snapshots, completed one-off plans, and superseded architecture proposals should be removed after checking and updating inbound references.
-- There is no `specs.md` at the repository root or under `docs/`. Do not create another task list to replace this one.
+- [PRODUCTION_ACCEPTANCE.md](PRODUCTION_ACCEPTANCE.md) is the named production acceptance specification. Do not create another task list to replace this one.

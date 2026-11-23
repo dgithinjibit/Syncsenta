@@ -314,7 +314,7 @@ The [Hyperon dependent-project review](docs/HYPERON_DEPENDENT_PROJECTS.md)
 records patterns from representative MeTTa projects and the guardrails required
 before expanding Omega beyond its current policy and tutoring boundaries.
 
-[Coding standards](docs/CODING_STANDARDS.md) covers Studio coding conventions —
+[Coding and repository standards](AGENTS.md) cover Studio conventions,
 TypeScript patterns, component structure, Supabase client selection, test seams,
 and the safe-change workflow.
 
@@ -335,9 +335,6 @@ service boundaries, Render deployment, MeTTa/Omega student path, and known gaps.
 This is a solo-developed project. The [Development guide](docs/DEVELOPMENT.md)
 is the place to start. Run `npx vitest run` and `npm run build` from `studio/`
 before committing any change to the Next.js app. [P.M](https://dgithinji331s-team-company.monday.com/boards/5102970375)
-
-The [TDD analysis](docs/TDD_ANALYSIS.md) documents current test coverage gaps and
-the implementation plan for closing them, prioritised by production risk.
 
 Point-in-time reports were removed from the tree on 2026-10-02; the repository's history
 is the archive, and [`docs/ROADMAP.md`](docs/ROADMAP.md) is the record of where the

@@ -2,43 +2,27 @@ import pytest
 
 from syncsenta_agents.api import lesson_architect_api
 from syncsenta_agents.api import server
-from syncsenta_agents.core.models import AgentResponse
-
-
-class CapturingOrchestrator:
-    def __init__(self, structured_result, primary_agent="assessment"):
-        self.structured_result = structured_result
-        self.primary_agent = primary_agent
-        self.request = None
-        self.task_context = None
-
-    async def process_request(self, request, *, task_context=None):
-        self.request = request
-        self.task_context = task_context
-        return AgentResponse(
-            success=True,
-            response="Task completed",
-            primary_agent=self.primary_agent,
-            agents_used=[self.primary_agent],
-            response_time_ms=0,
-            structured_result=self.structured_result,
-        )
 
 
 @pytest.mark.asyncio
-async def test_quiz_endpoint_preserves_structured_result_from_omega(monkeypatch):
+async def test_quiz_endpoint_uses_assessment_agent(monkeypatch):
     quiz = {"quiz_id": "quiz-1", "questions": []}
-    orchestrator = CapturingOrchestrator({"quiz": quiz})
 
-    async def get_orchestrator():
-        return orchestrator
+    class CapturingAssessmentAgent:
+        def __init__(self):
+            self.arguments = None
 
-    monkeypatch.setattr(server, "get_orchestrator", get_orchestrator)
-    monkeypatch.setattr(
-        server,
-        "get_agent",
-        lambda: pytest.fail("quiz endpoint bypassed Omega"),
-    )
+        async def generate_quiz(self, **arguments):
+            self.arguments = arguments
+
+            class QuizResult:
+                def model_dump(self, *, mode):
+                    return quiz
+
+            return QuizResult()
+
+    agent = CapturingAssessmentAgent()
+    monkeypatch.setattr(server, "get_agent", lambda: agent)
 
     response = await server.generate_quiz(
         server.QuizRequest(
@@ -50,32 +34,53 @@ async def test_quiz_endpoint_preserves_structured_result_from_omega(monkeypatch)
     )
 
     assert response == quiz
-    assert orchestrator.request.role == "teacher"
-    assert orchestrator.request.type == "assessment"
-    assert orchestrator.task_context["action"] == "generate_quiz"
-    assert orchestrator.task_context["competency"] == "fractions"
+    assert agent.arguments == {
+        "grade": "Grade 4",
+        "subject": "Mathematics",
+        "competency": "fractions",
+        "num_questions": 3,
+        "language": "english",
+        "question_types": None,
+    }
 
 
 @pytest.mark.asyncio
-async def test_grade_endpoint_preserves_structured_result_from_omega(monkeypatch):
+async def test_grade_endpoint_uses_assessment_agent(monkeypatch):
     graded = {"submission_id": "submission-1", "score": 4}
-    orchestrator = CapturingOrchestrator({"graded": graded})
 
-    async def get_orchestrator():
-        return orchestrator
+    class CapturingAssessmentAgent:
+        def __init__(self):
+            self.quiz = None
+            self.submission = None
 
-    monkeypatch.setattr(server, "get_orchestrator", get_orchestrator)
-    monkeypatch.setattr(
-        server,
-        "get_agent",
-        lambda: pytest.fail("grading endpoint bypassed Omega"),
-    )
+        async def grade_submission(self, quiz, submission):
+            self.quiz = quiz
+            self.submission = submission
+
+            class GradeResult:
+                def model_dump(self, *, mode):
+                    return graded
+
+            return GradeResult()
+
+    agent = CapturingAssessmentAgent()
+    monkeypatch.setattr(server, "get_agent", lambda: agent)
 
     response = await server.grade_submission(
         server.GradeRequest(
-            quiz={"quiz_id": "quiz-1", "questions": []},
+            quiz={
+                "quiz_id": "quiz-1",
+                "title": "Fractions",
+                "grade": "Grade 6",
+                "subject": "Mathematics",
+                "competencies": ["fractions"],
+                "questions": [],
+                "total_points": 4,
+                "cbc_citations": [],
+            },
             submission={
                 "submission_id": "submission-1",
+                "quiz_id": "quiz-1",
                 "student_id": "student-1",
                 "answers": [],
             },
@@ -83,31 +88,30 @@ async def test_grade_endpoint_preserves_structured_result_from_omega(monkeypatch
     )
 
     assert response == graded
-    assert orchestrator.request.role == "student"
-    assert orchestrator.request.type == "assessment"
-    assert orchestrator.task_context["action"] == "grade_submission"
+    assert agent.quiz.quiz_id == "quiz-1"
+    assert agent.submission.quiz_id == "quiz-1"
+    assert agent.submission.student_id == "student-1"
 
 
 @pytest.mark.asyncio
-async def test_startup_surfaces_omega_initialization_failure(monkeypatch):
-    async def fail_to_initialize():
-        raise RuntimeError("MeTTa policy unavailable")
-
-    monkeypatch.setattr(server, "get_orchestrator", fail_to_initialize)
-
-    with pytest.raises(RuntimeError, match="MeTTa policy unavailable"):
-        await server._warm_orchestrator()
-
-
-@pytest.mark.asyncio
-async def test_scheme_without_credentials_uses_omega_prescribed_fallback(monkeypatch):
+async def test_scheme_without_credentials_uses_prescribed_fallback(monkeypatch):
     rows = [{"week": 1, "lesson": 1, "subStrand": "Core concepts"}]
-    orchestrator = CapturingOrchestrator({"rows": rows})
+    class CapturingLessonArchitect:
+        def __init__(self):
+            self.context = None
 
-    async def get_orchestrator():
-        return orchestrator
+        async def execute_task(self, request, context):
+            self.context = context
+            return {"rows": rows}
 
-    monkeypatch.setattr(server, "get_orchestrator", get_orchestrator)
+    agent = CapturingLessonArchitect()
+    monkeypatch.setattr(
+        lesson_architect_api,
+        "LessonArchitectAgent",
+        lambda **_: agent,
+        raising=False,
+    )
+    monkeypatch.setattr(lesson_architect_api, "get_supabase_client", lambda: None)
     monkeypatch.setattr(
         lesson_architect_api,
         "_has_llm_credentials",
@@ -125,25 +129,32 @@ async def test_scheme_without_credentials_uses_omega_prescribed_fallback(monkeyp
 
     assert response["rows"] == rows
     assert response["source"] == "prescribed-cbc-fallback"
-    assert orchestrator.request.type == "scheme"
-    assert orchestrator.task_context["prescribed_cbc_fallback"] is True
+    assert agent.context["action"] == "generate_scheme"
+    assert agent.context["prescribed_cbc_fallback"] is True
+    assert agent.context["teacher_id"] == "teacher-1"
 
 
 @pytest.mark.asyncio
-async def test_lesson_worksheet_endpoint_dispatches_through_omega(monkeypatch):
+async def test_lesson_worksheet_endpoint_dispatches_to_lesson_architect_agent(monkeypatch):
     worksheet = {"title": "Fractions"}
-    orchestrator = CapturingOrchestrator(
-        {
-            "worksheet_id": "worksheet-1",
-            "worksheet": worksheet,
-        },
-        primary_agent="lesson_architect",
+    class CapturingLessonArchitect:
+        def __init__(self):
+            self.request = None
+            self.context = None
+
+        async def execute_task(self, request, context):
+            self.request = request
+            self.context = context
+            return {"worksheet_id": "worksheet-1", "worksheet": worksheet}
+
+    agent = CapturingLessonArchitect()
+    monkeypatch.setattr(
+        lesson_architect_api,
+        "LessonArchitectAgent",
+        lambda **_: agent,
+        raising=False,
     )
-
-    async def get_orchestrator():
-        return orchestrator
-
-    monkeypatch.setattr(server, "get_orchestrator", get_orchestrator)
+    monkeypatch.setattr(lesson_architect_api, "get_supabase_client", lambda: None)
 
     response = await lesson_architect_api.generate_worksheet(
         lesson_architect_api.GenerateWorksheetRequest(
@@ -160,7 +171,97 @@ async def test_lesson_worksheet_endpoint_dispatches_through_omega(monkeypatch):
         "worksheet": worksheet,
         "source": "ai-agents",
     }
-    assert orchestrator.request.role == "teacher"
-    assert orchestrator.request.type == "worksheet"
-    assert orchestrator.primary_agent == "lesson_architect"
-    assert orchestrator.task_context["action"] == "generate_worksheet"
+    assert agent.request == "Generate a worksheet for this lesson"
+    assert agent.context["action"] == "generate_worksheet"
+    assert agent.context["teacher_id"] == "teacher-1"
+    assert agent.context["grade"] == "Grade 4"
+    assert agent.context["subject"] == "Mathematics"
+
+
+@pytest.mark.asyncio
+async def test_run_omega_task_dispatches_lesson_architect_action(monkeypatch):
+    class CapturingLessonArchitect:
+        def __init__(self, **kwargs):
+            self.request = None
+            self.context = None
+
+        async def execute_task(self, request, context):
+            self.request = request
+            self.context = context
+            return {"lesson_plan_id": "lesson-1", "lesson_plan": {"title": "Fractions"}}
+
+    agent = CapturingLessonArchitect
+    monkeypatch.setattr(
+        "syncsenta_agents.agents.lesson_architect.LessonArchitectAgent",
+        agent,
+    )
+    monkeypatch.setattr(
+        "syncsenta_agents.db.supabase_client.get_supabase_client",
+        lambda: None,
+    )
+
+    from syncsenta_agents.core.models import AgentRequest
+
+    result = await server.run_omega_task(
+        AgentRequest(
+            message="Generate lesson 1 for week 2",
+            user_id="teacher-1",
+            grade="Grade 6",
+            subject="Mathematics",
+            role="teacher",
+            type="lesson-plan",
+        ),
+        task_context={
+            "action": "generate_lesson_plan",
+            "week": 2,
+            "lesson": 1,
+            "row": {"strand": "Number", "subStrand": "Fractions"},
+        },
+    )
+
+    assert result["lesson_plan_id"] == "lesson-1"
+
+
+@pytest.mark.asyncio
+async def test_lesson_plan_endpoint_dispatches_to_lesson_architect_agent(monkeypatch):
+    lesson_plan = {"title": "Fractions"}
+
+    class CapturingLessonArchitect:
+        def __init__(self):
+            self.request = None
+            self.context = None
+
+        async def execute_task(self, request, context):
+            self.request = request
+            self.context = context
+            return {"lesson_plan_id": "lesson-1", "lesson_plan": lesson_plan}
+
+    agent = CapturingLessonArchitect()
+    monkeypatch.setattr(
+        lesson_architect_api,
+        "LessonArchitectAgent",
+        lambda **_: agent,
+        raising=False,
+    )
+    monkeypatch.setattr(lesson_architect_api, "get_supabase_client", lambda: None)
+
+    response = await lesson_architect_api.generate_lesson_plan(
+        lesson_architect_api.GenerateLessonPlanRequest(
+            teacher_id="teacher-1",
+            week=2,
+            lesson=1,
+            row={"strand": "Number", "subStrand": "Fractions"},
+            grade="Grade 6",
+            subject="Mathematics",
+        )
+    )
+
+    assert response == {
+        "success": True,
+        "lesson_plan_id": "lesson-1",
+        "lesson_plan": lesson_plan,
+        "source": "ai-agents",
+    }
+    assert agent.request == "Generate lesson 1 for week 2"
+    assert agent.context["action"] == "generate_lesson_plan"
+    assert agent.context["teacher_id"] == "teacher-1"

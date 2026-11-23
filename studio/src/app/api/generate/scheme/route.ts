@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildApiUrl, getAiAgentsServiceHeaders } from '@/lib/api-config';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/route-handler';
 import {
   detectBlockedOmegaClawContent,
   omegaClawGenerationHaystack,
@@ -126,9 +126,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabase = getSupabaseServerClient();
-  const authResult: any = await supabase.auth.getUser().catch(() => ({}));
-  const user = authResult.data?.user;
+  const supabase = await createSupabaseRouteHandlerClient();
+  const authResult = await supabase.auth.getUser().catch(() => null);
+  const user = authResult?.data?.user ?? null;
 
   if (!user?.id) {
     // `GenerateSchemeRequest.teacher_id` is required by the Python model, so a
@@ -137,6 +137,24 @@ export async function POST(req: NextRequest) {
     // service for it, and keep anonymous traffic off the metered provider.
     return NextResponse.json(
       prescribedScheme(body, 'Sign in to generate a scheme with the AI service.'),
+    );
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profileError) {
+    return NextResponse.json(
+      { error: 'Unable to verify teacher access.' },
+      { status: 500 },
+    );
+  }
+  if (profile?.role !== 'teacher') {
+    return NextResponse.json(
+      { error: 'Teacher access required.' },
+      { status: 403 },
     );
   }
 

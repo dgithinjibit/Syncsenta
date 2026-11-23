@@ -21,7 +21,8 @@ os.environ.setdefault("GROQ_API_KEY", "test-key-offline")
 
 import pytest
 
-from syncsenta_agents.api.server import _resolve_teacher_id
+# Teacher resolution is tested through the mounted connector behavior below;
+# the removed server-side Omega orchestrator had no public resolver contract.
 from syncsenta_agents.agents.tutoring import TutoringAgent
 from syncsenta_agents.db import decision_logger as decision_logger_module
 

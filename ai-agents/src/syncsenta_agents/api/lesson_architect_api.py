@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import AliasChoices, BaseModel, Field
 
+from ..agents.lesson_architect import LessonArchitectAgent
 from ..db.supabase_client import get_supabase_client
 from ..core.logging import get_logger
-from ..core.models import AgentRequest
 
 router = APIRouter(prefix="/lesson-architect", tags=["lesson-architect"])
 logger = get_logger("lesson_architect_api")
@@ -22,28 +22,22 @@ def _has_llm_credentials() -> bool:
     )
 
 
-async def _run_omega_teacher_task(
+async def _run_lesson_architect_task(
     *,
     message: str,
     teacher_id: str,
     grade: Optional[str],
     subject: Optional[str],
-    request_type: str,
     task_context: Dict[str, Any],
 ) -> Dict[str, Any]:
-    from .server import run_omega_task
+    context = {**task_context, "teacher_id": teacher_id}
+    if grade is not None:
+        context["grade"] = grade
+    if subject is not None:
+        context["subject"] = subject
 
-    return await run_omega_task(
-        AgentRequest(
-            message=message,
-            user_id=teacher_id,
-            grade=grade,
-            subject=subject,
-            role="teacher",
-            type=request_type,
-        ),
-        task_context=task_context,
-    )
+    agent = LessonArchitectAgent(supabase_client=get_supabase_client())
+    return await agent.execute_task(message, context)
 
 
 class GenerateSchemeRequest(BaseModel):
@@ -211,12 +205,11 @@ async def generate_scheme(request: GenerateSchemeRequest) -> Dict[str, Any]:
 
     try:
         prescribed_fallback = not _has_llm_credentials()
-        result = await _run_omega_teacher_task(
+        result = await _run_lesson_architect_task(
             message=f"Generate a {request.grade} {request.subject} scheme",
             teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            request_type="scheme",
             task_context={
                 "action": "generate_scheme",
                 "teacher_id": request.teacher_id,
@@ -303,12 +296,11 @@ async def generate_lesson_plan(request: GenerateLessonPlanRequest) -> Dict[str, 
         if scheme_id in ("None", "", "null", "undefined"):
             scheme_id = None
         
-        result = await _run_omega_teacher_task(
+        result = await _run_lesson_architect_task(
             message=f"Generate lesson {request.lesson} for week {request.week}",
             teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            request_type="lesson-plan",
             task_context={
                 "action": "generate_lesson_plan",
                 "teacher_id": request.teacher_id,
@@ -354,12 +346,11 @@ async def generate_worksheet(request: GenerateWorksheetRequest) -> Dict[str, Any
     studio's worksheet renderer should branch by ``item.type``.
     """
     try:
-        result = await _run_omega_teacher_task(
+        result = await _run_lesson_architect_task(
             message="Generate a worksheet for this lesson",
             teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            request_type="worksheet",
             task_context={
                 "action": "generate_worksheet",
                 "teacher_id": request.teacher_id,
@@ -399,12 +390,11 @@ async def generate_text_leveler(request: GenerateTextLevelerRequest) -> Dict[str
     question list and answer guidance.
     """
     try:
-        result = await _run_omega_teacher_task(
+        result = await _run_lesson_architect_task(
             message="Create a grade-appropriate reading passage",
             teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            request_type="text-leveler",
             task_context={
                 "action": "generate_text_leveler",
                 "teacher_id": request.teacher_id,
@@ -443,12 +433,11 @@ async def unpack_outcome(request: UnpackOutcomeRequest) -> Dict[str, Any]:
     successCriteria[{criterion, observable}], coreCompetencies[], values[]}``.
     """
     try:
-        result = await _run_omega_teacher_task(
+        result = await _run_lesson_architect_task(
             message=request.outcome,
             teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            request_type="unpack-outcome",
             task_context={
                 "action": "unpack_outcome",
                 "teacher_id": request.teacher_id,
@@ -493,12 +482,11 @@ async def generate_differentiation(
     them as parallel columns, not as separate plans.
     """
     try:
-        result = await _run_omega_teacher_task(
+        result = await _run_lesson_architect_task(
             message="Differentiate this lesson plan",
             teacher_id=request.teacher_id,
             grade=request.lesson_plan.get("grade"),
             subject=request.lesson_plan.get("subject"),
-            request_type="differentiation",
             task_context={
                 "action": "generate_differentiation",
                 "teacher_id": request.teacher_id,
@@ -538,12 +526,11 @@ async def generate_exam(request: GenerateExamRequest) -> Dict[str, Any]:
     ``{type: "mcq"|"short"|"long", ...}``. The studio renders by ``type``.
     """
     try:
-        result = await _run_omega_teacher_task(
+        result = await _run_lesson_architect_task(
             message=f"Generate a {request.term} exam for {request.grade} {request.subject}",
             teacher_id=request.teacher_id,
             grade=request.grade,
             subject=request.subject,
-            request_type="exam",
             task_context={
                 "action": "generate_exam",
                 "teacher_id": request.teacher_id,

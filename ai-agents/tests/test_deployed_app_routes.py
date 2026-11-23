@@ -70,6 +70,19 @@ def test_student_routes_are_still_registered() -> None:
     assert not missing, f"student-facing routes disappeared: {sorted(missing)}"
 
 
+def test_healthz_reports_configuration_dependencies(monkeypatch) -> None:
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    import asyncio
+
+    body = asyncio.run(server.healthz())
+
+    assert body["dependencies"]["llm_provider"] is True
+    assert body["dependencies"]["database"] is True
+
+
 def test_healthz_reports_the_lesson_architect_mount() -> None:
     # `healthz` is an async route; run the coroutine directly rather than pull
     # in a test client (httpx/TestClient is optional in this environment).
