@@ -1,6 +1,6 @@
 # SyncSenta Developer Guide and Active Tasks
 
-**Last reviewed:** 2026-11-20
+**Last reviewed:** 2026-11-23
 **Purpose:** the one active task register for maintainers and coding agents. Update this file when work is started, completed, blocked, or newly verified. Git history is the archive.
 
 ## How to work in this repository
@@ -36,7 +36,6 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 ## Active tasks
 
 - [ ] Design and implement Rust-only ASI:Chain contribution and service-payment intake, initially against DevNet test tokens only. Keep payer keys outside SyncSenta; verify finalized transfer deploys and record receipts idempotently, separately from learner rewards. Before any real-value release, settle the production asset, treasury control, payment quote/price, refund policy, legal review, and reliable finality/indexing. Audit existing EVM deployments and consumers before changing the frozen Solidity code. Exclude internal cash-flow tooling.
-- [ ] Reconcile the five legacy `tests/test_omega_api.py` expectations with the content-only adapter boundary. They still expect missing `get_orchestrator()` dispatchers for quiz, grading, and teacher-generation operations; audit whether those are supported contracts before restoring orchestration or pruning modules.
 - [ ] Rebuild the Codespace with the lean Ubuntu devcontainer image and record the container build result.
 - [ ] Run the focused Studio regression tests for head navigation, student transport, role routing, grade normalization, CSP, and safe scheme printing when Node.js and the project dependencies are available. Record the exact command and result.
 - [ ] Browser-verify student, teacher, and head workspace access on the deployed build using authorized test accounts. Record deployment and browser evidence separately.
@@ -44,6 +43,7 @@ The relevant files are [the head layout](../studio/src/app/head/layout.tsx), [he
 
 ## Completed in the current work
 
+- [x] Reconciled the AI Agents route tests with the mounted service: teacher generation dispatches directly to `LessonArchitectAgent`, quiz/grading use `AssessmentAgent`, and no legacy Omega startup hook is required. `PYTHONPATH=src .venv/bin/python -m pytest -q tests/test_omega_api.py tests/test_deployed_app_routes.py tests/test_lesson_plan.py` passed (20 tests); no deployment verification.
 - [x] Restored Python `POST /agents/chat` as a content-only teacher assessment adapter using the existing multi-provider client. Studio verifies teacher identity and returns explicit 503/502 errors rather than fabricated assessments. Focused Python tests passed (13); focused Studio route tests passed (7). No deployment or browser verification.
 - [x] Added the `/head` layout with `AppSidebar`, `AppHeader`, `SidebarProvider`, and `SidebarInset`.
 - [x] Added a regression test asserting the head workspace mounts its navigation shell.

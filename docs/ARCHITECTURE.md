@@ -30,9 +30,11 @@ and this file for boundaries and canonical file locations.
   teacher assessment route verifies a request session and teacher role before proxying to the
   content-only Python `/agents/chat` adapter. Configuration and provider failures are returned as
   errors rather than generated-looking templates. Rust has no free-form chat API.
-- The AI Agents route and orchestration contract is under reconciliation. See
-  [`ai-agents/README.md`](../ai-agents/README.md) for tested source status and
-  [`TASKS.md`](TASKS.md) for the next bounded decision and implementation slice.
+- Python teacher-generation routes dispatch directly to `LessonArchitectAgent`;
+  quiz and grading routes dispatch to `AssessmentAgent`. No Omega orchestrator
+  is mounted. This is source/test status, not deployment verification. See
+  [`ai-agents/README.md`](../ai-agents/README.md) for route details and
+  [`TASKS.md`](TASKS.md) for remaining work.
 
 ### File inventory
 

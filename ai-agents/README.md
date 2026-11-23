@@ -39,11 +39,11 @@ requests a structured tutoring decision from the Rust API and streams the
 generated response through Studio's provider path. Do not route learner
 tutoring policy through `/agents/chat`.
 
-Five tests in `tests/test_omega_api.py` still expect `get_orchestrator()` and
-structured dispatchers that are absent from this package. This is a source/test
-contract mismatch, not a statement about the live Render deployment. Resolve
-whether those legacy quiz, grading, and teacher-generation contracts are still
-required before restoring orchestration or pruning modules.
+Teacher-generation routes dispatch directly to `LessonArchitectAgent`; quiz and
+grading routes dispatch to `AssessmentAgent`. No Omega orchestrator or startup
+hook is mounted by this service. The former dispatcher tests have been replaced
+with tests for these current route contracts. The focused test command passed
+5 tests on 2026-11-23; this is source/test evidence, not deployment verification.
 
 The Rust API has no free-form chat endpoint; its tutoring endpoints require a
 short-lived Studio-signed student assertion. The existing AI Agents proxy does
@@ -88,12 +88,12 @@ environment. Never commit secrets. See [`../docs/ARCHITECTURE.md`](../docs/ARCHI
 for service boundaries and [`../docs/DEBUGGING_PLAYBOOK.md`](../docs/DEBUGGING_PLAYBOOK.md)
 for production checks.
 
-The legacy dispatcher contract tests are separate from this content-only
-adapter check:
+The route-contract tests are separate from this content-only adapter check:
 
 ```bash
 PYTHONPATH=src poetry run pytest -q tests/test_omega_api.py
 ```
 
-They currently fail because they expect absent `get_orchestrator()` dispatchers;
-resolve that contract before restoring policy routing or removing modules.
+They cover the direct AssessmentAgent and LessonArchitectAgent route boundaries.
+Do not restore Python tutoring-policy routing; Rust remains the selected target
+authority for structured tutoring decisions.

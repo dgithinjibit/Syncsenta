@@ -1,6 +1,6 @@
 # SyncSenta Roadmap
 
-**Current position:** 2026-11-20
+**Current position:** 2026-11-23
 
 `docs/TASKS.md` is the only active task register. Git history is the record of completed implementation.
 This roadmap states current verified and unverified position without converting source or deployment
@@ -17,6 +17,21 @@ configuration into proof.
 - Not verified: the focused Studio regression suite, typecheck, test suite, production build, and
   deployed browser flows.
 - Not verified: live Supabase schema state and deployed Python/Rust runtime behavior.
+
+## AI Agents route reconciliation — 2026-11-23
+
+Implemented: teacher-generation endpoints call the existing `LessonArchitectAgent` directly, passing
+teacher, grade, and subject context into its task handler. Quiz and grading route tests now assert the
+mounted direct `AssessmentAgent` contract; the unsupported Omega startup-hook expectation was removed.
+
+Verification: from `ai-agents/`,
+`PYTHONPATH=src .venv/bin/python -m pytest -q tests/test_omega_api.py tests/test_deployed_app_routes.py tests/test_lesson_plan.py`
+passed: **20 tests**. No deployment or browser verification was performed.
+
+The full `PYTHONPATH=src .venv/bin/python -m pytest -q` run stopped during collection with six
+errors: a syntax error in `tests/test_failure_recovery.py`, missing `aiohttp` and `hypothesis`, a
+stale `_resolve_teacher_id` import in `tests/test_teacher_connector.py`, and the absent
+`reasoning.hyperon_evaluator` module. The full suite did not execute.
 
 ## AI Agents architecture scout — 2026-11-20
 
@@ -103,12 +118,10 @@ Use [TASKS.md](TASKS.md) for the live backlog. The current backlog is:
 
 1. Design and implement the ASI:Chain payment-intake slice in Rust, with DevNet-only verification and
    explicit production readiness gates.
-2. Reconcile the legacy Python orchestration-test expectations with the content-only adapter boundary
-   before pruning or restoring any modules.
-3. Rebuild the Codespace and record the container build result.
-4. Run the focused Studio regressions.
-5. Browser-verify authorized student, teacher, and head flows.
-6. Agree on the durable generated-scheme storage contract before implementing Save to Library.
+2. Rebuild the Codespace and record the container build result.
+3. Run the focused Studio regressions.
+4. Browser-verify authorized student, teacher, and head flows.
+5. Agree on the durable generated-scheme storage contract before implementing Save to Library.
 
 ## Working priorities
 

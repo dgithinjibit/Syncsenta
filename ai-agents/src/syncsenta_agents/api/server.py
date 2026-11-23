@@ -29,7 +29,7 @@ from secrets import compare_digest
 
 from ..agents.assessment import AssessmentAgent
 from ..core.exceptions import AgentError
-from ..core.models import Quiz, QuizSubmission
+from ..core.models import AgentRequest, Quiz, QuizSubmission
 
 if TYPE_CHECKING:
     from ..inference.multi_provider_client import MultiProviderClient

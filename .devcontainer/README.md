@@ -51,6 +51,18 @@ The following ports are automatically forwarded:
 
 ## Troubleshooting
 
+### Container image reports "no space left on device"
+
+Codespaces should use the lean Ubuntu devcontainer base configured in `devcontainer.json`. Rebuild the
+container after the base image is updated. Setup also skips Ollama and model downloads unless at least
+10 GB is available, preventing model storage from exhausting a small Codespace. After freeing space,
+run the model pulls manually:
+
+```bash
+ollama pull llama3.2:1b
+ollama pull qwen2.5:0.5b
+```
+
 ### Ollama not responding
 ```bash
 # Check if Ollama is running
